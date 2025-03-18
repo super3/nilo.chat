@@ -78,10 +78,10 @@ jobs:
         run: |
           echo "Contents of dist directory:"
           ls -la dist
-          echo "Contents of dist/js:"
-          ls -la dist/js
-          echo "Contents of dist/css:"
+          echo "Contents of CSS directory:"
           ls -la dist/css
+          echo "JavaScript files in dist:"
+          ls -la dist/*.js
 
       # Direct git commit approach for more reliable deployments
       - name: Deploy to GitHub Pages
