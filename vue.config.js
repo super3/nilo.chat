@@ -4,8 +4,8 @@ module.exports = {
   filenameHashing: true,
   configureWebpack: {
     output: {
-      filename: '[name].[contenthash:8].js',
-      chunkFilename: '[name].[contenthash:8].js'
+      filename: 'js/[name].[contenthash:8].js',
+      chunkFilename: 'js/[name].[contenthash:8].js'
     }
   }
 } 
