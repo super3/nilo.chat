@@ -1,15 +1,24 @@
-name: Deploy to GitHub Pages
+name: Build and Deploy to GitHub Pages
 
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  # Build job
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -19,9 +28,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci || npm install
+
+      # Run tests before building
+      - name: Run tests
+        run: npm test
 
       # Generate a unique build ID based on timestamp and commit hash
       - name: Generate build ID
@@ -68,14 +82,21 @@ jobs:
           ls -la dist/css
           echo "Contents of JS directory:"
           ls -la dist/js
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
 
-      # Direct git commit approach for more reliable deployments
+  # Deploy job
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
       - name: Deploy to GitHub Pages
-        run: |
-          cd dist
-          git init
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions@github.com"
-          git add .
-          git commit -m "Deploy to GitHub Pages with build ID ${{ env.BUILD_ID }}"
-          git push -f https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git HEAD:gh-pages
+        id: deployment
+        uses: actions/deploy-pages@v4
