@@ -1,6 +1,6 @@
-# Chat UI Demo
+# nilo.chat
 
-A modern chat interface built with Tailwind CSS.
+A self improving chat application, built by AI agents.
 
 ## Deployment
 
