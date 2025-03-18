@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Build and Deploy to GitHub Pages
 
 on:
   push:
@@ -33,9 +33,9 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
-      # Run tests before building
-      - name: Run tests
-        run: npm test
+      # Run tests with coverage before building
+      - name: Run tests with coverage
+        run: npm run test:coverage
 
       # Generate a unique build ID based on timestamp and commit hash
       - name: Generate build ID
