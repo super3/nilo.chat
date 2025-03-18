@@ -2,9 +2,9 @@
   <div class="font-sans antialiased h-screen flex w-full">
     <!-- Sidebar / channel list -->
     <ChannelSidebar />
-    <DirectMessageSidebar :username="username" />
+    <DirectMessageSidebar :username="username" :is-connected="isConnected" />
     <!-- Chat content -->
-    <ChatContent :username="username" />
+    <ChatContent :username="username" @connection-change="updateConnectionStatus" />
   </div>
 </template>
 
@@ -22,7 +22,13 @@ export default {
   },
   data() {
     return {
-      username: 'User_' + Math.floor(Math.random() * 1000)
+      username: 'User_' + Math.floor(Math.random() * 1000),
+      isConnected: false
+    }
+  },
+  methods: {
+    updateConnectionStatus(status) {
+      this.isConnected = status;
     }
   }
 }

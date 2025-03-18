@@ -69,16 +69,33 @@ export default {
     return {
       newMessage: '',
       messages: [],
-      socket: null
+      socket: null,
+      isConnected: false
     }
   },
   created() {
     // Connect to the WebSocket server
     this.socket = io();
     
-    // Emit the username when connecting
-    this.socket.emit('user_connected', {
-      username: this.username
+    // Handle connection events
+    this.socket.on('connect', () => {
+      this.isConnected = true;
+      this.$emit('connection-change', true);
+      
+      // Emit the username when connecting
+      this.socket.emit('user_connected', {
+        username: this.username
+      });
+    });
+    
+    this.socket.on('disconnect', () => {
+      this.isConnected = false;
+      this.$emit('connection-change', false);
+    });
+    
+    this.socket.on('connect_error', () => {
+      this.isConnected = false;
+      this.$emit('connection-change', false);
     });
     
     // Listen for message history when connecting
@@ -111,6 +128,11 @@ export default {
   methods: {
     sendMessage() {
       if (this.newMessage.trim() === '') return;
+      
+      if (!this.isConnected) {
+        // Optionally, you could add a notification here that the message can't be sent
+        return;
+      }
       
       // Send message to server
       this.socket.emit('chat_message', {

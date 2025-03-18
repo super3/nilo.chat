@@ -4,7 +4,7 @@
       <div class="flex-auto">
         <h1 class="font-semibold text-xl leading-tight mb-1 truncate">nilo.chat</h1>
         <div class="flex items-center mb-6">
-          <span class="bg-green-500 rounded-full block w-2 h-2 mr-2"></span>
+          <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2 mr-2']"></span>
           <span class="text-white/50 text-sm">{{ username }}</span>
         </div>
       </div>
@@ -34,8 +34,8 @@
           </svg>
         </div>
       </div>
-      <div class="flex items-center mb-2 px-4">
-        <span class="bg-green-500 rounded-full block w-2 h-2 mr-2"></span>
+      <div class="flex items-center mb-2 px-4" :class="{ 'opacity-50': !isConnected }">
+        <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2 mr-2']"></span>
         <span class="text-white opacity-75">{{ username }} <span class="text-gray-500 text-sm">(you)</span></span>
       </div>
       <div class="flex items-center mb-2 px-4">
@@ -67,6 +67,10 @@ export default {
     username: {
       type: String,
       required: true
+    },
+    isConnected: {
+      type: Boolean,
+      default: false
     }
   }
 }
