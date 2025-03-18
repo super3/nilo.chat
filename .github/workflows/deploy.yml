@@ -7,25 +7,13 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -93,17 +81,13 @@ jobs:
           echo "JavaScript files in dist:"
           ls -la dist/*.js
 
-      # Setup GitHub Pages
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-          
-      # Upload pages artifact  
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist/
-          
-      # Deploy to GitHub Pages  
+      # Direct git commit approach for more reliable deployments
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v3 
+        run: |
+          cd dist
+          git init
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Deploy to GitHub Pages with build ID ${{ env.BUILD_ID }}"
+          git push -f https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git HEAD:gh-pages
