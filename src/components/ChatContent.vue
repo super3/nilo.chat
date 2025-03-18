@@ -25,10 +25,10 @@
         v-for="(message, index) in messages" 
         :key="index"
         :username="message.username"
-        :timestamp="message.timestamp"
-        :message="message.text"
+        :timestamp="formatTimestamp(message.timestamp)"
+        :message="message.message"
         :code="message.code || ''"
-        :avatar-color="message.avatarColor"
+        :avatar-color="getAvatarColor(message.username)"
       />
     </div>
     <div class="pb-6 px-4 flex-none">
@@ -52,6 +52,7 @@
 
 <script>
 import ChatMessage from './ChatMessage.vue'
+import io from 'socket.io-client'
 
 export default {
   name: 'ChatContent',
@@ -61,41 +62,26 @@ export default {
   data() {
     return {
       newMessage: '',
-      messages: [
-        {
-          username: 'Steve Schoger',
-          timestamp: '11:46',
-          text: 'The slack from the other side.',
-          avatarColor: '4F46E5'
-        },
-        {
-          username: 'Adam Wathan',
-          timestamp: '12:45',
-          text: 'How are we supposed to control the marquee space without an utility for it? I propose this:',
-          code: '.marquee-lightspeed { -webkit-marquee-speed: fast; }\n.marquee-lightspeeder { -webkit-marquee-speed: faster; }',
-          avatarColor: '3B82F6'
-        },
-        {
-          username: 'David Hemphill',
-          timestamp: '12:46',
-          text: '@Adam Wathan the size of the generated CSS is creating a singularity in space/time, we must stop adding more utilities before it\'s too late!',
-          avatarColor: '10B981'
-        }
-      ]
+      messages: [],
+      socket: null,
+      username: 'User_' + Math.floor(Math.random() * 1000)
     }
   },
-  methods: {
-    sendMessage() {
-      if (this.newMessage.trim() === '') return;
-      
-      this.messages.push({
-        username: 'Adam Wathan',
-        timestamp: this.getCurrentTime(),
-        text: this.newMessage,
-        avatarColor: '3B82F6'
+  created() {
+    // Connect to the WebSocket server
+    this.socket = io();
+    
+    // Listen for message history when connecting
+    this.socket.on('message_history', (history) => {
+      this.messages = history.map(msg => {
+        const [timestamp, username, message] = msg.split('|');
+        return { timestamp, username, message };
       });
-      
-      this.newMessage = '';
+    });
+    
+    // Listen for new messages
+    this.socket.on('chat_message', (data) => {
+      this.messages.push(data);
       
       // Scroll to bottom after message is added
       this.$nextTick(() => {
@@ -104,10 +90,39 @@ export default {
           messageContainer.scrollTop = messageContainer.scrollHeight;
         }
       });
+    });
+  },
+  beforeUnmount() {
+    // Disconnect socket when component is destroyed
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+  },
+  methods: {
+    sendMessage() {
+      if (this.newMessage.trim() === '') return;
+      
+      // Send message to server
+      this.socket.emit('chat_message', {
+        username: this.username,
+        message: this.newMessage
+      });
+      
+      this.newMessage = '';
     },
-    getCurrentTime() {
-      const now = new Date();
-      return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    formatTimestamp(timestamp) {
+      try {
+        const date = new Date(timestamp);
+        return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      } catch (e) {
+        return timestamp;
+      }
+    },
+    getAvatarColor(username) {
+      // Generate a consistent color based on username
+      const colors = ['4F46E5', '3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6'];
+      const index = Math.abs(username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
+      return colors[index];
     }
   }
 }
