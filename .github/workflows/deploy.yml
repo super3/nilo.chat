@@ -28,6 +28,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Add timestamp for cache busting
+        run: |
+          TIMESTAMP=$(date +%s)
+          echo "<!-- Build timestamp: $TIMESTAMP -->" >> dist/index.html
+          echo "Cache-Control: no-cache, no-store, must-revalidate" > dist/_headers
+
       - name: Create 404.html file
         run: cp dist/index.html dist/404.html
 
