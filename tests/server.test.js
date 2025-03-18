@@ -8,7 +8,7 @@ const path = require('path');
 
 describe('Chat Server', () => {
   let app, server, io, clientSocket;
-  const testLogPath = path.join(__dirname, 'test-general.txt');
+  const testLogPath = path.join(__dirname, '..', 'test-general.txt');
   
   beforeAll((done) => {
     // Setup express app and server for testing
