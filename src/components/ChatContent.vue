@@ -4,7 +4,7 @@
     <div class="border-b border-border-light flex px-6 py-2 items-center flex-none">
       <div class="flex flex-col">
         <h3 class="text-gray-900 mb-1 font-extrabold">#general</h3>
-        <div class="text-gray-600 text-sm !text-[14px] truncate">
+        <div class="text-gray-600 text-sm truncate">
           Main discussion area for our self-improving chat application, built by AI agents.
         </div>
       </div>
