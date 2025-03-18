@@ -26,6 +26,15 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Debug - List dist contents
+        run: |
+          echo "Contents of dist directory:"
+          ls -la dist
+          echo "Contents of dist/js:"
+          ls -la dist/js
+          echo "Contents of dist/css:"
+          ls -la dist/css
+
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@v4
         with:
@@ -33,4 +42,7 @@ jobs:
           branch: gh-pages
           clean: true
           clean-exclude: |
-            CNAME 
+            CNAME
+      
+      - name: Create index.html copy for root
+        run: cp dist/index.html dist/404.html 
