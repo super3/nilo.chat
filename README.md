@@ -21,11 +21,31 @@ The site will be available at: `https://<your-username>.github.io/<repository-na
 To run this project locally:
 
 1. Clone the repository
-2. Open `index.html` in your browser
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Start the development server:
+   ```
+   npm run serve
+   ```
+4. Open your browser to `http://localhost:8080`
+
+## Build for Production
+
+To build the project for production:
+```
+npm run build
+```
+
+To deploy to GitHub Pages manually:
+```
+npm run deploy
+```
 
 ## Technologies Used
 
-- HTML5
+- Vue.js 3
 - Tailwind CSS
 - GitHub Pages
 - GitHub Actions
