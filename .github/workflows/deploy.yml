@@ -7,9 +7,19 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -83,18 +93,17 @@ jobs:
           echo "JavaScript files in dist:"
           ls -la dist/*.js
 
-      # Direct git commit approach for more reliable deployments
-      - name: Deploy to GitHub Pages
-        run: |
-          cd dist
-          git init
-          git config user.name "GitHub Actions"
-          git config user.email "github-actions@github.com"
-          git add .
-          git commit -m "Deploy to GitHub Pages with build ID ${{ env.BUILD_ID }}"
-          git push -f https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git HEAD:gh-pages
+      # Setup GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        
+      # Upload pages artifact  
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: dist/
           
-      - name: Verify deployment
-        run: |
-          echo "Deployment completed to gh-pages branch with build ID ${{ env.BUILD_ID }}"
-          echo "The site should be available at https://nilo.chat or your GitHub Pages URL" 
+      # Deploy to GitHub Pages  
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2 
