@@ -1,0 +1,44 @@
+name: Simple GitHub Pages Deployment
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci || npm install 
+
+      - name: Build
+        run: npm run build
+
+      - name: Create 404.html for SPA routing
+        run: cp dist/index.html dist/404.html
+
+      - name: Create CNAME file
+        run: echo 'nilo.chat' > dist/CNAME
+
+      # Direct file commit approach
+      - name: Deploy to GitHub Pages
+        run: |
+          cd dist
+          git init
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Deploy to GitHub Pages"
+          git push -f https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git HEAD:gh-pages 
