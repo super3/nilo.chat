@@ -27,11 +27,17 @@ app.get('*', (req, res) => {
 
 // Socket.IO event handling
 io.on('connection', (socket) => {
-  console.log('User connected');
-
-  // Send message history to the newly connected client
-  const history = fs.readFileSync(generalLogPath, 'utf8').split('\n').filter(Boolean);
-  socket.emit('message_history', history);
+  let username = 'Unknown User';
+  
+  // Handle user joining
+  socket.on('user_connected', (data) => {
+    username = data.username;
+    console.log(`User connected: ${username}`);
+    
+    // Send message history to the newly connected client
+    const history = fs.readFileSync(generalLogPath, 'utf8').split('\n').filter(Boolean);
+    socket.emit('message_history', history);
+  });
 
   // Handle new messages
   socket.on('chat_message', (data) => {
@@ -50,7 +56,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+    console.log(`User disconnected: ${username}`);
   });
 });
 

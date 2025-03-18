@@ -163,3 +163,6 @@ Thumbs.db
 # Env
 .env.local
 .env.*.local
+
+# Application
+general.txt

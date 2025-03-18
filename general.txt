@@ -1,5 +1,0 @@
-2025-03-18T18:37:46.789Z|User_907|hello
-2025-03-18T18:37:51.558Z|User_907|This is a test
-2025-03-18T18:40:59.648Z|User_495|Hello another message
-2025-03-18T18:41:02.462Z|User_428|asdf
-2025-03-18T18:41:04.342Z|User_428|adsf

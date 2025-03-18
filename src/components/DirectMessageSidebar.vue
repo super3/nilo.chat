@@ -5,7 +5,7 @@
         <h1 class="font-semibold text-xl leading-tight mb-1 truncate">nilo.chat</h1>
         <div class="flex items-center mb-6">
           <span class="bg-green-500 rounded-full block w-2 h-2 mr-2"></span>
-          <span class="text-white/50 text-sm">Adam Wathan</span>
+          <span class="text-white/50 text-sm">{{ username }}</span>
         </div>
       </div>
       <div>
@@ -36,7 +36,7 @@
       </div>
       <div class="flex items-center mb-2 px-4">
         <span class="bg-green-500 rounded-full block w-2 h-2 mr-2"></span>
-        <span class="text-white opacity-75">Adam Wathan <span class="text-gray-500 text-sm">(you)</span></span>
+        <span class="text-white opacity-75">{{ username }} <span class="text-gray-500 text-sm">(you)</span></span>
       </div>
       <div class="flex items-center mb-2 px-4">
         <span class="bg-green-500 rounded-full block w-2 h-2 mr-2"></span>
@@ -62,6 +62,12 @@
 
 <script>
 export default {
-  name: 'DirectMessageSidebar'
+  name: 'DirectMessageSidebar',
+  props: {
+    username: {
+      type: String,
+      required: true
+    }
+  }
 }
 </script> 

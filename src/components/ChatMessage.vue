@@ -4,7 +4,7 @@
     <div class="flex-1 overflow-hidden">
       <div>
         <span class="font-bold">{{ username }}</span>
-        <span class="text-gray-500 text-xs">{{ timestamp }}</span>
+        <span class="text-gray-500 text-xs ml-1">{{ timestamp }}</span>
       </div>
       <p class="text-black leading-normal" v-if="!hasCode">{{ message }}</p>
       <template v-else>

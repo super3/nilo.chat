@@ -2,9 +2,9 @@
   <div class="font-sans antialiased h-screen flex w-full">
     <!-- Sidebar / channel list -->
     <ChannelSidebar />
-    <DirectMessageSidebar />
+    <DirectMessageSidebar :username="username" />
     <!-- Chat content -->
-    <ChatContent />
+    <ChatContent :username="username" />
   </div>
 </template>
 
@@ -19,6 +19,11 @@ export default {
     ChannelSidebar,
     DirectMessageSidebar,
     ChatContent
+  },
+  data() {
+    return {
+      username: 'User_' + Math.floor(Math.random() * 1000)
+    }
   }
 }
 </script> 

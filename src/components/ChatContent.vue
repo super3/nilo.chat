@@ -59,17 +59,27 @@ export default {
   components: {
     ChatMessage
   },
+  props: {
+    username: {
+      type: String,
+      required: true
+    }
+  },
   data() {
     return {
       newMessage: '',
       messages: [],
-      socket: null,
-      username: 'User_' + Math.floor(Math.random() * 1000)
+      socket: null
     }
   },
   created() {
     // Connect to the WebSocket server
     this.socket = io();
+    
+    // Emit the username when connecting
+    this.socket.emit('user_connected', {
+      username: this.username
+    });
     
     // Listen for message history when connecting
     this.socket.on('message_history', (history) => {
