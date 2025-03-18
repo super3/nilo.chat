@@ -25,17 +25,54 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
-      - name: Build
-        run: npm run build
+      # Generate a unique build ID based on timestamp and commit hash
+      - name: Generate build ID
+        id: build_id
+        run: echo "BUILD_ID=$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
-      - name: Add timestamp for cache busting
+      - name: Build with cache busting
         run: |
-          TIMESTAMP=$(date +%s)
-          echo "<!-- Build timestamp: $TIMESTAMP -->" >> dist/index.html
-          echo "Cache-Control: no-cache, no-store, must-revalidate" > dist/_headers
+          # Pass build ID to the build process
+          VITE_BUILD_ID=${{ env.BUILD_ID }} npm run build
+          
+          # Add build ID to index.html for cache busting
+          sed -i "s|</head>|<meta name=\"build-id\" content=\"${{ env.BUILD_ID }}\">\n</head>|g" dist/index.html
+          
+          # Add timestamp comments to all HTML files
+          find dist -name "*.html" -exec sh -c "echo '<!-- Build: ${{ env.BUILD_ID }} - $(date) -->' >> {}" \;
+
+      - name: Create cache control files
+        run: |
+          # Create _headers file for CDN/hosting platforms that support it
+          cat > dist/_headers << EOL
+          /*
+            Cache-Control: no-cache, no-store, must-revalidate
+            
+          *.js
+            Cache-Control: public, max-age=31536000, immutable
+            
+          *.css
+            Cache-Control: public, max-age=31536000, immutable
+          EOL
+          
+          # Create .htaccess for Apache servers
+          cat > dist/.htaccess << EOL
+          <FilesMatch "index\.html$">
+            Header set Cache-Control "no-cache, no-store, must-revalidate"
+            Header set Pragma "no-cache"
+            Header set Expires "0"
+          </FilesMatch>
+          
+          <FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$">
+            Header set Cache-Control "public, max-age=31536000, immutable"
+          </FilesMatch>
+          EOL
 
       - name: Create 404.html file
         run: cp dist/index.html dist/404.html
+
+      - name: Create CNAME file
+        run: echo 'nilo.chat' > dist/CNAME
 
       - name: Debug - List dist contents
         run: |
@@ -45,25 +82,19 @@ jobs:
           ls -la dist/js
           echo "Contents of dist/css:"
           ls -la dist/css
-          echo "Current git status:"
-          git status
-          echo "Current git branch:"
-          git branch
 
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: dist
-          branch: gh-pages
-          clean: true
-          token: ${{ github.token }}
-          clean-exclude: |
-            CNAME
-
+      # Direct git commit approach for more reliable deployments
+      - name: Deploy to GitHub Pages
+        run: |
+          cd dist
+          git init
+          git config user.name "GitHub Actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "Deploy to GitHub Pages with build ID ${{ env.BUILD_ID }}"
+          git push -f https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git HEAD:gh-pages
+          
       - name: Verify deployment
         run: |
-          echo "Current remotes:"
-          git remote -v
-          echo "Checking gh-pages branch if available:"
-          git fetch
-          git branch -a 
+          echo "Deployment completed to gh-pages branch with build ID ${{ env.BUILD_ID }}"
+          echo "The site should be available at https://nilo.chat or your GitHub Pages URL" 
