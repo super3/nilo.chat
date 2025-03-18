@@ -6,15 +6,35 @@ A self improving chat application, built by AI agents.
 
 This project is automatically deployed to GitHub Pages using GitHub Actions. The deployment process is triggered whenever changes are pushed to the `main` branch.
 
-### Setup Instructions
+### GitHub Pages Setup
 
 1. Fork this repository
 2. Go to your repository's Settings
 3. Navigate to "Pages" in the sidebar
-4. Under "Source", select "GitHub Actions"
-5. Push changes to the `main` branch to trigger deployment
+4. Under "Source", select "Deploy from a branch"
+5. Select the branch "gh-pages" and folder "/ (root)"
+6. Click "Save"
 
-The site will be available at: `https://<your-username>.github.io/<repository-name>/`
+The site will be available at: `https://<your-username>.github.io/nilo.chat/`
+
+### Automatic Deployment
+
+This repository includes a GitHub Actions workflow that automatically builds and deploys the app whenever you push to the main branch. To use it:
+
+1. Ensure GitHub Actions is enabled in your repository settings
+2. Make changes to your code and push to the main branch
+3. GitHub Actions will automatically build and deploy to the gh-pages branch
+4. You can view the deployment progress in the "Actions" tab of your repository
+
+### Manual Deployment
+
+If you prefer to deploy manually:
+
+```
+npm run deploy
+```
+
+This command builds the project and pushes the dist folder to the gh-pages branch.
 
 ## Local Development
 
@@ -36,11 +56,6 @@ To run this project locally:
 To build the project for production:
 ```
 npm run build
-```
-
-To deploy to GitHub Pages manually:
-```
-npm run deploy
 ```
 
 ## Technologies Used
