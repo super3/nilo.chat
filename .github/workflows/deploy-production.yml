@@ -43,15 +43,27 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Navigate to parent directory first
+            cd /var/www
+            
             # If repo doesn't exist, clone it
-            if [ ! -d "${{ secrets.SSH_PATH }}" ]; then
-              git clone ${{ github.server_url }}/${{ github.repository }}.git ${{ secrets.SSH_PATH }}
+            if [ ! -d "nilo-chat" ]; then
+              git clone https://github.com/super3/nilo.chat.git nilo-chat
             fi
             
-            cd ${{ secrets.SSH_PATH }}
+            # Enter the directory with explicit path
+            cd /var/www/nilo-chat
+            
+            # Check if we're in a git repository
+            if [ ! -d ".git" ]; then
+              echo "Error: .git directory not found, initializing git repository"
+              git init
+              git remote add origin https://github.com/super3/nilo.chat.git
+              git fetch
+            fi
             
             # Backup any local changes (like env files)
-            git stash
+            git stash || true
             
             # Pull latest changes
             git fetch origin main
@@ -60,8 +72,17 @@ jobs:
             # Restore potential local changes
             git stash pop || true
             
+            # Create .env file if it doesn't exist
+            if [ ! -f ".env" ]; then
+              echo "Creating default .env file"
+              echo "NODE_ENV=production" > .env
+              echo "PORT=3000" >> .env
+              echo "CORS_ORIGIN=https://nilo.chat" >> .env
+            fi
+            
             # Install production dependencies
-            npm ci --production
+            npm install --omit=dev
             
             # Restart the application
+            echo "Starting/restarting application with PM2"
             pm2 restart nilo-chat || pm2 start server.js --name nilo-chat 
