@@ -34,11 +34,13 @@ print_section "Nilo.chat Production Server Setup"
 print_info "This script will set up your Digital Ocean server for nilo.chat deployment."
 print_info "You'll be prompted for some information during the setup."
 echo ""
-read -p "Press Enter to continue..."
+echo "Press Enter to continue..."
+read dummy
 
 # Get domain name
 echo ""
-read -p "Enter your domain name (e.g., example.com): " DOMAIN_NAME
+echo "Enter your domain name (e.g., example.com): "
+read DOMAIN_NAME
 if [ -z "$DOMAIN_NAME" ]; then
   print_error "Domain name cannot be empty!"
   exit 1
@@ -46,7 +48,8 @@ fi
 
 # Get username for new sudo user
 echo ""
-read -p "Enter username for a new sudo user: " NEW_USER
+echo "Enter username for a new sudo user: "
+read NEW_USER
 if [ -z "$NEW_USER" ]; then
   print_error "Username cannot be empty!"
   exit 1
