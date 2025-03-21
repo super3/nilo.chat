@@ -73,9 +73,15 @@ export default {
       isConnected: false
     }
   },
-  created() {
+  mounted() {
     // Connect to the WebSocket server
-    this.socket = io();
+    const socketUrl = process.env.VUE_APP_SOCKET_URL || 
+      (process.env.NODE_ENV === 'production' 
+        ? 'https://api.nilo.chat' 
+        : 'http://localhost:3000');
+    
+    console.log(`Connecting to Socket.IO server at: ${socketUrl}`);
+    this.socket = io(socketUrl);
     
     // Handle connection events
     this.socket.on('connect', () => {
