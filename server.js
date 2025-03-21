@@ -17,8 +17,12 @@ if (!fs.existsSync(generalLogPath)) {
   fs.writeFileSync(generalLogPath, '');
 }
 
+// Debug current environment
+console.log(`Current NODE_ENV: "${process.env.NODE_ENV}"`);
+
 // Serve static files and frontend routes only in development mode
 if (process.env.NODE_ENV !== 'production') {
+  console.log('Running in development mode - serving frontend files');
   // Serve static files from the 'dist' folder (production build)
   app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -26,6 +30,8 @@ if (process.env.NODE_ENV !== 'production') {
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
+} else {
+  console.log('Running in production mode - not serving frontend files');
 }
 
 // Socket.IO event handling
@@ -67,4 +73,5 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
 }); 

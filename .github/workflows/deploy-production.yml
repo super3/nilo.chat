@@ -83,6 +83,24 @@ jobs:
             # Install production dependencies
             npm install --omit=dev
             
+            # Explicitly export NODE_ENV to ensure it's properly set
+            export NODE_ENV=production
+            
+            # Debug: Check environment variables
+            echo "Current NODE_ENV: $NODE_ENV"
+            
+            # Debug: List all PM2 processes
+            pm2 list
+            
             # Restart the application
             echo "Starting/restarting application with PM2"
-            pm2 restart nilo-chat || pm2 start server.js --name nilo-chat --env-file .env 
+            pm2 restart nilo-chat || pm2 start server.js --name nilo-chat
+            
+            # Debug: Verify the process is running with correct env
+            pm2 list
+            
+            # Sleep briefly to allow logs to be generated
+            sleep 3
+            
+            # Check the logs to verify NODE_ENV
+            pm2 logs nilo-chat --lines 5 
