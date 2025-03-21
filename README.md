@@ -1,6 +1,6 @@
 # nilo.chat
 
-A self improving chat application.
+A self improving chat application. (test run)
 
 ## Deployment
 
