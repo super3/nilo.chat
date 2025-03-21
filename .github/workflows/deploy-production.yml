@@ -92,9 +92,9 @@ jobs:
             # Debug: List all PM2 processes
             pm2 list
             
-            # Restart the application with explicit environment variables
+            # Restart the application
             echo "Starting/restarting application with PM2"
-            pm2 restart nilo-chat --update-env -- NODE_ENV=production || pm2 start server.js --name nilo-chat -- NODE_ENV=production
+            pm2 restart nilo-chat || pm2 start server.js --name nilo-chat
             
             # Debug: Verify the process is running with correct env
             pm2 list
