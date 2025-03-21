@@ -1,6 +1,6 @@
 # nilo.chat
 
-A self improving chat application, built by AI agents.
+A self improving chat application.
 
 ## Deployment
 
