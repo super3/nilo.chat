@@ -17,13 +17,16 @@ if (!fs.existsSync(generalLogPath)) {
   fs.writeFileSync(generalLogPath, '');
 }
 
-// Serve static files from the 'dist' folder (production build)
-app.use(express.static(path.join(__dirname, 'dist')));
+// Serve static files and frontend routes only in development mode
+if (process.env.NODE_ENV !== 'production') {
+  // Serve static files from the 'dist' folder (production build)
+  app.use(express.static(path.join(__dirname, 'dist')));
 
-// Return the main index.html for all routes (SPA)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
+  // Return the main index.html for all routes (SPA)
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+}
 
 // Socket.IO event handling
 io.on('connection', (socket) => {

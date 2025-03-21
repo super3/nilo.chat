@@ -85,4 +85,4 @@ jobs:
             
             # Restart the application
             echo "Starting/restarting application with PM2"
-            pm2 restart nilo-chat || pm2 start server.js --name nilo-chat 
+            pm2 restart nilo-chat --env production || pm2 start server.js --name nilo-chat --env production 
