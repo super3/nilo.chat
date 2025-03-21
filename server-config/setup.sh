@@ -22,6 +22,14 @@ print_error() {
   echo -e "${RED}$1${NC}" >&2
 }
 
+# Error handling
+handle_error() {
+  print_error "Error occurred at line $1"
+  exit 1
+}
+
+trap 'handle_error $LINENO' ERR
+
 # Check if root
 if [ "$(id -u)" -ne 0 ]; then
   print_error "This script must be run as root!"
@@ -39,10 +47,19 @@ read dummy
 
 # Get domain name
 echo ""
-echo "Enter your domain name (e.g., example.com): "
+echo "Enter your domain name (e.g., api.example.com): "
 read DOMAIN_NAME
 if [ -z "$DOMAIN_NAME" ]; then
   print_error "Domain name cannot be empty!"
+  exit 1
+fi
+
+# Get frontend domain for CORS
+echo ""
+echo "Enter your frontend domain (e.g., example.com): "
+read FRONTEND_DOMAIN
+if [ -z "$FRONTEND_DOMAIN" ]; then
+  print_error "Frontend domain cannot be empty!"
   exit 1
 fi
 
@@ -64,6 +81,15 @@ apt update && apt upgrade -y
 
 # Install required software
 print_section "Installing Required Software"
+
+# Install Git
+print_info "Installing Git..."
+if ! command -v git &> /dev/null; then
+  apt install -y git
+  print_info "Git installed"
+else
+  print_info "Git already installed"
+fi
 
 # Install Node.js
 print_info "Installing Node.js..."
@@ -135,7 +161,7 @@ print_info "Application directory created and permissions set"
 print_section "Configuring Nginx"
 print_info "Creating Nginx configuration for $DOMAIN_NAME..."
 
-# Create Nginx config file
+# Create Nginx config file with CORS support
 cat > /etc/nginx/sites-available/nilo-chat << EOF
 server {
     listen 80;
@@ -144,6 +170,24 @@ server {
     # Logging
     access_log /var/log/nginx/nilo-chat.access.log;
     error_log /var/log/nginx/nilo-chat.error.log;
+
+    # CORS headers
+    add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
+    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+    add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+    add_header 'Access-Control-Allow-Credentials' 'true' always;
+    
+    # Handle preflight requests
+    if (\$request_method = 'OPTIONS') {
+        add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
+        add_header 'Access-Control-Max-Age' 1728000;
+        add_header 'Content-Type' 'text/plain; charset=utf-8';
+        add_header 'Content-Length' 0;
+        return 204;
+    }
 
     # Reverse proxy configuration
     location / {
@@ -162,6 +206,10 @@ server {
         # WebSocket timeout settings
         proxy_read_timeout 86400;
         proxy_send_timeout 86400;
+        
+        # CORS headers for proxied requests
+        add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
     }
 
     # Optional: Serve static files directly
@@ -176,6 +224,14 @@ EOF
 # Enable site
 print_info "Enabling Nginx site..."
 ln -sf /etc/nginx/sites-available/nilo-chat /etc/nginx/sites-enabled/
+
+# Remove default site if it exists
+if [ -f /etc/nginx/sites-enabled/default ]; then
+  print_info "Removing default Nginx site..."
+  rm -f /etc/nginx/sites-enabled/default
+fi
+
+# Test and reload nginx
 nginx -t && systemctl reload nginx
 print_info "Nginx configured successfully"
 
@@ -195,6 +251,7 @@ print_info "Creating .env file..."
 cat > $APP_PATH/.env << EOF
 NODE_ENV=production
 PORT=3000
+CORS_ORIGIN=https://$FRONTEND_DOMAIN
 # Add any other environment variables your app needs
 EOF
 chown $NEW_USER:$NEW_USER $APP_PATH/.env
@@ -204,13 +261,33 @@ print_info "Environment file created"
 print_section "Generating Deployment Keys"
 print_info "Creating SSH key for GitHub Actions deployment..."
 
-# Generate SSH key for the new user
-mkdir -p /home/$NEW_USER/.ssh
-SSH_KEY_FILE="/home/$NEW_USER/.ssh/github_actions_deploy"
+# Generate SSH key for the new user - with fixed permissions
+SSH_DIR="/home/$NEW_USER/.ssh"
+SSH_KEY_FILE="$SSH_DIR/github_actions_deploy"
+
+# Create SSH directory with proper permissions
+mkdir -p $SSH_DIR
+chown $NEW_USER:$NEW_USER $SSH_DIR
+chmod 700 $SSH_DIR
+
+# Generate the SSH key as root but for the new user
 if [ ! -f "$SSH_KEY_FILE" ]; then
-  sudo -u $NEW_USER ssh-keygen -t ed25519 -f $SSH_KEY_FILE -N "" -C "github-actions-deploy"
-  cat "$SSH_KEY_FILE.pub" >> /home/$NEW_USER/.ssh/authorized_keys
-  chmod 600 /home/$NEW_USER/.ssh/authorized_keys
+  ssh-keygen -t ed25519 -f $SSH_KEY_FILE -N "" -C "github-actions-deploy"
+  
+  # Set up authorized_keys if it doesn't exist
+  touch $SSH_DIR/authorized_keys
+  cat "$SSH_KEY_FILE.pub" >> $SSH_DIR/authorized_keys
+  
+  # Fix ownership of all generated files
+  chown $NEW_USER:$NEW_USER $SSH_KEY_FILE
+  chown $NEW_USER:$NEW_USER "$SSH_KEY_FILE.pub"
+  chown $NEW_USER:$NEW_USER $SSH_DIR/authorized_keys
+  
+  # Fix permissions
+  chmod 600 $SSH_KEY_FILE
+  chmod 644 "$SSH_KEY_FILE.pub"
+  chmod 600 $SSH_DIR/authorized_keys
+  
   print_info "SSH key generated"
 else
   print_info "SSH key already exists"
@@ -219,6 +296,31 @@ fi
 # Get IP for known_hosts
 SERVER_IP=$(curl -s ifconfig.me)
 KNOWN_HOSTS=$(ssh-keyscan $SERVER_IP 2>/dev/null)
+
+# Create PM2 ecosystem file
+print_section "Setting Up PM2 Configuration"
+print_info "Creating PM2 ecosystem file..."
+
+cat > $APP_PATH/ecosystem.config.js << EOF
+module.exports = {
+  apps: [{
+    name: 'nilo-chat',
+    script: 'server.js',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '512M',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000,
+      CORS_ORIGIN: 'https://$FRONTEND_DOMAIN'
+    }
+  }]
+};
+EOF
+
+chown $NEW_USER:$NEW_USER $APP_PATH/ecosystem.config.js
+print_info "PM2 ecosystem file created"
 
 # Display GitHub Actions secrets info
 print_section "GitHub Actions Secrets"
@@ -241,7 +343,7 @@ echo "$APP_PATH"
 
 # Setup PM2 to start on boot
 print_section "Configuring PM2 Startup"
-sudo -u $NEW_USER pm2 startup ubuntu -u $NEW_USER --hp /home/$NEW_USER
+env PATH=$PATH:/usr/bin pm2 startup systemd -u $NEW_USER --hp /home/$NEW_USER || true
 print_info "PM2 configured to start on boot"
 
 # Final instructions
