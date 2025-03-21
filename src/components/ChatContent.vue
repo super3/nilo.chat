@@ -74,11 +74,14 @@ export default {
     }
   },
   mounted() {
+    // Check if we're running locally (on localhost) or in production
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1';
+    
     // Connect to the WebSocket server
-    const socketUrl = process.env.VUE_APP_SOCKET_URL || 
-      (process.env.NODE_ENV === 'production' 
-        ? 'https://api.nilo.chat' 
-        : 'http://localhost:3000');
+    const socketUrl = isLocalhost 
+      ? 'http://localhost:3000' 
+      : 'https://api.nilo.chat';
     
     console.log(`Connecting to Socket.IO server at: ${socketUrl}`);
     this.socket = io(socketUrl);
