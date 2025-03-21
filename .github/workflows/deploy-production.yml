@@ -1,0 +1,67 @@
+name: Deploy to Digital Ocean Production
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for proper versioning
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      # Run tests with coverage before building
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: Deploy with Git
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # If repo doesn't exist, clone it
+            if [ ! -d "${{ secrets.SSH_PATH }}" ]; then
+              git clone ${{ github.server_url }}/${{ github.repository }}.git ${{ secrets.SSH_PATH }}
+            fi
+            
+            cd ${{ secrets.SSH_PATH }}
+            
+            # Backup any local changes (like env files)
+            git stash
+            
+            # Pull latest changes
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # Restore potential local changes
+            git stash pop || true
+            
+            # Install production dependencies
+            npm ci --production
+            
+            # Restart the application
+            pm2 restart nilo-chat || pm2 start server.js --name nilo-chat 
