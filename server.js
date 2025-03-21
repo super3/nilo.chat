@@ -32,6 +32,11 @@ if (process.env.NODE_ENV !== 'production') {
   });
 } else {
   console.log('Running in production mode - not serving frontend files');
+  
+  // API-only mode in production - respond to non-socket requests with 200 OK
+  app.get('*', (req, res) => {
+    res.status(200).send('API Server Running');
+  });
 }
 
 // Socket.IO event handling

@@ -99,8 +99,5 @@ jobs:
             # Debug: Verify the process is running with correct env
             pm2 list
             
-            # Sleep briefly to allow logs to be generated
-            sleep 3
-            
-            # Check the logs to verify NODE_ENV
-            pm2 logs nilo-chat --lines 5 
+            # Don't tail logs indefinitely - this causes GitHub Actions to hang
+            echo "Deployment completed successfully" 
