@@ -93,9 +93,27 @@ fi
 
 # Install Node.js
 print_info "Installing Node.js..."
-if ! command -v node &> /dev/null; then
-  curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+if ! command -v node &> /dev/null || [ "$(node -v)" != "v22.14.0" ]; then
+  # Remove any existing installations
+  apt remove -y nodejs npm || true
+  
+  # Install dependencies
+  apt install -y curl
+  
+  # Setup NodeSource repository for Node.js 22.x
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+  
+  # Install Node.js
   apt install -y nodejs
+  
+  # Verify installation and set to specific version
+  npm install -g n
+  n 22.14.0
+  
+  # Force path to use the new version
+  PATH="$PATH"
+  hash -r
+  
   print_info "Node.js $(node -v) installed"
 else
   print_info "Node.js $(node -v) already installed"
