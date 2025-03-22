@@ -9,12 +9,10 @@
   <a href="https://github.com/super3/nilo.chat/actions/workflows/deploy-front.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/deploy-front.yml?label=frontend"
          alt="Frontend Build Status">
-  </a>
-  <a href="https://github.com/super3/nilo.chat/actions/workflows/deploy-api.yml">
+  </a><a href="https://github.com/super3/nilo.chat/actions/workflows/deploy-api.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/deploy-api.yml?label=api"
          alt="API Build Status">
-  </a>
-  <a href="https://github.com/super3/nilo.chat/blob/main/LICENSE">
+  </a><a href="https://github.com/super3/nilo.chat/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg?label=license"
          alt="License">
   </a>
