@@ -4,7 +4,7 @@ A self-improving chat application.
 
 ## Deployment
 
-For deployment instructions, please see the [server configuration README](/server-config/README.md).
+For deployment instructions, please see the [deploy README](/deploy/README.md).
 
 ## Local Development
 
@@ -17,13 +17,7 @@ To run this project locally:
    ```
 3. Start the development server:
    ```
-   npm run serve
+   npm run dev
    ```
-4. Open your browser to `http://localhost:8080`
-
-## Build for Production
-
-To build the project for production:
-```
-npm run build
-```
+   This will build the frontend and start the backend server.
+4. Open your browser to `http://localhost:3000`
