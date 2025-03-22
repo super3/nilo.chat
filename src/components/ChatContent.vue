@@ -81,7 +81,7 @@ export default {
     // Connect to the WebSocket server
     const socketUrl = isLocalhost 
       ? 'http://localhost:3000' 
-      : 'https://api.nilo.chat:3000';
+      : 'https://api.nilo.chat';
     
     console.log(`Connecting to Socket.IO server at: ${socketUrl}`);
     this.socket = io(socketUrl);
