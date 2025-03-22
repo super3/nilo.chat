@@ -15,16 +15,19 @@
 
 ## Quick Start
 
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the development server:
-   ```bash
-   npm run dev
-   ```
-4. Open your browser to `http://localhost:3000`
+```bash
+# Clone the repository
+git clone https://github.com/super3/nilo.chat.git
+cd nilo.chat
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Open in browser: http://localhost:3000
+```
 
 ## Deployment
 
