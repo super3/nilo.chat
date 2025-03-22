@@ -5,22 +5,13 @@
 
 <h4 align="center">A self-improving chat application built with <a href="https://vuejs.org/" target="_blank">Vue</a>, <a href="https://tailwindcss.com/" target="_blank">TailwindCSS</a>, and <a href="https://socket.io/" target="_blank">Socket.io</a>.</h4>
 
-<p align="center">
-  <a href="https://github.com/super3/nilo.chat/actions/workflows/deploy-front.yml" style="text-decoration: none;">
-    <img src="https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/deploy-front.yml?label=frontend"
-         alt="Frontend Build Status">
-  </a>
-  &nbsp;
-  <a href="https://github.com/super3/nilo.chat/actions/workflows/deploy-api.yml" style="text-decoration: none;">
-    <img src="https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/deploy-api.yml?label=api"
-         alt="API Build Status">
-  </a>
-  &nbsp;
-  <a href="https://github.com/super3/nilo.chat/blob/main/LICENSE" style="text-decoration: none;">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg?label=license"
-         alt="License">
-  </a>
-</p>
+<div align="center">
+
+[![Frontend Build Status](https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/deploy-front.yml?label=frontend)](https://github.com/super3/nilo.chat/actions/workflows/deploy-front.yml)
+[![API Build Status](https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/deploy-api.yml?label=api)](https://github.com/super3/nilo.chat/actions/workflows/deploy-api.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?label=license)](https://github.com/super3/nilo.chat/blob/main/LICENSE)
+
+</div>
 
 ## Quick Start
 
