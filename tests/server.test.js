@@ -208,6 +208,47 @@ describe('Server Module - Comprehensive', () => {
     expect(res.sendFile.mock.calls[0][0]).toContain('index.html');
   });
   
+  test('handles production mode routes correctly', () => {
+    // Save original NODE_ENV
+    const originalNodeEnv = process.env.NODE_ENV;
+    
+    try {
+      // Set to production mode
+      process.env.NODE_ENV = 'production';
+      
+      // Clear mocks
+      jest.clearAllMocks();
+      
+      // Reload server module in production mode
+      jest.isolateModules(() => {
+        require('../server');
+      });
+      
+      // Verify catch-all route was configured
+      expect(mockExpressApp.get).toHaveBeenCalledWith('*', expect.any(Function));
+      
+      // Get the route handler
+      const handler = mockExpressApp.get.mock.calls[0][1];
+      
+      // Create mock request and response
+      const req = {};
+      const res = { 
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn()
+      };
+      
+      // Call the handler
+      handler(req, res);
+      
+      // Verify response status and message
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.send).toHaveBeenCalledWith('API Server Running');
+    } finally {
+      // Restore original NODE_ENV
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
+  
   test('ensures general.txt file exists on startup', () => {
     // Spy on writeFileSync
     const writeFileSpy = jest.spyOn(fs, 'writeFileSync');
