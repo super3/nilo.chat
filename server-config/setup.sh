@@ -481,4 +481,47 @@ print_info "You can monitor your application with:"
 echo "  sudo -u $NEW_USER pm2 status"
 echo "  sudo -u $NEW_USER pm2 logs nilo-chat"
 
+# Final permission fix specifically for the Node.js binary EACCES error
+print_section "Final Permission Fix"
+
+# Ensure NODE_PATH is accessible and executable
+print_info "Fixing Node.js binary permissions for PM2..."
+
+# 1. Fix /usr/local/bin/node specifically (the one causing the issue)
+if [ -f /usr/local/bin/node ]; then
+  chmod 755 /usr/local/bin/node
+  # Also ensure it's owned by root (system binary)
+  chown root:root /usr/local/bin/node
+  print_info "Fixed permissions for /usr/local/bin/node"
+fi
+
+# 2. Find all Node.js binaries and fix permissions
+find /usr -name "node" -type f -exec chmod 755 {} \; 2>/dev/null || true
+find /usr/local -name "node" -type f -exec chmod 755 {} \; 2>/dev/null || true
+
+# 3. Check if node is a symlink and fix the target
+if [ -L /usr/local/bin/node ]; then
+  NODE_TARGET=$(readlink -f /usr/local/bin/node)
+  chmod 755 "$NODE_TARGET"
+  chown root:root "$NODE_TARGET"
+  print_info "Fixed permissions for Node.js symlink target: $NODE_TARGET"
+fi
+
+# 4. As a last resort, add deploy to the same group as node binary
+if [ -f /usr/local/bin/node ]; then
+  NODE_GROUP=$(stat -c '%G' /usr/local/bin/node)
+  usermod -aG "$NODE_GROUP" "$NEW_USER"
+  print_info "Added $NEW_USER to group $NODE_GROUP for Node.js access"
+fi
+
+# 5. Special fix: give the deploy user full access to Node.js through sudoers
+cat > /etc/sudoers.d/${NEW_USER}-node << EOF
+$NEW_USER ALL=(ALL) NOPASSWD: /usr/bin/node, /usr/local/bin/node, /usr/bin/npm, /usr/local/bin/npm, /usr/bin/pm2, /usr/local/bin/pm2
+EOF
+chmod 440 /etc/sudoers.d/${NEW_USER}-node
+print_info "Added sudoers entry for Node.js and PM2 access"
+
+# 6. Verify the deployment user can execute Node
+sudo -u $NEW_USER bash -c "node -v" || print_error "User $NEW_USER still cannot execute Node.js"
+
 print_section "Server is ready for deployment!" 
