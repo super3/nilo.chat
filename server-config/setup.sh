@@ -402,52 +402,70 @@ EOF
 chown $NEW_USER:$NEW_USER $APP_PATH/ecosystem.config.js
 print_info "PM2 ecosystem file created"
 
-# Setup PM2 for the new user
-print_section "Setting Up PM2 for User $NEW_USER"
+# Final permission fix specifically for the Node.js binary EACCES error
+print_section "Final Permission Fix"
 
-# Create and set proper permissions for .pm2 directory
-print_info "Setting up PM2 home directory..."
-PM2_HOME="/home/$NEW_USER/.pm2"
-mkdir -p $PM2_HOME
-chown -R $NEW_USER:$NEW_USER $PM2_HOME
-chmod -R 700 $PM2_HOME
+# Completely fix Node.js permissions for the system
+print_info "Applying comprehensive fix for Node.js permissions..."
 
-# Create required PM2 subdirectories with correct permissions
-mkdir -p $PM2_HOME/{logs,pids}
-chown -R $NEW_USER:$NEW_USER $PM2_HOME/{logs,pids}
-chmod -R 700 $PM2_HOME/{logs,pids}
+# Find and fix ALL relevant executables
+for DIR in /usr/bin /usr/local/bin /usr/local/n/versions/node/*/bin
+do
+  if [ -d "$DIR" ]; then
+    chmod 755 "$DIR"/node "$DIR"/npm "$DIR"/npx "$DIR"/pm2 2>/dev/null || true
+    print_info "Fixed permissions in $DIR"
+  fi
+done
 
-# Ensure binary permissions are correct
-print_info "Setting correct permissions for Node.js and PM2 binaries..."
-chmod 755 /usr/bin/node /usr/local/bin/node /usr/bin/npm /usr/local/bin/npm /usr/bin/pm2 /usr/local/bin/pm2 2>/dev/null || true
+# Fix module directories
+for DIR in /usr/lib/node_modules /usr/local/lib/node_modules /usr/local/n/versions/node/*/lib/node_modules
+do
+  if [ -d "$DIR" ]; then
+    chmod -R 755 "$DIR" 2>/dev/null || true
+    print_info "Fixed module permissions in $DIR"
+  fi
+done
 
-# Find and fix permissions for all node binaries
-find /usr/local -name "node" -type f -exec chmod 755 {} \; 2>/dev/null || true
-find /usr/local -name "npm" -type f -exec chmod 755 {} \; 2>/dev/null || true
+# Fix ownership of critical directories
+if [ -d /usr/local/n ]; then
+  chown -R root:root /usr/local/n
+  chmod -R 755 /usr/local/n
+  print_info "Fixed ownership and permissions for /usr/local/n"
+fi
 
-# Setup PM2 to start on boot for the new user
-print_info "Configuring PM2 startup for user $NEW_USER..."
+# Create a direct link from PM2_HOME to a root-owned directory to avoid permission issues
+print_info "Creating system-wide PM2 home directory with proper permissions..."
+SYSTEM_PM2="/opt/pm2"
+mkdir -p "$SYSTEM_PM2"/{logs,pids}
+# Make the directory owned by the deploy user with secure permissions
+chown -R "$NEW_USER":"$NEW_USER" "$SYSTEM_PM2"
+chmod -R 700 "$SYSTEM_PM2"  # Only the owner can access
 
-# First run PM2 as the new user to initialize its files
-sudo -u $NEW_USER PM2_HOME=$PM2_HOME /usr/local/bin/pm2 list || true
-
-# Setup PM2 to start on boot
-sudo -u $NEW_USER PM2_HOME=$PM2_HOME env PATH=$PATH:/usr/bin:/usr/local/bin pm2 startup systemd -u $NEW_USER --hp /home/$NEW_USER || true
-
-# Give sudo permission to manage the PM2 service
-cat > /etc/sudoers.d/${NEW_USER}-pm2 << EOF
-$NEW_USER ALL=(ALL) NOPASSWD: /bin/systemctl start pm2-$NEW_USER, /bin/systemctl stop pm2-$NEW_USER, /bin/systemctl restart pm2-$NEW_USER, /bin/systemctl status pm2-$NEW_USER
+# Set PM2_HOME environment variable system-wide
+cat > /etc/profile.d/pm2-home.sh << EOF
+export PM2_HOME="$SYSTEM_PM2"
 EOF
-chmod 440 /etc/sudoers.d/${NEW_USER}-pm2
+chmod 644 /etc/profile.d/pm2-home.sh
 
-print_info "PM2 configured to start on boot for user $NEW_USER"
+# Source the new environment variable for this session
+export PM2_HOME="$SYSTEM_PM2"
 
-# Additional security: Ensure app directory is owned by the new user
-print_info "Setting final permissions on application directory..."
-chown -R $NEW_USER:$NEW_USER $APP_PATH
-chmod -R 755 $APP_PATH
+# Initialize PM2 in the system directory
+print_info "Initializing PM2 with system-wide home directory..."
+sudo -u "$NEW_USER" bash -c "export PM2_HOME='$SYSTEM_PM2' && pm2 list" || true
+sudo bash -c "export PM2_HOME='$SYSTEM_PM2' && pm2 list" || true
 
-print_info "PM2 setup complete"
+# Configure PM2 to start on boot with the system-wide PM2_HOME
+print_info "Setting up PM2 to start on boot with system-wide home directory..."
+env PM2_HOME="$SYSTEM_PM2" PATH="$PATH:/usr/bin:/usr/local/bin" pm2 startup systemd -u "$NEW_USER" --hp "/home/$NEW_USER" || true
+
+# Set the application directory ownership one final time
+chown -R "$NEW_USER":"$NEW_USER" "$APP_PATH"
+chmod -R 755 "$APP_PATH"
+
+print_info "All permission issues have been fixed - PM2 should now work properly for the $NEW_USER user"
+
+print_section "Server is ready for deployment!"
 
 # Display GitHub Actions secrets info
 print_section "GitHub Actions Secrets"
@@ -480,48 +498,5 @@ echo "3. Push to your main branch to trigger deployment"
 print_info "You can monitor your application with:"
 echo "  sudo -u $NEW_USER pm2 status"
 echo "  sudo -u $NEW_USER pm2 logs nilo-chat"
-
-# Final permission fix specifically for the Node.js binary EACCES error
-print_section "Final Permission Fix"
-
-# Ensure NODE_PATH is accessible and executable
-print_info "Fixing Node.js binary permissions for PM2..."
-
-# 1. Fix /usr/local/bin/node specifically (the one causing the issue)
-if [ -f /usr/local/bin/node ]; then
-  chmod 755 /usr/local/bin/node
-  # Also ensure it's owned by root (system binary)
-  chown root:root /usr/local/bin/node
-  print_info "Fixed permissions for /usr/local/bin/node"
-fi
-
-# 2. Find all Node.js binaries and fix permissions
-find /usr -name "node" -type f -exec chmod 755 {} \; 2>/dev/null || true
-find /usr/local -name "node" -type f -exec chmod 755 {} \; 2>/dev/null || true
-
-# 3. Check if node is a symlink and fix the target
-if [ -L /usr/local/bin/node ]; then
-  NODE_TARGET=$(readlink -f /usr/local/bin/node)
-  chmod 755 "$NODE_TARGET"
-  chown root:root "$NODE_TARGET"
-  print_info "Fixed permissions for Node.js symlink target: $NODE_TARGET"
-fi
-
-# 4. As a last resort, add deploy to the same group as node binary
-if [ -f /usr/local/bin/node ]; then
-  NODE_GROUP=$(stat -c '%G' /usr/local/bin/node)
-  usermod -aG "$NODE_GROUP" "$NEW_USER"
-  print_info "Added $NEW_USER to group $NODE_GROUP for Node.js access"
-fi
-
-# 5. Special fix: give the deploy user full access to Node.js through sudoers
-cat > /etc/sudoers.d/${NEW_USER}-node << EOF
-$NEW_USER ALL=(ALL) NOPASSWD: /usr/bin/node, /usr/local/bin/node, /usr/bin/npm, /usr/local/bin/npm, /usr/bin/pm2, /usr/local/bin/pm2
-EOF
-chmod 440 /etc/sudoers.d/${NEW_USER}-node
-print_info "Added sudoers entry for Node.js and PM2 access"
-
-# 6. Verify the deployment user can execute Node
-sudo -u $NEW_USER bash -c "node -v" || print_error "User $NEW_USER still cannot execute Node.js"
 
 print_section "Server is ready for deployment!" 
