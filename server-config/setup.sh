@@ -171,16 +171,21 @@ server {
     access_log /var/log/nginx/nilo-chat.access.log;
     error_log /var/log/nginx/nilo-chat.error.log;
 
-    # Handle preflight requests
-    if (\$request_method = 'OPTIONS') {
-        add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
-        add_header 'Access-Control-Allow-Credentials' 'true' always;
-        add_header 'Access-Control-Max-Age' 1728000;
-        add_header 'Content-Type' 'text/plain; charset=utf-8';
-        add_header 'Content-Length' 0;
-        return 204;
+    # Specific config for OPTIONS preflight requests
+    location ~ ^/(socket\.io/|)$ {
+        if (\$request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+            add_header 'Access-Control-Allow-Credentials' 'true' always;
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain; charset=utf-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+
+        # Pass to the main location rules
+        try_files \$uri @node;
     }
 
     # Specific config for Socket.IO
@@ -209,7 +214,7 @@ server {
     }
 
     # Reverse proxy configuration for everything else
-    location / {
+    location @node {
         proxy_pass http://localhost:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
@@ -231,6 +236,11 @@ server {
         add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
         add_header 'Access-Control-Allow-Credentials' 'true' always;
+    }
+
+    # Main location for regular requests
+    location / {
+        try_files \$uri @node;
     }
 
     # Optional: Serve static files directly
