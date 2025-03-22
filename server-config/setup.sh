@@ -402,6 +402,53 @@ EOF
 chown $NEW_USER:$NEW_USER $APP_PATH/ecosystem.config.js
 print_info "PM2 ecosystem file created"
 
+# Setup PM2 for the new user
+print_section "Setting Up PM2 for User $NEW_USER"
+
+# Create and set proper permissions for .pm2 directory
+print_info "Setting up PM2 home directory..."
+PM2_HOME="/home/$NEW_USER/.pm2"
+mkdir -p $PM2_HOME
+chown -R $NEW_USER:$NEW_USER $PM2_HOME
+chmod -R 700 $PM2_HOME
+
+# Create required PM2 subdirectories with correct permissions
+mkdir -p $PM2_HOME/{logs,pids}
+chown -R $NEW_USER:$NEW_USER $PM2_HOME/{logs,pids}
+chmod -R 700 $PM2_HOME/{logs,pids}
+
+# Ensure binary permissions are correct
+print_info "Setting correct permissions for Node.js and PM2 binaries..."
+chmod 755 /usr/bin/node /usr/local/bin/node /usr/bin/npm /usr/local/bin/npm /usr/bin/pm2 /usr/local/bin/pm2 2>/dev/null || true
+
+# Find and fix permissions for all node binaries
+find /usr/local -name "node" -type f -exec chmod 755 {} \; 2>/dev/null || true
+find /usr/local -name "npm" -type f -exec chmod 755 {} \; 2>/dev/null || true
+
+# Setup PM2 to start on boot for the new user
+print_info "Configuring PM2 startup for user $NEW_USER..."
+
+# First run PM2 as the new user to initialize its files
+sudo -u $NEW_USER PM2_HOME=$PM2_HOME /usr/local/bin/pm2 list || true
+
+# Setup PM2 to start on boot
+sudo -u $NEW_USER PM2_HOME=$PM2_HOME env PATH=$PATH:/usr/bin:/usr/local/bin pm2 startup systemd -u $NEW_USER --hp /home/$NEW_USER || true
+
+# Give sudo permission to manage the PM2 service
+cat > /etc/sudoers.d/${NEW_USER}-pm2 << EOF
+$NEW_USER ALL=(ALL) NOPASSWD: /bin/systemctl start pm2-$NEW_USER, /bin/systemctl stop pm2-$NEW_USER, /bin/systemctl restart pm2-$NEW_USER, /bin/systemctl status pm2-$NEW_USER
+EOF
+chmod 440 /etc/sudoers.d/${NEW_USER}-pm2
+
+print_info "PM2 configured to start on boot for user $NEW_USER"
+
+# Additional security: Ensure app directory is owned by the new user
+print_info "Setting final permissions on application directory..."
+chown -R $NEW_USER:$NEW_USER $APP_PATH
+chmod -R 755 $APP_PATH
+
+print_info "PM2 setup complete"
+
 # Display GitHub Actions secrets info
 print_section "GitHub Actions Secrets"
 print_info "Add these secrets to your GitHub repository (Settings → Secrets and variables → Actions):"
@@ -420,48 +467,6 @@ echo "$SERVER_IP"
 echo
 echo "SSH_PATH:"
 echo "$APP_PATH"
-
-# Setup PM2 to start on boot
-print_section "Configuring PM2 Startup"
-env PATH=$PATH:/usr/bin pm2 startup systemd -u $NEW_USER --hp /home/$NEW_USER || true
-print_info "PM2 configured to start on boot"
-
-# Final permission checks
-print_section "Final Permission Checks"
-print_info "Ensuring all Node.js and PM2 binaries have correct permissions..."
-
-# Fix Node.js permissions
-for nodepath in /usr/bin/node /usr/local/bin/node /usr/local/n/versions/node/*/bin/node
-do
-  if [ -f "$nodepath" ]; then
-    chmod 755 "$nodepath"
-    print_info "Fixed permissions for $nodepath"
-  fi
-done
-
-# Fix npm permissions
-for npmpath in /usr/bin/npm /usr/local/bin/npm /usr/local/n/versions/node/*/bin/npm
-do
-  if [ -f "$npmpath" ]; then
-    chmod 755 "$npmpath"
-    print_info "Fixed permissions for $npmpath"
-  fi
-done
-
-# Fix PM2 permissions
-for pm2path in /usr/bin/pm2 /usr/local/bin/pm2
-do
-  if [ -f "$pm2path" ]; then
-    chmod 755 "$pm2path"
-    print_info "Fixed permissions for $pm2path"
-  fi
-done
-
-# Check PM2 modules directory
-if [ -d /usr/local/lib/node_modules/pm2 ]; then
-  chmod -R 755 /usr/local/lib/node_modules/pm2
-  print_info "Fixed permissions for PM2 modules"
-fi
 
 # Final instructions
 print_section "Setup Complete!"
