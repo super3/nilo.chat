@@ -106,9 +106,21 @@ if ! command -v node &> /dev/null || [ "$(node -v)" != "v22.14.0" ]; then
   # Install Node.js
   apt install -y nodejs
   
-  # Verify installation and set to specific version
+  # Make sure the binary is accessible to all users
+  if [ -f /usr/local/bin/node ]; then
+    chmod 755 /usr/local/bin/node
+  fi
+  
+  if [ -f /usr/bin/node ]; then
+    chmod 755 /usr/bin/node
+  fi
+  
+  # Install n globally and set to specific version
   npm install -g n
   n 22.14.0
+  
+  # Ensure n-installed binaries have correct permissions
+  chmod -R 755 /usr/local/n/versions
   
   # Force path to use the new version
   PATH="$PATH"
@@ -123,6 +135,19 @@ fi
 print_info "Installing PM2..."
 if ! command -v pm2 &> /dev/null; then
   npm install -g pm2
+  
+  # Fix PM2 binary permissions
+  if [ -f /usr/local/bin/pm2 ]; then
+    chmod 755 /usr/local/bin/pm2
+  fi
+  
+  if [ -f /usr/bin/pm2 ]; then
+    chmod 755 /usr/bin/pm2
+  fi
+  
+  # Fix global node_modules permissions
+  chmod -R 755 /usr/local/lib/node_modules/pm2
+  
   print_info "PM2 installed"
 else
   print_info "PM2 already installed"
@@ -400,6 +425,43 @@ echo "$APP_PATH"
 print_section "Configuring PM2 Startup"
 env PATH=$PATH:/usr/bin pm2 startup systemd -u $NEW_USER --hp /home/$NEW_USER || true
 print_info "PM2 configured to start on boot"
+
+# Final permission checks
+print_section "Final Permission Checks"
+print_info "Ensuring all Node.js and PM2 binaries have correct permissions..."
+
+# Fix Node.js permissions
+for nodepath in /usr/bin/node /usr/local/bin/node /usr/local/n/versions/node/*/bin/node
+do
+  if [ -f "$nodepath" ]; then
+    chmod 755 "$nodepath"
+    print_info "Fixed permissions for $nodepath"
+  fi
+done
+
+# Fix npm permissions
+for npmpath in /usr/bin/npm /usr/local/bin/npm /usr/local/n/versions/node/*/bin/npm
+do
+  if [ -f "$npmpath" ]; then
+    chmod 755 "$npmpath"
+    print_info "Fixed permissions for $npmpath"
+  fi
+done
+
+# Fix PM2 permissions
+for pm2path in /usr/bin/pm2 /usr/local/bin/pm2
+do
+  if [ -f "$pm2path" ]; then
+    chmod 755 "$pm2path"
+    print_info "Fixed permissions for $pm2path"
+  fi
+done
+
+# Check PM2 modules directory
+if [ -d /usr/local/lib/node_modules/pm2 ]; then
+  chmod -R 755 /usr/local/lib/node_modules/pm2
+  print_info "Fixed permissions for PM2 modules"
+fi
 
 # Final instructions
 print_section "Setup Complete!"
