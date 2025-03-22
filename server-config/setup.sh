@@ -171,12 +171,6 @@ server {
     access_log /var/log/nginx/nilo-chat.access.log;
     error_log /var/log/nginx/nilo-chat.error.log;
 
-    # CORS headers
-    add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
-    add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
-    add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
-    add_header 'Access-Control-Allow-Credentials' 'true' always;
-    
     # Handle preflight requests
     if (\$request_method = 'OPTIONS') {
         add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
@@ -209,6 +203,8 @@ server {
         
         # CORS headers for Socket.IO
         add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
         add_header 'Access-Control-Allow-Credentials' 'true' always;
     }
 
@@ -232,6 +228,8 @@ server {
         
         # CORS headers for proxied requests
         add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
         add_header 'Access-Control-Allow-Credentials' 'true' always;
     }
 
@@ -240,6 +238,12 @@ server {
         alias $APP_PATH/dist/;
         expires 30d;
         add_header Cache-Control "public, no-transform";
+        
+        # CORS headers for static files
+        add_header 'Access-Control-Allow-Origin' 'https://$FRONTEND_DOMAIN' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range' always;
+        add_header 'Access-Control-Allow-Credentials' 'true' always;
     }
 }
 EOF
