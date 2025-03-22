@@ -7,11 +7,11 @@
 
 <p align="center">
   <a href="https://github.com/super3/nilo.chat/actions/workflows/deploy-front.yml">
-    <img src="https://github.com/super3/nilo.chat/actions/workflows/deploy-front.yml/badge.svg"
+    <img src="https://github.com/super3/nilo.chat/actions/workflows/deploy-front.yml/badge.svg?label=frontend"
          alt="Frontend Build Status">
   </a>
   <a href="https://github.com/super3/nilo.chat/actions/workflows/deploy-api.yml">
-    <img src="https://github.com/super3/nilo.chat/actions/workflows/deploy-api.yml/badge.svg"
+    <img src="https://github.com/super3/nilo.chat/actions/workflows/deploy-api.yml/badge.svg?label=api"
          alt="API Build Status">
   </a>
   <a href="https://github.com/super3/nilo.chat/blob/main/LICENSE">
