@@ -14,20 +14,11 @@
 </div>
 
 ## Quick Start
-
 ```bash
-# Clone the repository
-git clone https://github.com/super3/nilo.chat.git
-cd nilo.chat
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-
-# Open in browser: http://localhost:3000
+git clone https://github.com/super3/nilo.chat.git && cd nilo.chat
+npm install && npm run dev
 ```
+Open http://localhost:3000 in your browser
 
 ## Deployment
 
