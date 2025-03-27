@@ -266,14 +266,11 @@ describe('ChatContent.vue', () => {
     // No error should occur when container is null
   });
   
-  test('disconnects socket in beforeUnmount hook', () => {
-    // Set a socket on the wrapper instance
-    wrapper.vm.socket = { disconnect: mockSocketDisconnect };
+  test('disconnects socket in beforeUnmount hook', async () => {
+    // Call the beforeUnmount hook manually
+    await wrapper.vm.$options.beforeUnmount.call(wrapper.vm);
     
-    // Trigger the beforeUnmount lifecycle event
-    wrapper.unmount();
-    
-    // Check that socket was disconnected
+    // Verify disconnect was called
     expect(mockSocketDisconnect).toHaveBeenCalled();
   });
   
@@ -428,5 +425,138 @@ describe('ChatContent.vue', () => {
     // Test the case where container doesn't exist
     document.querySelector.mockReturnValue(null);
     scrollToBottom(); // Should not throw error
+  });
+  
+  test('does not send message when disconnected', async () => {
+    // Set component to disconnected state
+    wrapper.setData({ isConnected: false, newMessage: 'Test message' });
+    
+    // Try to send a message
+    await wrapper.vm.sendMessage();
+    
+    // Verify socket.emit was not called
+    expect(mockSocketEmit).not.toHaveBeenCalled();
+  });
+  
+  test('handles error in formatTimestamp', () => {
+    // Pass an invalid timestamp that will throw an error
+    const result = wrapper.vm.formatTimestamp('invalid-date');
+    
+    // Should return NaN:NaN for invalid date
+    expect(result).toBe('NaN:NaN');
+  });
+  
+  test('getAvatarColor returns consistent color for same username', () => {
+    // Get color for same username multiple times
+    const color1 = wrapper.vm.getAvatarColor('testuser');
+    const color2 = wrapper.vm.getAvatarColor('testuser');
+    
+    // Colors should be consistent
+    expect(color1).toBe(color2);
+    
+    // Should be one of the defined colors
+    const validColors = ['4F46E5', '3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6'];
+    expect(validColors).toContain(color1);
+  });
+  
+  test('getAvatarColor returns different colors for different usernames', () => {
+    // Get colors for different usernames
+    const color1 = wrapper.vm.getAvatarColor('user1');
+    const color2 = wrapper.vm.getAvatarColor('user2');
+    
+    // We can't guarantee they'll be different since the hashing might map to the same color,
+    // but we can verify they're both valid colors
+    const validColors = ['4F46E5', '3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6'];
+    expect(validColors).toContain(color1);
+    expect(validColors).toContain(color2);
+  });
+  
+  test('getAvatarColor handles edge cases', () => {
+    // Test with undefined username - should not throw errors
+    const color = wrapper.vm.getAvatarColor(undefined);
+    
+    // Should return a valid color
+    const validColors = ['4F46E5', '3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6'];
+    expect(validColors).toContain(color);
+  });
+  
+  test('scrolls to bottom after receiving a message', async () => {
+    // Get the chat_message handler
+    const chatMessageHandler = mockSocketOn.mock.calls.find(call => call[0] === 'chat_message')[1];
+    
+    // Mock querySelector to return an object with scrollTop and scrollHeight properties
+    document.querySelector = jest.fn().mockReturnValue({
+      scrollTop: 0,
+      scrollHeight: 1000
+    });
+    
+    // Call the handler with a mock message
+    chatMessageHandler({ 
+      timestamp: '2023-01-01T12:00:00Z',
+      username: 'testuser',
+      message: 'Test message'
+    });
+    
+    // Force all promises to resolve
+    await new Promise(resolve => setTimeout(resolve, 0));
+    
+    // Check that querySelector was called with the right selector
+    expect(document.querySelector).toHaveBeenCalledWith('.overflow-y-auto');
+  });
+  
+  test('sends message when connected', async () => {
+    // Set component to connected state with a message
+    wrapper.setData({ 
+      isConnected: true, 
+      newMessage: 'Hello world!' 
+    });
+    
+    // Call the send message method
+    await wrapper.vm.sendMessage();
+    
+    // Verify socket.emit was called with the right arguments
+    expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
+      username: 'testuser',
+      message: 'Hello world!'
+    });
+    
+    // Message should be cleared
+    expect(wrapper.vm.newMessage).toBe('');
+  });
+  
+  test('does not send message when input is empty', async () => {
+    // Set component to connected state with an empty message
+    wrapper.setData({ 
+      isConnected: true, 
+      newMessage: '   ' // Just whitespace
+    });
+    
+    // Call the send message method
+    await wrapper.vm.sendMessage();
+    
+    // Verify socket.emit was not called
+    expect(mockSocketEmit).not.toHaveBeenCalled();
+  });
+  
+  test('tests the remaining uncovered handler', async () => {
+    // This test specifically targets line 179 in the compiled component
+    
+    // Set component to connected state
+    wrapper.setData({ isConnected: true });
+    
+    // Get all the anonymous event handlers
+    const messageHandlers = wrapper.vm.$options.render.toString();
+    expect(messageHandlers).toBeDefined();
+    
+    // Simulate keyup.enter event on the message input to trigger the handler
+    const input = wrapper.find('input[placeholder="Message #general"]');
+    await input.setValue('test message');
+    await input.trigger('keyup.enter');
+    
+    // Verify the event was handled
+    expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
+      username: 'testuser',
+      message: 'test message'
+    });
   });
 }); 

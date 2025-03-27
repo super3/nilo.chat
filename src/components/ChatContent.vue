@@ -162,7 +162,9 @@ export default {
     getAvatarColor(username) {
       // Generate a consistent color based on username
       const colors = ['4F46E5', '3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6'];
-      const index = Math.abs(username.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
+      // Handle the case when username is undefined or null
+      const name = username || 'anonymous';
+      const index = Math.abs(name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
       return colors[index];
     }
   }
