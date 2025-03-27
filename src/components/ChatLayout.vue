@@ -28,8 +28,10 @@ export default {
     ChatContent
   },
   data() {
+    // Get username from localStorage or generate a random one
+    const savedUsername = localStorage.getItem('nilo_username');
     return {
-      username: 'User_' + Math.floor(Math.random() * 1000),
+      username: savedUsername || 'User_' + Math.floor(Math.random() * 1000),
       isConnected: false
     }
   },
@@ -39,6 +41,8 @@ export default {
     },
     changeUsername(newUsername) {
       this.username = newUsername;
+      // Save username to localStorage
+      localStorage.setItem('nilo_username', newUsername);
     }
   }
 }

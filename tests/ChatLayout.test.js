@@ -23,10 +23,29 @@ jest.mock('../src/components/ChatContent.vue', () => ({
 describe('ChatLayout.vue', () => {
   // Mock Math.random to return a predictable value
   const originalMathRandom = Math.random;
+  // Mock localStorage
+  const localStorageMock = (() => {
+    let store = {};
+    return {
+      getItem: jest.fn(key => store[key] || null),
+      setItem: jest.fn((key, value) => {
+        store[key] = value.toString();
+      }),
+      clear: jest.fn(() => {
+        store = {};
+      })
+    };
+  })();
   
   beforeEach(() => {
     // Mock Math.random to return 0.5
     Math.random = jest.fn().mockReturnValue(0.5);
+    // Setup localStorage mock
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock
+    });
+    // Clear localStorage before each test
+    localStorageMock.clear();
   });
   
   afterEach(() => {
@@ -60,12 +79,28 @@ describe('ChatLayout.vue', () => {
     expect(chatContent.exists()).toBe(true);
   });
   
-  test('initializes with correct data', () => {
+  test('initializes with random username when none in localStorage', () => {
     const wrapper = shallowMount(ChatLayout);
+    
+    // Verify localStorage was checked
+    expect(localStorageMock.getItem).toHaveBeenCalledWith('nilo_username');
     
     // With mocked Math.random returning 0.5, username should be User_500
     expect(wrapper.vm.username).toBe('User_500');
     expect(wrapper.vm.isConnected).toBe(false);
+  });
+  
+  test('initializes with username from localStorage if available', () => {
+    // Set username in localStorage
+    localStorageMock.setItem('nilo_username', 'SavedUser123');
+    
+    const wrapper = shallowMount(ChatLayout);
+    
+    // Verify localStorage was checked
+    expect(localStorageMock.getItem).toHaveBeenCalledWith('nilo_username');
+    
+    // Username should be loaded from localStorage
+    expect(wrapper.vm.username).toBe('SavedUser123');
   });
   
   test('passes data as props to child components', () => {
@@ -121,7 +156,7 @@ describe('ChatLayout.vue', () => {
     expect(wrapper.vm.isConnected).toBe(true);
   });
   
-  test('changeUsername method updates username', () => {
+  test('changeUsername method updates username and saves to localStorage', () => {
     const wrapper = shallowMount(ChatLayout);
     
     // Initial username (with mocked Math.random)
@@ -132,6 +167,9 @@ describe('ChatLayout.vue', () => {
     
     // Check if the username was updated
     expect(wrapper.vm.username).toBe('NewUsername');
+    
+    // Check if username was saved to localStorage
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_username', 'NewUsername');
   });
   
   test('responds to username-change event from ChatContent', async () => {
@@ -149,5 +187,8 @@ describe('ChatLayout.vue', () => {
     
     // Check if the username was updated
     expect(wrapper.vm.username).toBe('NewUsername');
+    
+    // Check if username was saved to localStorage
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_username', 'NewUsername');
   });
 }); 
