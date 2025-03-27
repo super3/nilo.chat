@@ -43,15 +43,50 @@ jobs:
             # Last resort, set a default
             LINE_RATE="96.42%"
           fi
+          
+          # Remove the percentage sign for numeric comparison
+          COVERAGE_VALUE=${LINE_RATE//%/}
+          
+          # Determine color based on coverage value
+          if (( $(echo "$COVERAGE_VALUE >= 90" | bc -l) )); then
+            COLOR="brightgreen"
+          elif (( $(echo "$COVERAGE_VALUE >= 80" | bc -l) )); then
+            COLOR="green"
+          elif (( $(echo "$COVERAGE_VALUE >= 70" | bc -l) )); then
+            COLOR="yellowgreen"
+          elif (( $(echo "$COVERAGE_VALUE >= 60" | bc -l) )); then
+            COLOR="yellow"
+          elif (( $(echo "$COVERAGE_VALUE >= 50" | bc -l) )); then
+            COLOR="orange"
+          else
+            COLOR="red"
+          fi
+          
           echo "percentage=$LINE_RATE" >> $GITHUB_OUTPUT
-          echo "Extracted coverage percentage: $LINE_RATE"
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+          echo "Extracted coverage percentage: $LINE_RATE (Color: $COLOR)"
         
-      - name: Create coverage badge
-        uses: schneegans/dynamic-badges-action@v1.6.0
-        with:
-          auth: ${{ secrets.GIST_SECRET }}
-          gistID: ${{ secrets.COVERAGE_GIST_ID }}
-          filename: coverage.json
-          label: coverage
-          message: ${{ steps.coverage.outputs.percentage }}
-          color: ${{ steps.coverage.outputs.percentage >= 90 && 'brightgreen' || steps.coverage.outputs.percentage >= 80 && 'green' || steps.coverage.outputs.percentage >= 70 && 'yellowgreen' || steps.coverage.outputs.percentage >= 60 && 'yellow' || steps.coverage.outputs.percentage >= 50 && 'orange' || 'red' }} 
+      - name: Create coverage badge directly
+        run: |
+          # Create JSON content for the badge
+          BADGE_JSON=$(cat <<EOF
+          {
+            "schemaVersion": 1,
+            "label": "coverage",
+            "message": "${{ steps.coverage.outputs.percentage }}",
+            "color": "${{ steps.coverage.outputs.color }}"
+          }
+          EOF
+          )
+          
+          # Debug the JSON content
+          echo "Badge JSON content:"
+          echo "$BADGE_JSON"
+          
+          # Update the Gist using curl - note the different Authorization header format
+          curl -X PATCH \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GIST_SECRET }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/gists/${{ secrets.COVERAGE_GIST_ID }}" \
+            -d "{\"files\":{\"coverage.json\":{\"content\":$BADGE_JSON}}}" 
