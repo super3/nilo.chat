@@ -7,7 +7,11 @@
       :is-connected="isConnected" 
     />
     <!-- Chat content -->
-    <ChatContent :username="username" @connection-change="updateConnectionStatus" />
+    <ChatContent 
+      :username="username" 
+      @connection-change="updateConnectionStatus"
+      @username-change="changeUsername" 
+    />
   </div>
 </template>
 
@@ -32,6 +36,9 @@ export default {
   methods: {
     updateConnectionStatus(status) {
       this.isConnected = status;
+    },
+    changeUsername(newUsername) {
+      this.username = newUsername;
     }
   }
 }

@@ -17,7 +17,7 @@ jest.mock('../src/components/ChatContent.vue', () => ({
   name: 'ChatContent',
   template: '<div>Chat Content</div>',
   props: ['username'],
-  emits: ['connection-change']
+  emits: ['connection-change', 'username-change']
 }));
 
 describe('ChatLayout.vue', () => {
@@ -119,5 +119,35 @@ describe('ChatLayout.vue', () => {
     
     // Check if the state was updated
     expect(wrapper.vm.isConnected).toBe(true);
+  });
+  
+  test('changeUsername method updates username', () => {
+    const wrapper = shallowMount(ChatLayout);
+    
+    // Initial username (with mocked Math.random)
+    expect(wrapper.vm.username).toBe('User_500');
+    
+    // Call the method
+    wrapper.vm.changeUsername('NewUsername');
+    
+    // Check if the username was updated
+    expect(wrapper.vm.username).toBe('NewUsername');
+  });
+  
+  test('responds to username-change event from ChatContent', async () => {
+    const wrapper = shallowMount(ChatLayout);
+    
+    // Initial username (with mocked Math.random)
+    expect(wrapper.vm.username).toBe('User_500');
+    
+    // Find ChatContent and trigger the event
+    const chatContent = wrapper.findComponent({ name: 'ChatContent' });
+    chatContent.vm.$emit('username-change', 'NewUsername');
+    
+    // Wait for Vue to process the event
+    await wrapper.vm.$nextTick();
+    
+    // Check if the username was updated
+    expect(wrapper.vm.username).toBe('NewUsername');
   });
 }); 

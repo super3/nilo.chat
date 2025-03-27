@@ -309,17 +309,72 @@ describe('ChatContent.vue', () => {
   });
   
   test('sendMessage does nothing when disconnected', () => {
-    // Set disconnected state and message
+    // Set message but disconnected state
     wrapper.setData({
-      isConnected: false,
-      newMessage: 'This will not be sent'
+      newMessage: 'Test message',
+      isConnected: false
     });
     
     // Call the method
     wrapper.vm.sendMessage();
     
-    // Check that socket.emit was not called
+    // Should not emit to socket
     expect(mockSocketEmit).not.toHaveBeenCalled();
+    
+    // Message should be unchanged
+    expect(wrapper.vm.newMessage).toBe('Test message');
+  });
+  
+  test('sendMessage handles /nick command to change username', () => {
+    // Set a connected state
+    wrapper.setData({ 
+      isConnected: true,
+      newMessage: '/nick NewUsername' 
+    });
+    
+    // Call sendMessage method
+    wrapper.vm.sendMessage();
+    
+    // Verify username-change event was emitted to parent
+    expect(wrapper.emitted('username-change')).toBeTruthy();
+    expect(wrapper.emitted('username-change')[0]).toEqual(['NewUsername']);
+    
+    // Verify username_change was emitted to socket
+    expect(mockSocketEmit).toHaveBeenCalledWith('username_change', {
+      oldUsername: 'testuser',
+      newUsername: 'NewUsername'
+    });
+    
+    // Verify system message was added
+    expect(wrapper.vm.messages).toHaveLength(1);
+    expect(wrapper.vm.messages[0].username).toBe('System');
+    expect(wrapper.vm.messages[0].message).toBe('testuser changed their username to NewUsername');
+    
+    // Verify input was cleared
+    expect(wrapper.vm.newMessage).toBe('');
+  });
+  
+  test('sendMessage does not handle /nick command with empty username', () => {
+    // Set a connected state
+    wrapper.setData({ 
+      isConnected: true,
+      newMessage: '/nick ' 
+    });
+    
+    // Call sendMessage method
+    wrapper.vm.sendMessage();
+    
+    // Verify username-change event was NOT emitted to parent
+    expect(wrapper.emitted('username-change')).toBeFalsy();
+    
+    // Verify username_change was NOT emitted to socket
+    expect(mockSocketEmit).not.toHaveBeenCalled();
+    
+    // Verify no message was added
+    expect(wrapper.vm.messages).toHaveLength(0);
+    
+    // Verify input was cleared
+    expect(wrapper.vm.newMessage).toBe('');
   });
   
   test('formatTimestamp converts timestamps correctly', () => {

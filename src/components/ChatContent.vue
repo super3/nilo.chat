@@ -143,11 +143,36 @@ export default {
         return;
       }
       
-      // Send message to server
-      this.socket.emit('chat_message', {
-        username: this.username,
-        message: this.newMessage
-      });
+      // Check if this is a /nick command
+      if (this.newMessage.startsWith('/nick ')) {
+        const newUsername = this.newMessage.slice(6).trim();
+        
+        if (newUsername) {
+          // Emit an event to the parent component to change the username
+          this.$emit('username-change', newUsername);
+          
+          // Notify the server about the username change
+          if (this.socket) {
+            this.socket.emit('username_change', {
+              oldUsername: this.username,
+              newUsername: newUsername
+            });
+          }
+          
+          // Add a system message about the username change
+          this.messages.push({
+            timestamp: new Date().toISOString(),
+            username: 'System',
+            message: `${this.username} changed their username to ${newUsername}`
+          });
+        }
+      } else {
+        // Send regular message to server
+        this.socket.emit('chat_message', {
+          username: this.username,
+          message: this.newMessage
+        });
+      }
       
       this.newMessage = '';
     },

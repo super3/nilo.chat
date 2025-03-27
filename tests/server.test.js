@@ -65,10 +65,15 @@ describe('Server Module - Comprehensive', () => {
           mockSocket.chatMessageCallback = callback;
         } else if (event === 'disconnect') {
           mockSocket.disconnectCallback = callback;
+        } else if (event === 'username_change') {
+          mockSocket.usernameChangeCallback = callback;
         }
         return mockSocket;
       }),
-      emit: jest.fn()
+      emit: jest.fn(),
+      broadcast: {
+        emit: jest.fn()
+      }
     };
     
     // Mock http server
@@ -172,6 +177,44 @@ describe('Server Module - Comprehensive', () => {
     }
     
     // No specific behavior to test here, just covering the code path
+  });
+  
+  test('handles username_change event and broadcasts notification', () => {
+    // Verify socket.on was called for username_change event
+    expect(mockSocket.on).toHaveBeenCalledWith('username_change', expect.any(Function));
+    
+    // Store the username_change callback for testing
+    const usernameChangeCallback = mockSocket.on.mock.calls.find(
+      call => call[0] === 'username_change'
+    )[1];
+    
+    // Create spy to monitor appendFileSync calls
+    const appendFileSpy = jest.spyOn(fs, 'appendFileSync');
+    
+    // Prepare test data
+    const changeData = {
+      oldUsername: 'OldUserName',
+      newUsername: 'NewUserName'
+    };
+    
+    // Call the handler
+    usernameChangeCallback(changeData);
+    
+    // Verify username was updated in the socket handler
+    expect(mockSocket.broadcast.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+      username: 'System',
+      message: `${changeData.oldUsername} changed their username to ${changeData.newUsername}`
+    }));
+    
+    // Verify appendFileSync was called with the right message content
+    expect(appendFileSpy).toHaveBeenCalled();
+    const callArgs = appendFileSpy.mock.calls[0];
+    expect(callArgs[0]).toContain('general.txt');
+    expect(callArgs[1]).toContain('System');
+    expect(callArgs[1]).toContain(`${changeData.oldUsername} changed their username to ${changeData.newUsername}`);
+    
+    // Restore the spy
+    appendFileSpy.mockRestore();
   });
   
   test('configures express with static file middleware', () => {

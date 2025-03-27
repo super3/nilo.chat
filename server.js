@@ -69,6 +69,28 @@ io.on('connection', (socket) => {
     });
   });
 
+  // Handle username changes
+  socket.on('username_change', (data) => {
+    console.log(`Username change: ${data.oldUsername} -> ${data.newUsername}`);
+    
+    // Update the username for this socket
+    username = data.newUsername;
+    
+    // Log the username change as a system message
+    const timestamp = new Date().toISOString();
+    const systemMessage = `${timestamp}|System|${data.oldUsername} changed their username to ${data.newUsername}`;
+    
+    // Log message to general.txt
+    fs.appendFileSync(generalLogPath, systemMessage + '\n');
+    
+    // Broadcast to all clients except the sender
+    socket.broadcast.emit('chat_message', {
+      timestamp,
+      username: 'System',
+      message: `${data.oldUsername} changed their username to ${data.newUsername}`
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${username}`);
   });
