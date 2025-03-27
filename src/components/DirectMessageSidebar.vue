@@ -9,9 +9,11 @@
         </div>
       </div>
     </div>
+    
+    <!-- Channels section -->
     <div class="mb-8">
       <div class="px-4 mb-2 text-white flex items-center">
-        <div @click="toggleChannels" class="cursor-pointer mr-2">
+        <div @click="toggleChannels" class="cursor-pointer w-4 mr-2 flex justify-center">
           <svg v-if="showChannels" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
           </svg>
@@ -26,11 +28,18 @@
           </svg>
         </div>
       </div>
-      <div v-if="showChannels" class="bg-teal-dark py-1 px-4 text-white"># general</div>
+      <div v-if="showChannels">
+        <div class="px-4 py-1 text-white flex items-center bg-teal-dark">
+          <div class="w-4 mr-2 text-center">#</div>
+          <span>general</span>
+        </div>
+      </div>
     </div>
+    
+    <!-- Direct Messages section -->
     <div class="mb-8">
       <div class="px-4 mb-2 text-white flex items-center">
-        <div @click="toggleDirectMessages" class="cursor-pointer mr-2">
+        <div @click="toggleDirectMessages" class="cursor-pointer w-4 mr-2 flex justify-center">
           <svg v-if="showDirectMessages" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
           </svg>
@@ -46,12 +55,16 @@
         </div>
       </div>
       <div v-if="showDirectMessages">
-        <div class="flex items-center mb-2 px-4" :class="{ 'opacity-50': !isConnected }">
-          <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2 mr-2']"></span>
+        <div class="px-4 flex items-center mb-2" :class="{ 'opacity-50': !isConnected }">
+          <div class="w-4 mr-2 flex justify-center">
+            <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2']"></span>
+          </div>
           <span class="text-white opacity-75">{{ username }} <span class="text-gray-500 text-sm">(you)</span></span>
         </div>
-        <div class="flex items-center mb-2 px-4">
-          <span class="bg-green-500 rounded-full block w-2 h-2 mr-2"></span>
+        <div class="px-4 flex items-center mb-2">
+          <div class="w-4 mr-2 flex justify-center">
+            <span class="bg-green-500 rounded-full block w-2 h-2"></span>
+          </div>
           <span class="text-white opacity-75">Steve_Nilo</span>
         </div>
       </div>
