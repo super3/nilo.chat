@@ -2,7 +2,10 @@
   <div class="font-sans antialiased h-screen flex w-full">
     <!-- Sidebar / channel list -->
     <ChannelSidebar />
-    <DirectMessageSidebar :username="username" :is-connected="isConnected" />
+    <DirectMessageSidebar 
+      :username="username" 
+      :is-connected="isConnected" 
+    />
     <!-- Chat content -->
     <ChatContent :username="username" @connection-change="updateConnectionStatus" />
   </div>
