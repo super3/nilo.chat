@@ -1,0 +1,49 @@
+name: Update Coverage Badge
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci || npm install
+        
+      - name: Run tests with coverage
+        run: npm run test:coverage
+        
+      - name: Generate coverage badge
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage/lcov.info
+          badge: true
+          format: markdown
+          output: both
+          
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          COVERAGE=$(cat coverage-summary.md | grep -o '[0-9]\+\.[0-9]\+%' | head -1)
+          echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+          
+      - name: Create coverage badge
+        uses: schneegans/dynamic-badges-action@v1.6.0
+        with:
+          auth: ${{ secrets.GIST_SECRET }}
+          gistID: ${{ secrets.COVERAGE_GIST_ID }}
+          filename: coverage.json
+          label: coverage
+          message: ${{ steps.coverage.outputs.percentage }}
+          color: ${{ steps.coverage.outputs.percentage >= 90 && 'brightgreen' || steps.coverage.outputs.percentage >= 80 && 'green' || steps.coverage.outputs.percentage >= 70 && 'yellowgreen' || steps.coverage.outputs.percentage >= 60 && 'yellow' || steps.coverage.outputs.percentage >= 50 && 'orange' || 'red' }} 
