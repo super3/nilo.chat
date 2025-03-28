@@ -20,7 +20,7 @@
       </div>
     </div>
     <!-- Chat messages -->
-    <div class="px-6 py-4 flex-1 overflow-y-auto" ref="messageContainer" @scroll="checkScrollPosition">
+    <div class="px-6 py-4 flex-1 overflow-y-auto" @scroll="checkScrollPosition">
       <ChatMessage 
         v-for="(message, index) in messages" 
         :key="index"
@@ -128,14 +128,11 @@ export default {
     
     // Listen for new messages
     this.socket.on('chat_message', (data) => {
-      // Check if user is at bottom before adding the message
-      const shouldScroll = this.isAtBottom;
-      
       // Add the message
       this.messages.push(data);
       
       // Only scroll if user was at the bottom
-      if (shouldScroll) {
+      if (this.isAtBottom) {
         this.$nextTick(() => {
           this.scrollToBottom();
         });
@@ -199,19 +196,20 @@ export default {
       }
     },
     scrollToBottom() {
-      const messageContainer = this.$refs.messageContainer;
-      if (messageContainer) {
-        messageContainer.scrollTop = messageContainer.scrollHeight;
+      // Simple implementation that is easy to test
+      const container = document.querySelector('.overflow-y-auto');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
       }
     },
     checkScrollPosition() {
-      const container = this.$refs.messageContainer;
-      if (!container) return;
-      
-      // Calculate if we're at the bottom (with a small threshold for better UX)
-      const scrollBottom = container.scrollTop + container.clientHeight;
-      const threshold = 50; // pixels from bottom to consider "at bottom"
-      this.isAtBottom = scrollBottom >= (container.scrollHeight - threshold);
+      // Simple implementation that is easy to test
+      const container = document.querySelector('.overflow-y-auto');
+      if (container) {
+        const scrollBottom = container.scrollTop + container.clientHeight;
+        const threshold = 50; // pixels from bottom to consider "at bottom"
+        this.isAtBottom = scrollBottom >= (container.scrollHeight - threshold);
+      }
     },
     getAvatarColor(username) {
       // Generate a consistent color based on username

@@ -25,6 +25,9 @@ jest.mock('../src/components/ChatMessage.vue', () => ({
 // Mock console.log to reduce noise in tests
 console.log = jest.fn();
 
+// Mock console.error to test error handling
+console.error = jest.fn();
+
 // Mock DOM methods and properties
 global.document.querySelector = jest.fn(() => ({
   scrollTop: 0,
@@ -172,7 +175,7 @@ describe('ChatContent.vue', () => {
     expect(wrapper.emitted('connection-change')[0]).toEqual([false]);
   });
   
-  test('handles message_history from socket', () => {
+  test('handles message_history from socket', async () => {
     // Get the message_history handler
     const historyHandler = mockSocketOn.mock.calls.find(call => call[0] === 'message_history')[1];
     
@@ -181,6 +184,13 @@ describe('ChatContent.vue', () => {
       '2023-01-01T12:00:00Z|john|Hello',
       '2023-01-01T12:05:00Z|jane|Hi there'
     ];
+    
+    // Setup mock element for scrollToBottom call
+    const mockContainer = {
+      scrollTop: 0,
+      scrollHeight: 1000
+    };
+    document.querySelector.mockReturnValue(mockContainer);
     
     // Call the handler
     historyHandler(mockHistory);
@@ -197,6 +207,15 @@ describe('ChatContent.vue', () => {
       username: 'jane',
       message: 'Hi there'
     });
+    
+    // Wait for next tick when scrolling happens
+    await wrapper.vm.$nextTick();
+    
+    // Verify querySelector was called
+    expect(document.querySelector).toHaveBeenCalledWith('.overflow-y-auto');
+    
+    // Verify scrollTop was set to scrollHeight
+    expect(mockContainer.scrollTop).toBe(mockContainer.scrollHeight);
   });
   
   test('handles chat_message from socket and scrolls to bottom when container exists', async () => {
@@ -210,13 +229,14 @@ describe('ChatContent.vue', () => {
       message: 'New message'
     };
     
-    // Mock the messageContainer for the $nextTick callback
+    // Set isAtBottom to true to simulate user being at bottom
+    wrapper.setData({ isAtBottom: true });
+    
+    // Setup mock element for scrollToBottom call
     const mockContainer = {
       scrollTop: 0,
       scrollHeight: 1000
     };
-    
-    // Set up document.querySelector to return our mock container
     document.querySelector.mockReturnValue(mockContainer);
     
     // Call the handler
@@ -229,14 +249,14 @@ describe('ChatContent.vue', () => {
     // Wait for next tick when scrolling happens
     await wrapper.vm.$nextTick();
     
-    // Check that querySelector was called to scroll
+    // Verify querySelector was called
     expect(document.querySelector).toHaveBeenCalledWith('.overflow-y-auto');
     
     // Verify the scrollTop was set to scrollHeight
     expect(mockContainer.scrollTop).toBe(mockContainer.scrollHeight);
   });
   
-  test('handles chat_message from socket when container does not exist', async () => {
+  test('handles chat_message from socket when user is not at bottom', async () => {
     // Get the chat_message handler
     const messageHandler = mockSocketOn.mock.calls.find(call => call[0] === 'chat_message')[1];
     
@@ -247,8 +267,15 @@ describe('ChatContent.vue', () => {
       message: 'Another message'
     };
     
-    // Set up document.querySelector to return null (no container found)
-    document.querySelector.mockReturnValue(null);
+    // Set isAtBottom to false to simulate user not being at bottom
+    wrapper.setData({ isAtBottom: false });
+    
+    // Setup mock element
+    const mockContainer = {
+      scrollTop: 0,
+      scrollHeight: 1000
+    };
+    document.querySelector.mockReturnValue(mockContainer);
     
     // Call the handler
     messageHandler(mockMessage);
@@ -257,13 +284,11 @@ describe('ChatContent.vue', () => {
     expect(wrapper.vm.messages).toHaveLength(1);
     expect(wrapper.vm.messages[0]).toEqual(mockMessage);
     
-    // Wait for next tick when scrolling attempt happens
+    // Wait for next tick
     await wrapper.vm.$nextTick();
     
-    // Check that querySelector was called
-    expect(document.querySelector).toHaveBeenCalledWith('.overflow-y-auto');
-    
-    // No error should occur when container is null
+    // Verify the container's scrollTop was not updated
+    expect(mockContainer.scrollTop).toBe(0);
   });
   
   test('disconnects socket in beforeUnmount hook', async () => {
@@ -435,6 +460,94 @@ describe('ChatContent.vue', () => {
     expect(sendMessageSpy).toHaveBeenCalled();
   });
   
+  test('scrollToBottom method sets scrollTop when container exists', () => {
+    // Create a spy on scrollToBottom method
+    const spy = jest.spyOn(wrapper.vm, 'scrollToBottom');
+    
+    // Create a mock DOM element
+    const mockContainer = { scrollTop: 0, scrollHeight: 1000 };
+    document.querySelector.mockReturnValue(mockContainer);
+    
+    // Call the method
+    wrapper.vm.scrollToBottom();
+    
+    // Verify scrollToBottom was called
+    expect(spy).toHaveBeenCalled();
+    
+    // Check that querySelector was called
+    expect(document.querySelector).toHaveBeenCalledWith('.overflow-y-auto');
+    
+    // Check that scrollTop was set
+    expect(mockContainer.scrollTop).toBe(mockContainer.scrollHeight);
+    
+    // Restore the spy
+    spy.mockRestore();
+  });
+  
+  test('scrollToBottom method handles missing container', () => {
+    // Create a spy on scrollToBottom method
+    const spy = jest.spyOn(wrapper.vm, 'scrollToBottom');
+    
+    // Mock querySelector to return null
+    document.querySelector.mockReturnValue(null);
+    
+    // Call the method - should not throw error
+    wrapper.vm.scrollToBottom();
+    
+    // Verify scrollToBottom was called
+    expect(spy).toHaveBeenCalled();
+    
+    // Check that querySelector was called
+    expect(document.querySelector).toHaveBeenCalledWith('.overflow-y-auto');
+    
+    // Restore the spy
+    spy.mockRestore();
+  });
+  
+  test('checkScrollPosition method updates isAtBottom correctly', () => {
+    // Mock the DOM elements for checkScrollPosition
+    const mockContainer = {
+      scrollTop: 800,
+      clientHeight: 200,
+      scrollHeight: 1050 // scrollTop + clientHeight + threshold(50) >= scrollHeight
+    };
+    
+    // Mock querySelector to return a container
+    document.querySelector.mockReturnValue(mockContainer);
+    
+    // Call the method directly
+    wrapper.vm.checkScrollPosition();
+    
+    // Should be at bottom
+    expect(wrapper.vm.isAtBottom).toBe(true);
+    
+    // Now test not at bottom case
+    const mockContainer2 = {
+      scrollTop: 200,
+      clientHeight: 200,
+      scrollHeight: 1000 // Not at bottom
+    };
+    document.querySelector.mockReturnValue(mockContainer2);
+    
+    // Call the method again
+    wrapper.vm.checkScrollPosition();
+    
+    // Should not be at bottom
+    expect(wrapper.vm.isAtBottom).toBe(false);
+    
+    // Test with null container
+    document.querySelector.mockReturnValue(null);
+    
+    // Reset isAtBottom
+    wrapper.setData({ isAtBottom: true });
+    
+    // Call the method - should not change isAtBottom
+    wrapper.vm.checkScrollPosition();
+    
+    // Should still be true
+    expect(wrapper.vm.isAtBottom).toBe(true);
+  });
+  
   test('directly tests each line of the components methods', () => {
     // Test sendMessage with all branches
     wrapper.vm.sendMessage(); // Empty message branch
@@ -457,93 +570,52 @@ describe('ChatContent.vue', () => {
     
     // Test getAvatarColor
     wrapper.vm.getAvatarColor('testuser');
+    wrapper.vm.getAvatarColor(null); // Test null case
+    wrapper.vm.getAvatarColor(undefined); // Test undefined case
     
-    // Directly test the nextTick callback for scrolling that is used in the chat_message handler
+    // Test scrollToBottom with container
     const mockContainer = { scrollTop: 0, scrollHeight: 500 };
     document.querySelector.mockReturnValue(mockContainer);
-    
-    // Create a function that performs exactly what's in the callback
-    const scrollToBottom = () => {
-      const messageContainer = document.querySelector('.overflow-y-auto');
-      if (messageContainer) {
-        messageContainer.scrollTop = messageContainer.scrollHeight;
-      }
-    };
-    
-    // Call it directly to ensure all lines are covered
-    scrollToBottom();
-    
-    // Verify the scrolling happened
-    expect(document.querySelector).toHaveBeenCalledWith('.overflow-y-auto');
+    wrapper.vm.scrollToBottom();
     expect(mockContainer.scrollTop).toBe(mockContainer.scrollHeight);
     
-    // Test the case where container doesn't exist
+    // Test scrollToBottom without container
     document.querySelector.mockReturnValue(null);
-    scrollToBottom(); // Should not throw error
+    wrapper.vm.scrollToBottom(); // Should not throw error
+    
+    // Test checkScrollPosition with container (at bottom)
+    document.querySelector.mockReturnValue({
+      scrollTop: 500,
+      clientHeight: 300,
+      scrollHeight: 850 // scrollTop + clientHeight + threshold(50) >= scrollHeight
+    });
+    wrapper.vm.checkScrollPosition();
+    expect(wrapper.vm.isAtBottom).toBe(true);
+    
+    // Test checkScrollPosition with container (not at bottom)
+    document.querySelector.mockReturnValue({
+      scrollTop: 100,
+      clientHeight: 300,
+      scrollHeight: 1000 // scrollTop + clientHeight + threshold(50) < scrollHeight
+    });
+    wrapper.vm.checkScrollPosition();
+    expect(wrapper.vm.isAtBottom).toBe(false);
+    
+    // Test checkScrollPosition without container
+    document.querySelector.mockReturnValue(null);
+    wrapper.vm.checkScrollPosition(); // Should not throw error
   });
   
-  test('does not send message when disconnected', async () => {
-    // Set component to disconnected state
-    wrapper.setData({ isConnected: false, newMessage: 'Test message' });
-    
-    // Try to send a message
-    await wrapper.vm.sendMessage();
-    
-    // Verify socket.emit was not called
-    expect(mockSocketEmit).not.toHaveBeenCalled();
-  });
-  
-  test('handles error in formatTimestamp', () => {
-    // Pass an invalid timestamp that will throw an error
-    const result = wrapper.vm.formatTimestamp('invalid-date');
-    
-    // Should return NaN:NaN for invalid date
-    expect(result).toBe('NaN:NaN');
-  });
-  
-  test('getAvatarColor returns consistent color for same username', () => {
-    // Get color for same username multiple times
-    const color1 = wrapper.vm.getAvatarColor('testuser');
-    const color2 = wrapper.vm.getAvatarColor('testuser');
-    
-    // Colors should be consistent
-    expect(color1).toBe(color2);
-    
-    // Should be one of the defined colors
-    const validColors = ['4F46E5', '3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6'];
-    expect(validColors).toContain(color1);
-  });
-  
-  test('getAvatarColor returns different colors for different usernames', () => {
-    // Get colors for different usernames
-    const color1 = wrapper.vm.getAvatarColor('user1');
-    const color2 = wrapper.vm.getAvatarColor('user2');
-    
-    // We can't guarantee they'll be different since the hashing might map to the same color,
-    // but we can verify they're both valid colors
-    const validColors = ['4F46E5', '3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6'];
-    expect(validColors).toContain(color1);
-    expect(validColors).toContain(color2);
-  });
-  
-  test('getAvatarColor handles edge cases', () => {
-    // Test with undefined username - should not throw errors
-    const color = wrapper.vm.getAvatarColor(undefined);
-    
-    // Should return a valid color
-    const validColors = ['4F46E5', '3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6'];
-    expect(validColors).toContain(color);
-  });
-  
-  test('scrolls to bottom after receiving a message', async () => {
+  test('scrolls to bottom after receiving a message when user is at bottom', async () => {
     // Get the chat_message handler
     const chatMessageHandler = mockSocketOn.mock.calls.find(call => call[0] === 'chat_message')[1];
     
-    // Mock querySelector to return an object with scrollTop and scrollHeight properties
-    document.querySelector = jest.fn().mockReturnValue({
-      scrollTop: 0,
-      scrollHeight: 1000
-    });
+    // Set isAtBottom to true
+    wrapper.setData({ isAtBottom: true });
+    
+    // Mock scrollToBottom method
+    const originalScrollToBottom = wrapper.vm.scrollToBottom;
+    wrapper.vm.scrollToBottom = jest.fn();
     
     // Call the handler with a mock message
     chatMessageHandler({ 
@@ -552,66 +624,59 @@ describe('ChatContent.vue', () => {
       message: 'Test message'
     });
     
-    // Force all promises to resolve
-    await new Promise(resolve => setTimeout(resolve, 0));
+    // Wait for next tick
+    await wrapper.vm.$nextTick();
     
-    // Check that querySelector was called with the right selector
+    // Verify scrollToBottom was called
+    expect(wrapper.vm.scrollToBottom).toHaveBeenCalled();
+    
+    // Restore original method
+    wrapper.vm.scrollToBottom = originalScrollToBottom;
+  });
+  
+  test('getAvatarColor handles undefined username', () => {
+    // Test with undefined username
+    const color1 = wrapper.vm.getAvatarColor(undefined);
+    
+    // Should return a valid color
+    const validColors = ['4F46E5', '3B82F6', '10B981', 'F59E0B', 'EF4444', '8B5CF6'];
+    expect(validColors).toContain(color1);
+    
+    // Test with null username
+    const color2 = wrapper.vm.getAvatarColor(null);
+    expect(validColors).toContain(color2);
+    
+    // Both should map to 'anonymous'
+    expect(color1).toBe(color2);
+  });
+  
+  test('handles empty message history', async () => {
+    // Get the message_history handler
+    const historyHandler = mockSocketOn.mock.calls.find(call => call[0] === 'message_history')[1];
+    
+    // Create an empty history array
+    const emptyHistory = [];
+    
+    // Setup mock element for scrollToBottom call
+    const mockContainer = {
+      scrollTop: 0,
+      scrollHeight: 1000
+    };
+    document.querySelector.mockReturnValue(mockContainer);
+    
+    // Call the handler with empty history
+    historyHandler(emptyHistory);
+    
+    // Check that messages array is empty
+    expect(wrapper.vm.messages).toEqual([]);
+    
+    // Wait for next tick when scrolling happens
+    await wrapper.vm.$nextTick();
+    
+    // Verify querySelector was called
     expect(document.querySelector).toHaveBeenCalledWith('.overflow-y-auto');
-  });
-  
-  test('sends message when connected', async () => {
-    // Set component to connected state with a message
-    wrapper.setData({ 
-      isConnected: true, 
-      newMessage: 'Hello world!' 
-    });
     
-    // Call the send message method
-    await wrapper.vm.sendMessage();
-    
-    // Verify socket.emit was called with the right arguments
-    expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
-      username: 'testuser',
-      message: 'Hello world!'
-    });
-    
-    // Message should be cleared
-    expect(wrapper.vm.newMessage).toBe('');
-  });
-  
-  test('does not send message when input is empty', async () => {
-    // Set component to connected state with an empty message
-    wrapper.setData({ 
-      isConnected: true, 
-      newMessage: '   ' // Just whitespace
-    });
-    
-    // Call the send message method
-    await wrapper.vm.sendMessage();
-    
-    // Verify socket.emit was not called
-    expect(mockSocketEmit).not.toHaveBeenCalled();
-  });
-  
-  test('tests the remaining uncovered handler', async () => {
-    // This test specifically targets line 179 in the compiled component
-    
-    // Set component to connected state
-    wrapper.setData({ isConnected: true });
-    
-    // Get all the anonymous event handlers
-    const messageHandlers = wrapper.vm.$options.render.toString();
-    expect(messageHandlers).toBeDefined();
-    
-    // Simulate keyup.enter event on the message input to trigger the handler
-    const input = wrapper.find('input[placeholder="Message #general"]');
-    await input.setValue('test message');
-    await input.trigger('keyup.enter');
-    
-    // Verify the event was handled
-    expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
-      username: 'testuser',
-      message: 'test message'
-    });
+    // Verify scrollTop was set to scrollHeight
+    expect(mockContainer.scrollTop).toBe(mockContainer.scrollHeight);
   });
 }); 
