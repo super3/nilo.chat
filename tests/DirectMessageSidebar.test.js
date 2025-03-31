@@ -4,7 +4,8 @@ import DirectMessageSidebar from '../src/components/DirectMessageSidebar.vue';
 describe('DirectMessageSidebar.vue', () => {
   const defaultProps = {
     username: 'testuser',
-    isConnected: false
+    isConnected: false,
+    steveUnreadCount: 0
   };
 
   test('renders correctly with required props', () => {
@@ -352,5 +353,147 @@ describe('DirectMessageSidebar.vue', () => {
     
     // Restore the spy
     switchChannelSpy.mockRestore();
+  });
+  
+  test('displays notification badge when steveUnreadCount is greater than 0', async () => {
+    // First render with steveUnreadCount = 0
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: defaultProps
+    });
+    
+    // Should not show notification badge
+    expect(wrapper.find('.bg-red-500').exists()).toBe(false);
+    
+    // Update the prop to show unread messages
+    await wrapper.setProps({ steveUnreadCount: 1 });
+    
+    // Should now show the notification badge
+    expect(wrapper.find('.bg-red-500').exists()).toBe(true);
+    expect(wrapper.find('.bg-red-500').text()).toBe('1');
+    
+    // Update to a different count
+    await wrapper.setProps({ steveUnreadCount: 3 });
+    
+    // Badge should update
+    expect(wrapper.find('.bg-red-500').text()).toBe('3');
+  });
+  
+  test('steve direct message item triggers channel change event when clicked', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: defaultProps
+    });
+    
+    // Spy on the switchChannel method
+    const switchChannelSpy = jest.spyOn(wrapper.vm, 'switchChannel');
+    
+    // Find all DM items
+    const dmItems = wrapper.findAll('.px-4.py-1.flex.items-center.mb-2.cursor-pointer');
+    
+    // Find the specific item containing "steve"
+    let steveItem = null;
+    for (let i = 0; i < dmItems.length; i++) {
+      if (dmItems.at(i).text().includes('steve')) {
+        steveItem = dmItems.at(i);
+        break;
+      }
+    }
+    
+    expect(steveItem).not.toBeNull();
+    
+    // Click on steve's DM
+    await steveItem.trigger('click');
+    
+    // Check if switchChannel was called with 'dm_steve'
+    expect(switchChannelSpy).toHaveBeenCalledWith('dm_steve');
+    
+    // Verify the event was emitted
+    expect(wrapper.emitted('channel-change')).toBeTruthy();
+    expect(wrapper.emitted('channel-change')[0]).toEqual(['dm_steve']);
+    
+    // Restore the spy
+    switchChannelSpy.mockRestore();
+  });
+  
+  test('highlights active dm_steve channel correctly', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'dm_steve'
+      }
+    });
+    
+    // Find all DM items
+    const dmItems = wrapper.findAll('.px-4.py-1.flex.items-center.mb-2.cursor-pointer');
+    
+    // Find the specific item containing "steve"
+    let steveItem = null;
+    for (let i = 0; i < dmItems.length; i++) {
+      if (dmItems.at(i).text().includes('steve')) {
+        steveItem = dmItems.at(i);
+        break;
+      }
+    }
+    
+    expect(steveItem).not.toBeNull();
+    
+    // Check if it has the active class
+    expect(steveItem.classes()).toContain('bg-teal-dark');
+    
+    // Change to different channel
+    await wrapper.setProps({ currentChannel: 'general' });
+    
+    // Now it should not have the active class
+    expect(steveItem.classes()).not.toContain('bg-teal-dark');
+  });
+  
+  test('user direct message item triggers channel change event when clicked', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: defaultProps
+    });
+    
+    // Spy on the switchChannel method
+    const switchChannelSpy = jest.spyOn(wrapper.vm, 'switchChannel');
+    
+    // Find the user's own DM item (first in the list)
+    const userItems = wrapper.findAll('.px-4.py-1.flex.items-center.mb-2.cursor-pointer');
+    const userItem = userItems.at(0);
+    expect(userItem.exists()).toBe(true);
+    expect(userItem.html()).toContain('testuser');
+    
+    // Click on the user's DM
+    await userItem.trigger('click');
+    
+    // Check if switchChannel was called with 'dm_self'
+    expect(switchChannelSpy).toHaveBeenCalledWith('dm_self');
+    
+    // Verify the event was emitted
+    expect(wrapper.emitted('channel-change')).toBeTruthy();
+    expect(wrapper.emitted('channel-change')[0]).toEqual(['dm_self']);
+    
+    // Restore the spy
+    switchChannelSpy.mockRestore();
+  });
+  
+  test('highlights active dm_self channel correctly', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'dm_self'
+      }
+    });
+    
+    // Find the user's own DM item
+    const userItems = wrapper.findAll('.px-4.py-1.flex.items-center.mb-2.cursor-pointer');
+    const userItem = userItems.at(0);
+    expect(userItem.exists()).toBe(true);
+    
+    // Check if it has the active class
+    expect(userItem.classes()).toContain('bg-teal-dark');
+    
+    // Change to different channel
+    await wrapper.setProps({ currentChannel: 'general' });
+    
+    // Now it should not have the active class
+    expect(userItem.classes()).not.toContain('bg-teal-dark');
   });
 }); 

@@ -70,7 +70,7 @@
     
     <!-- Direct Messages section -->
     <div class="mb-8">
-      <div class="px-4 mb-2 text-white flex items-center">
+      <div class="px-4 mb-3 text-white flex items-center">
         <div @click="toggleDirectMessages" class="cursor-pointer w-4 mr-2 flex justify-center">
           <svg v-if="showDirectMessages" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
@@ -88,17 +88,26 @@
       </div>
       <!-- Show all DMs when expanded -->
       <div v-if="showDirectMessages">
-        <div class="px-4 flex items-center mb-2" :class="{ 'opacity-50': !isConnected }">
+        <div class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker"
+             :class="{ 'bg-teal-dark': currentChannel === 'dm_self' }"
+             @click="switchChannel('dm_self')">
           <div class="w-4 mr-2 flex justify-center">
             <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2']"></span>
           </div>
           <span class="text-white opacity-75">{{ username }} <span class="text-gray-500 text-sm">(you)</span></span>
         </div>
-        <div class="px-4 flex items-center mb-2">
+        <div class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker" 
+             :class="{ 'bg-teal-dark': currentChannel === 'dm_steve' }"
+             @click="switchChannel('dm_steve')">
           <div class="w-4 mr-2 flex justify-center">
             <span class="bg-green-500 rounded-full block w-2 h-2"></span>
           </div>
           <span class="text-white opacity-75">steve</span>
+          <div v-if="steveUnreadCount > 0" class="ml-auto">
+            <span class="bg-red-500 text-white text-xs rounded-full py-1 px-2 font-semibold">
+              {{ steveUnreadCount }}
+            </span>
+          </div>
         </div>
       </div>
       <!-- Since DMs don't have a 'selected' concept, we won't show any when collapsed -->
@@ -121,6 +130,10 @@ export default {
     currentChannel: {
       type: String,
       default: 'general'
+    },
+    steveUnreadCount: {
+      type: Number,
+      default: 0
     }
   },
   data() {

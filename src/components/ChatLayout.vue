@@ -6,6 +6,7 @@
       :username="username" 
       :is-connected="isConnected"
       :current-channel="currentChannel"
+      :steve-unread-count="steveUnreadCount"
       @channel-change="changeChannel"
     />
     <!-- Chat content -->
@@ -15,6 +16,9 @@
       @connection-change="updateConnectionStatus"
       @username-change="changeUsername" 
       @channel-change="changeChannel"
+      @message-received="handleMessageReceived"
+      @steve-message-read="clearSteveUnreadCount"
+      ref="chatContent"
     />
   </div>
 </template>
@@ -36,16 +40,34 @@ export default {
     const savedUsername = localStorage.getItem('nilo_username');
     // Get current channel from localStorage or default to general
     const savedChannel = localStorage.getItem('nilo_channel') || 'general';
+    // Check if this is the first time joining
+    const isFirstJoin = localStorage.getItem('nilo_first_join') !== 'true';
+    
+    // Set the flag for future sessions
+    if (isFirstJoin) {
+      localStorage.setItem('nilo_first_join', 'true');
+    }
     
     return {
       username: savedUsername || 'User_' + Math.floor(Math.random() * 1000),
       isConnected: false,
-      currentChannel: savedChannel
+      currentChannel: savedChannel,
+      steveUnreadCount: isFirstJoin ? 1 : 0,
+      isFirstJoin: isFirstJoin
+    }
+  },
+  mounted() {
+    if (this.isFirstJoin) {
+      // Mark that the user has joined before
+      localStorage.setItem('nilo_first_join', 'true');
     }
   },
   methods: {
     updateConnectionStatus(status) {
       this.isConnected = status;
+      
+      // Server will handle sending steve's greeting message
+      // No need to call it here anymore
     },
     changeUsername(newUsername) {
       this.username = newUsername;
@@ -56,6 +78,15 @@ export default {
       this.currentChannel = channel;
       // Save channel to localStorage
       localStorage.setItem('nilo_channel', channel);
+    },
+    handleMessageReceived(message) {
+      // Increment unread count if message is from steve
+      if (message.username === 'steve') {
+        this.steveUnreadCount++;
+      }
+    },
+    clearSteveUnreadCount() {
+      this.steveUnreadCount = 0;
     }
   }
 }

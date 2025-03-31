@@ -3,7 +3,14 @@
     <!-- Top bar -->
     <div class="border-b border-border-light flex px-6 py-2 items-center flex-none">
       <div class="flex flex-col">
-        <h3 class="text-gray-900 mb-1 font-extrabold">#{{ currentChannel }}</h3>
+        <h3 class="text-gray-900 mb-1 font-extrabold">
+          <template v-if="isDmChannel">
+            <span>{{ getChannelDisplayName() }}</span>
+          </template>
+          <template v-else>
+            <span>#{{ currentChannel }}</span>
+          </template>
+        </h3>
         <div class="text-gray-600 text-sm truncate">
           {{ channelDescription }}
         </div>
@@ -41,7 +48,7 @@
         <input 
           type="text" 
           class="w-full px-4" 
-          :placeholder="`Message #${currentChannel}`" 
+          :placeholder="getInputPlaceholder()" 
           v-model="newMessage"
           @keyup.enter="sendMessage"
         />
@@ -82,11 +89,19 @@ export default {
   },
   computed: {
     channelDescription() {
+      if (this.isDmChannel) {
+        const dmUser = this.getDmUserFromChannel();
+        return `Direct message with ${dmUser}.`;
+      }
+      
       const descriptions = {
         general: 'Main discussion area for our self-improving chat application.',
         feedback: 'Share your thoughts and suggestions about the app here.'
       };
       return descriptions[this.currentChannel] || 'Channel description';
+    },
+    isDmChannel() {
+      return this.currentChannel.startsWith('dm_');
     }
   },
   watch: {
@@ -124,10 +139,14 @@ export default {
       this.isConnected = true;
       this.$emit('connection-change', true);
       
+      // Check if this is a returning user
+      const isReturningUser = localStorage.getItem('nilo_first_join') === 'true';
+      
       // Emit the username when connecting and join the current channel
       this.socket.emit('user_connected', {
         username: this.localUsername,
-        channel: this.localChannel
+        channel: this.localChannel,
+        isReturningUser: isReturningUser
       });
     });
     
@@ -163,6 +182,9 @@ export default {
     this.socket.on('chat_message', (data) => {
       // Add the message
       this.messages.push(data);
+      
+      // Emit event when a message is received 
+      this.$emit('message-received', data);
       
       // Only scroll if user was at the bottom
       if (this.isAtBottom) {
@@ -261,6 +283,11 @@ export default {
         const scrollBottom = container.scrollTop + container.clientHeight;
         const threshold = 50; // pixels from bottom to consider "at bottom"
         this.isAtBottom = scrollBottom >= (container.scrollHeight - threshold);
+        
+        // If we're at the bottom and there are steve's messages, mark them as read
+        if (this.isAtBottom && this.messages.some(msg => msg.username === 'steve')) {
+          this.markSteveMessagesAsRead();
+        }
       }
     },
     getAvatarColor(username) {
@@ -288,6 +315,51 @@ export default {
     fetchMessages() {
       // This method is actually handled by the join_channel event response
       // We just need it here for the tests to pass
+    },
+    receiveGreetingFromSteve() {
+      // Create a greeting message from steve
+      const greeting = {
+        timestamp: new Date().toISOString(),
+        username: 'steve',
+        message: `Hello ${this.localUsername}! Welcome to nilo.chat! Let me know if you need any help getting started.`
+      };
+      
+      // Add the greeting to the dm_steve channel messages
+      // But we're not switching channels, just setting up the notification
+      
+      // Emit event to notify about new message from steve
+      this.$emit('message-received', greeting);
+      
+      // Don't switch channels - stay on the default channel
+      // this.$emit('channel-change', 'dm_steve');
+    },
+    markSteveMessagesAsRead() {
+      this.$emit('steve-message-read');
+    },
+    getChannelDisplayName() {
+      if (this.isDmChannel) {
+        if (this.currentChannel === 'dm_self') {
+          return this.username;
+        }
+        return this.getDmUserFromChannel();
+      }
+      return this.currentChannel;
+    },
+    getDmUserFromChannel() {
+      // Extract username from dm_username channel format
+      if (this.currentChannel === 'dm_steve') {
+        return 'steve';
+      }
+      if (this.currentChannel === 'dm_self') {
+        return this.username;
+      }
+      return this.currentChannel.replace('dm_', '');
+    },
+    getInputPlaceholder() {
+      if (this.isDmChannel) {
+        return `Message ${this.getDmUserFromChannel()}`;
+      }
+      return `Message #${this.currentChannel}`;
     }
   }
 }
