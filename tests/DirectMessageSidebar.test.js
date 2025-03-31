@@ -151,14 +151,15 @@ describe('DirectMessageSidebar.vue', () => {
       propsData: defaultProps
     });
     
-    // Initially, we should see the "steve" text in the component
-    expect(wrapper.html()).toContain('steve');
+    // Initially, we should see the "testuser" text in the component
+    expect(wrapper.html()).toContain('testuser');
+    expect(wrapper.html()).toContain('(you)');
     
     // Toggle showDirectMessages to false
     await wrapper.setData({ showDirectMessages: false });
     
-    // Now we shouldn't see the "steve" text
-    expect(wrapper.html()).not.toContain('steve');
+    // Now we shouldn't see the "(you)" text which is only in the DM section
+    expect(wrapper.html()).not.toContain('(you)');
   });
   
   test('renders only selected channel and no direct messages when both toggles are false', async () => {
@@ -178,9 +179,6 @@ describe('DirectMessageSidebar.vue', () => {
     // Should only show the selected channel (general)
     expect(wrapper.html()).toContain('<span>general</span>');
     expect(wrapper.html()).not.toContain('<span>feedback</span>');
-    
-    // Should not show steve
-    expect(wrapper.html()).not.toContain('steve');
   });
   
   test('connection status indicator changes with isConnected prop', async () => {
@@ -355,27 +353,47 @@ describe('DirectMessageSidebar.vue', () => {
     switchChannelSpy.mockRestore();
   });
   
-  test('displays notification badge when steveUnreadCount is greater than 0', async () => {
-    // First render with steveUnreadCount = 0
+  test('displays notification badge when channel unread count is greater than 0', async () => {
+    // First render with no unread messages
     const wrapper = shallowMount(DirectMessageSidebar, {
-      propsData: defaultProps
+      propsData: {
+        ...defaultProps,
+        channelUnreadCounts: {
+          general: 0,
+          feedback: 0, 
+          dm_self: 0
+        }
+      }
     });
     
-    // Should not show notification badge
-    expect(wrapper.find('.bg-red-500').exists()).toBe(false);
+    // Should not show notification badge initially
+    expect(wrapper.find('.bg-red-600').exists()).toBe(false);
     
-    // Update the prop to show unread messages
-    await wrapper.setProps({ steveUnreadCount: 1 });
+    // Update the prop to show unread messages for dm_self
+    await wrapper.setProps({ 
+      channelUnreadCounts: {
+        general: 0,
+        feedback: 0,
+        dm_self: 1
+      }
+    });
     
-    // Should now show the notification badge
-    expect(wrapper.find('.bg-red-500').exists()).toBe(true);
-    expect(wrapper.find('.bg-red-500').text()).toBe('1');
+    // Should now show the notification badge for dm_self
+    const badge = wrapper.find('.bg-red-600');
+    expect(badge.exists()).toBe(true);
+    expect(badge.text()).toBe('1');
     
     // Update to a different count
-    await wrapper.setProps({ steveUnreadCount: 3 });
+    await wrapper.setProps({ 
+      channelUnreadCounts: {
+        general: 0,
+        feedback: 0,
+        dm_self: 3
+      }
+    });
     
     // Badge should update
-    expect(wrapper.find('.bg-red-500').text()).toBe('3');
+    expect(wrapper.find('.bg-red-600').text()).toBe('3');
   });
   
   test('user direct message item triggers channel change event when clicked', async () => {
@@ -443,59 +461,5 @@ describe('DirectMessageSidebar.vue', () => {
     wrapper.vm.switchChannel('dm_self');
     expect(wrapper.emitted('channel-change')).toBeTruthy();
     expect(wrapper.emitted('channel-change')[0]).toEqual(['dm_self']);
-  });
-
-  test('steve direct message item triggers channel change event when clicked', async () => {
-    const wrapper = shallowMount(DirectMessageSidebar, {
-      propsData: defaultProps
-    });
-    
-    // Spy on the switchChannel method
-    const switchChannelSpy = jest.spyOn(wrapper.vm, 'switchChannel');
-    
-    // Just verify the HTML contains 'steve'
-    const html = wrapper.html();
-    expect(html).toContain('steve');
-    
-    // Call the switchChannel method directly
-    wrapper.vm.switchChannel('dm_steve');
-    
-    // Check if switchChannel was called with 'dm_steve'
-    expect(switchChannelSpy).toHaveBeenCalledWith('dm_steve');
-    
-    // Verify the event was emitted
-    expect(wrapper.emitted('channel-change')).toBeTruthy();
-    expect(wrapper.emitted('channel-change')[0]).toEqual(['dm_steve']);
-    
-    // Restore the spy
-    switchChannelSpy.mockRestore();
-  });
-  
-  test('highlights active dm_steve channel correctly', async () => {
-    const wrapper = shallowMount(DirectMessageSidebar, {
-      propsData: {
-        ...defaultProps,
-        currentChannel: 'dm_steve'
-      }
-    });
-    
-    // Just verify that when currentChannel is 'dm_steve', the steve DM should have the bg-teal-dark class
-    const html = wrapper.html();
-    
-    // This is a simplified test that just checks that bg-teal-dark appears 
-    // somewhere in the HTML near steve
-    const containsSteve = html.includes('steve');
-    const containsActiveClass = html.includes('bg-teal-dark');
-    
-    expect(containsSteve).toBe(true);
-    expect(containsActiveClass).toBe(true);
-    
-    // Change to different channel
-    await wrapper.setProps({ currentChannel: 'general' });
-    
-    // Verify switchChannel method works by directly calling it
-    wrapper.vm.switchChannel('dm_steve');
-    expect(wrapper.emitted('channel-change')).toBeTruthy();
-    expect(wrapper.emitted('channel-change')[0]).toEqual(['dm_steve']);
   });
 }); 

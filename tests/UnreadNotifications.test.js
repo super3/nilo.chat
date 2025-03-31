@@ -1,5 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import ChatLayout from '../src/components/ChatLayout.vue';
+import ChannelSidebar from '../src/components/ChannelSidebar.vue';
+import DirectMessageSidebar from '../src/components/DirectMessageSidebar.vue';
 
 // Helper function to create a mock socket
 const createMockSocket = () => {
@@ -33,173 +35,111 @@ jest.mock('../src/components/ChatContent.vue', () => ({
 }));
 
 describe('Unread Notifications Feature', () => {
-  // Mock localStorage
-  const localStorageMock = (() => {
-    let store = {};
-    return {
-      getItem: jest.fn(key => store[key] || null),
-      setItem: jest.fn((key, value) => {
-        store[key] = value.toString();
-      }),
-      clear: jest.fn(() => {
-        store = {};
-      })
-    };
-  })();
-  
   beforeEach(() => {
-    // Setup localStorage mock
+    // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
-      value: localStorageMock
+      value: {
+        getItem: jest.fn().mockReturnValue(null),
+        setItem: jest.fn()
+      },
+      writable: true
     });
-    // Clear localStorage before each test
-    localStorageMock.clear();
-    
-    // Set up localStorage for a returning user
-    localStorageMock.setItem('nilo_first_join', 'true');
-    localStorageMock.setItem('nilo_username', 'testuser');
-    localStorageMock.setItem('nilo_channel', 'general');
   });
   
-  test('unread count increments when receiving message in another channel', async () => {
-    // Create wrapper with mocked socket
+  test('channel unread counts increment correctly', () => {
     const wrapper = mount(ChatLayout);
     
-    // Set initial channel to 'general'
+    // Set current channel to general
     wrapper.vm.currentChannel = 'general';
     
-    // Initial unread counts should be 0
-    expect(wrapper.vm.channelUnreadCounts.feedback).toBe(0);
+    // Setup initial state with 0 unread messages
+    wrapper.vm.channelUnreadCounts = {
+      general: 0,
+      feedback: 0,
+      dm_self: 0
+    };
     
-    // Simulate receiving a message in the 'feedback' channel
+    // Simulate receiving a message from the feedback channel
     wrapper.vm.handleMessageReceived({
-      timestamp: new Date().toISOString(),
       username: 'otheruser',
       message: 'Hello in feedback channel',
       channel: 'feedback'
     });
     
-    // The unread count for feedback should increment
-    expect(wrapper.vm.channelUnreadCounts.feedback).toBe(1);
-    
-    // Simulate receiving another message
+    // Another message in feedback
     wrapper.vm.handleMessageReceived({
-      timestamp: new Date().toISOString(),
       username: 'otheruser',
       message: 'Another message in feedback',
       channel: 'feedback'
     });
     
-    // The unread count should increment again
+    // Should increment the unread count for feedback
     expect(wrapper.vm.channelUnreadCounts.feedback).toBe(2);
     
-    // Simulate receiving a message in the current channel
+    // Receive a message in current channel
     wrapper.vm.handleMessageReceived({
-      timestamp: new Date().toISOString(),
       username: 'otheruser',
       message: 'Hello in general channel',
       channel: 'general'
     });
     
-    // The unread count for the current channel should remain 0
+    // Current channel unread count should remain zero
     expect(wrapper.vm.channelUnreadCounts.general).toBe(0);
   });
   
-  test('unread count resets when switching to channel', async () => {
-    // Create wrapper
+  test('switching channels resets unread count', () => {
     const wrapper = mount(ChatLayout);
     
-    // Set initial channel to 'general'
+    // Set current channel to general
     wrapper.vm.currentChannel = 'general';
     
-    // Set some unread counts
-    wrapper.vm.channelUnreadCounts.feedback = 3;
+    // Setup initial state with some unread messages
+    wrapper.vm.channelUnreadCounts = {
+      general: 0,
+      feedback: 5,
+      dm_self: 3
+    };
     
-    // Verify initial state
-    expect(wrapper.vm.channelUnreadCounts.feedback).toBe(3);
-    
-    // Switch to the feedback channel
+    // Change to feedback channel
     wrapper.vm.changeChannel('feedback');
     
-    // Wait for Vue to update
-    await wrapper.vm.$nextTick();
-    
-    // The unread count for feedback should be reset
+    // Unread count for feedback should be reset
     expect(wrapper.vm.channelUnreadCounts.feedback).toBe(0);
     
-    // The current channel should be updated
-    expect(wrapper.vm.currentChannel).toBe('feedback');
-  });
-  
-  test('DM unread counts increment correctly', async () => {
-    // Create wrapper
-    const wrapper = mount(ChatLayout);
-    
-    // Set initial channel to 'general'
-    wrapper.vm.currentChannel = 'general';
-    
-    // Initial steve unread count should be 0 (returning user)
-    expect(wrapper.vm.steveUnreadCount).toBe(0);
-    
-    // Simulate receiving a message from steve
-    wrapper.vm.handleMessageReceived({
-      timestamp: new Date().toISOString(),
-      username: 'steve',
-      message: 'Hello!',
-      channel: 'dm_steve'
-    });
-    
-    // The steve unread count should increment
-    expect(wrapper.vm.steveUnreadCount).toBe(1);
-    
-    // The dm_steve channel unread count should also increment
-    expect(wrapper.vm.channelUnreadCounts.dm_steve).toBe(1);
-    
-    // Switch to the steve DM channel
-    wrapper.vm.changeChannel('dm_steve');
-    
-    // Wait for Vue to update
-    await wrapper.vm.$nextTick();
-    
-    // Both unread counts should be reset
-    expect(wrapper.vm.steveUnreadCount).toBe(0);
-    expect(wrapper.vm.channelUnreadCounts.dm_steve).toBe(0);
+    // Other unread counts should not change
+    expect(wrapper.vm.channelUnreadCounts.dm_self).toBe(3);
   });
   
   test('unread notifications appear in the UI', async () => {
-    // This test would normally check if the UI actually shows the notification badges
-    // but since we're using mocked components, we'll just verify the props are passed correctly
-    
+    // Use mount instead of shallowMount to render child components
     const wrapper = mount(ChatLayout);
     
-    // Set initial channel to 'general'
-    wrapper.vm.currentChannel = 'general';
+    // Access channel sidebar component
+    const channelSidebar = wrapper.findComponent(ChannelSidebar);
     
-    // Set some unread counts
-    wrapper.vm.channelUnreadCounts.feedback = 3;
-    wrapper.vm.channelUnreadCounts.dm_steve = 2;
-    wrapper.vm.steveUnreadCount = 2;
+    // Access DM sidebar component
+    const dmSidebar = wrapper.findComponent(DirectMessageSidebar);
     
-    // Wait for Vue to update
+    // Set unread counts
+    wrapper.vm.channelUnreadCounts = {
+      general: 3,
+      feedback: 2,
+      dm_self: 4
+    };
+    
+    // Pass the updated unread counts to children
     await wrapper.vm.$nextTick();
     
-    // Check that the ChannelSidebar receives the correct channelUnreadCounts prop
-    const channelSidebar = wrapper.findComponent({ name: 'ChannelSidebar' });
+    // Verify they received the correct props
     expect(channelSidebar.props('channelUnreadCounts')).toEqual({
-      general: 0,
-      feedback: 3,
-      dm_self: 0,
-      dm_steve: 2
+      general: 3,
+      feedback: 2,
+      dm_self: 4
     });
-    
-    // Check that the DirectMessageSidebar receives the correct props
-    const dmSidebar = wrapper.findComponent({ name: 'DirectMessageSidebar' });
     expect(dmSidebar.props('channelUnreadCounts')).toEqual({
-      general: 0,
-      feedback: 3,
-      dm_self: 0,
-      dm_steve: 2
+      general: 3,
+      feedback: 2,
+      dm_self: 4
     });
-    expect(dmSidebar.props('steveUnreadCount')).toBe(2);
   });
 }); 

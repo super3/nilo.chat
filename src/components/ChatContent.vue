@@ -298,11 +298,6 @@ export default {
         const scrollBottom = container.scrollTop + container.clientHeight;
         const threshold = 50; // pixels from bottom to consider "at bottom"
         this.isAtBottom = scrollBottom >= (container.scrollHeight - threshold);
-        
-        // If we're at the bottom and there are steve's messages, mark them as read
-        if (this.isAtBottom && this.messages.some(msg => msg.username === 'steve')) {
-          this.markSteveMessagesAsRead();
-        }
       }
     },
     getAvatarColor(username) {
@@ -325,36 +320,11 @@ export default {
         
         // Update messages for the new channel
         this.messages = [];
-        
-        // If switching to Steve's DM channel, mark messages as read
-        if (channel === 'dm_steve') {
-          this.markSteveMessagesAsRead();
-        }
       }
     },
     fetchMessages() {
       // This method is actually handled by the join_channel event response
       // We just need it here for the tests to pass
-    },
-    receiveGreetingFromSteve() {
-      // Create a greeting message from steve
-      const greeting = {
-        timestamp: new Date().toISOString(),
-        username: 'steve',
-        message: `Hello ${this.localUsername}! Welcome to nilo.chat! Let me know if you need any help getting started.`
-      };
-      
-      // Add the greeting to the dm_steve channel messages
-      // But we're not switching channels, just setting up the notification
-      
-      // Emit event to notify about new message from steve
-      this.$emit('message-received', greeting);
-      
-      // Don't switch channels - stay on the default channel
-      // this.$emit('channel-change', 'dm_steve');
-    },
-    markSteveMessagesAsRead() {
-      this.$emit('steve-message-read');
     },
     getChannelDisplayName() {
       if (this.isDmChannel) {
@@ -367,9 +337,6 @@ export default {
     },
     getDmUserFromChannel() {
       // Extract username from dm_username channel format
-      if (this.currentChannel === 'dm_steve') {
-        return 'steve';
-      }
       if (this.currentChannel === 'dm_self') {
         return this.username;
       }

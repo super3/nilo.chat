@@ -124,20 +124,6 @@
             </span>
           </div>
         </div>
-        <div class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker" 
-             :class="{ 'bg-teal-dark': currentChannel === 'dm_steve' }"
-             @click="switchChannel('dm_steve')"
-             data-testid="dm-steve">
-          <div class="w-4 mr-2 flex justify-center">
-            <span class="bg-green-500 rounded-full block w-2 h-2"></span>
-          </div>
-          <span class="text-white opacity-75">steve</span>
-          <div v-if="steveUnreadCount > 0" class="ml-auto">
-            <span class="bg-red-500 text-white text-xs rounded-full py-1 px-2 font-bold">
-              {{ steveUnreadCount }}
-            </span>
-          </div>
-        </div>
       </div>
       <!-- Since DMs don't have a 'selected' concept, we won't show any when collapsed -->
     </div>
@@ -160,16 +146,11 @@ export default {
       type: String,
       default: 'general'
     },
-    steveUnreadCount: {
-      type: Number,
-      default: 0
-    },
     channelUnreadCounts: {
       type: Object,
       default: () => ({
         general: 0,
         feedback: 0,
-        dm_steve: 0,
         dm_self: 0
       })
     }

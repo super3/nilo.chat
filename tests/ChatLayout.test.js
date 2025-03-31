@@ -207,107 +207,115 @@ describe('ChatLayout.vue', () => {
     expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_username', 'NewUsername');
   });
   
-  test('initializes with steveUnreadCount as 1 for first-time users', () => {
-    // Mock localStorage to indicate first-time user
-    localStorageMock.getItem.mockImplementation(key => {
-      if (key === 'nilo_first_join') return null;
+  test('initializes with correct data properties', () => {
+    const wrapper = shallowMount(ChatLayout);
+    
+    // Should have default values
+    expect(wrapper.vm.username).toBeTruthy();
+    expect(wrapper.vm.isConnected).toBe(false);
+    expect(wrapper.vm.currentChannel).toBeTruthy();
+    expect(wrapper.vm.channelUnreadCounts).toBeDefined();
+  });
+  
+  test('initializes with isFirstJoin as true for first-time users', () => {
+    // Mock localStorage for first-time user
+    jest.spyOn(window.localStorage, 'getItem').mockImplementation((key) => {
+      if (key === 'nilo_first_join') {
+        return null; // First time user
+      }
       return null;
     });
     
     const wrapper = shallowMount(ChatLayout);
     
-    // Verify first join flag was checked
-    expect(localStorageMock.getItem).toHaveBeenCalledWith('nilo_first_join');
-    
-    // Should have steveUnreadCount of 1 for first-time user
-    expect(wrapper.vm.steveUnreadCount).toBe(1);
+    // First-time user should have isFirstJoin set to true
     expect(wrapper.vm.isFirstJoin).toBe(true);
   });
   
-  test('initializes with steveUnreadCount as 0 for returning users', () => {
-    // Mock localStorage to indicate returning user
-    localStorageMock.getItem.mockImplementation(key => {
-      if (key === 'nilo_first_join') return 'true';
+  test('initializes with isFirstJoin as false for returning users', () => {
+    // Mock localStorage for returning user
+    jest.spyOn(window.localStorage, 'getItem').mockImplementation((key) => {
+      if (key === 'nilo_first_join') {
+        return 'true'; // Returning user
+      }
       return null;
     });
     
     const wrapper = shallowMount(ChatLayout);
     
-    // Should have steveUnreadCount of 0 for returning user
-    expect(wrapper.vm.steveUnreadCount).toBe(0);
+    // Returning user should have isFirstJoin set to false
     expect(wrapper.vm.isFirstJoin).toBe(false);
   });
   
-  test('calls receiveGreetingFromSteve when first-time user connects', async () => {
-    // Mock the ChatContent component
-    const mockChatContentComponent = {
-      template: '<div>Mocked Chat Content</div>',
-      methods: {
-        receiveGreetingFromSteve: jest.fn()
-      }
+  test('changeChannel updates currentChannel and resets unread count', () => {
+    const wrapper = shallowMount(ChatLayout);
+    
+    // Setup initial state
+    wrapper.vm.channelUnreadCounts = {
+      general: 0,
+      feedback: 5,
+      dm_self: 0
     };
     
-    // Create a wrapper with the mock
-    const wrapper = shallowMount(ChatLayout, {
-      global: {
-        stubs: {
-          ChatContent: mockChatContentComponent
-        }
-      },
-      data() {
-        return {
-          isFirstJoin: true
-        };
-      }
-    });
+    // Change to the feedback channel
+    wrapper.vm.changeChannel('feedback');
     
-    // Skip the test for now as we'll need to restructure the component interaction
-    // for this test case to work properly
-    console.warn('Skipping test since we cannot directly mock the ref in Vue 3');
+    // Channel should be updated
+    expect(wrapper.vm.currentChannel).toBe('feedback');
+    // Unread count should be reset
+    expect(wrapper.vm.channelUnreadCounts.feedback).toBe(0);
   });
   
-  test('handleMessageReceived increments steveUnreadCount for steve messages', () => {
-    // Use a standard mount with overridden data
-    const wrapper = shallowMount(ChatLayout, {
-      data() {
-        return {
-          steveUnreadCount: 0 // Force this to be 0 regardless of mock localStorage
-        };
-      }
-    });
+  test('handleConnectionStatusChange updates isConnected', () => {
+    const wrapper = shallowMount(ChatLayout);
     
-    // Initial count is explicitly set to 0
-    expect(wrapper.vm.steveUnreadCount).toBe(0);
+    // Call the method with true
+    wrapper.vm.handleConnectionStatusChange(true);
     
-    // Handle a message from another user
-    wrapper.vm.handleMessageReceived({ username: 'otheruser', message: 'Hello' });
+    // Should update isConnected
+    expect(wrapper.vm.isConnected).toBe(true);
     
-    // Count should not change
-    expect(wrapper.vm.steveUnreadCount).toBe(0);
+    // Call the method with false
+    wrapper.vm.handleConnectionStatusChange(false);
     
-    // Handle a message from steve
-    wrapper.vm.handleMessageReceived({ username: 'steve', message: 'Hello' });
-    
-    // Count should increment
-    expect(wrapper.vm.steveUnreadCount).toBe(1);
+    // Should update isConnected
+    expect(wrapper.vm.isConnected).toBe(false);
   });
   
-  test('clearSteveUnreadCount resets the unread count', () => {
-    const wrapper = shallowMount(ChatLayout, {
-      data() {
-        return {
-          steveUnreadCount: 3
-        };
-      }
-    });
-    
-    // Initial count
-    expect(wrapper.vm.steveUnreadCount).toBe(3);
+  test('handleUsernameChange updates username', () => {
+    const wrapper = shallowMount(ChatLayout);
     
     // Call the method
-    wrapper.vm.clearSteveUnreadCount();
+    wrapper.vm.handleUsernameChange('NewUsername');
     
-    // Count should be reset
-    expect(wrapper.vm.steveUnreadCount).toBe(0);
+    // Should update username
+    expect(wrapper.vm.username).toBe('NewUsername');
+  });
+  
+  test('handleMessageReceived increments unread count for messages in other channels', () => {
+    const wrapper = shallowMount(ChatLayout);
+    
+    // Set current channel to general
+    wrapper.vm.currentChannel = 'general';
+    
+    // Setup initial state
+    wrapper.vm.channelUnreadCounts = {
+      general: 0,
+      feedback: 0,
+      dm_self: 0
+    };
+    
+    // Simulate receiving a message from the feedback channel
+    wrapper.vm.handleMessageReceived({
+      username: 'user',
+      message: 'Hello',
+      channel: 'feedback'
+    });
+    
+    // Should increment the unread count for feedback
+    expect(wrapper.vm.channelUnreadCounts.feedback).toBe(1);
+    
+    // But not for the current channel
+    expect(wrapper.vm.channelUnreadCounts.general).toBe(0);
   });
 }); 

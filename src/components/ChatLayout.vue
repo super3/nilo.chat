@@ -10,7 +10,6 @@
       :username="username" 
       :is-connected="isConnected"
       :current-channel="currentChannel"
-      :steve-unread-count="steveUnreadCount"
       :channel-unread-counts="channelUnreadCounts"
       @channel-change="changeChannel"
     />
@@ -22,7 +21,6 @@
       @username-change="handleUsernameChange" 
       @channel-change="changeChannel"
       @message-received="handleMessageReceived"
-      @steve-message-read="clearSteveUnreadCount"
       ref="chatContent"
     />
   </div>
@@ -57,13 +55,11 @@ export default {
       username: savedUsername || 'User_' + Math.floor(Math.random() * 1000),
       isConnected: false,
       currentChannel: savedChannel,
-      steveUnreadCount: isFirstJoin ? 1 : 0,
       isFirstJoin: isFirstJoin,
       channelUnreadCounts: {
         general: 0,
         feedback: 0,
-        dm_self: 0,
-        dm_steve: isFirstJoin ? 1 : 0
+        dm_self: 0
       }
     }
   },
@@ -76,9 +72,6 @@ export default {
   methods: {
     updateConnectionStatus(status) {
       this.isConnected = status;
-      
-      // Server will handle sending steve's greeting message
-      // No need to call it here anymore
     },
     changeUsername(newUsername) {
       this.username = newUsername;
@@ -91,11 +84,6 @@ export default {
       
       // Reset unread count when switching to a channel
       this.channelUnreadCounts[channel] = 0;
-      
-      // Also reset steve's unread count when switching to dm_steve
-      if (channel === 'dm_steve') {
-        this.steveUnreadCount = 0;
-      }
     },
     handleUsernameChange(newUsername) {
       this.username = newUsername;
@@ -105,12 +93,6 @@ export default {
     },
     handleMessageReceived(message) {
       console.log(`ChatLayout received message:`, message);
-      
-      // If this is a message from steve and the current channel is not dm_steve
-      if (message.username === 'steve' && this.currentChannel !== 'dm_steve') {
-        console.log(`Incrementing steve unread count`);
-        this.steveUnreadCount++;
-      }
       
       // If the message has an explicit channel property
       if (message.channel) {
@@ -122,10 +104,6 @@ export default {
           console.log(`New unread counts:`, this.channelUnreadCounts);
         }
       }
-    },
-    clearSteveUnreadCount() {
-      this.steveUnreadCount = 0;
-      this.channelUnreadCounts['dm_steve'] = 0;
     }
   }
 }
