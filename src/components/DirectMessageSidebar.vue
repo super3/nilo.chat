@@ -98,7 +98,7 @@
           <div class="w-4 mr-2 flex justify-center">
             <span class="bg-green-500 rounded-full block w-2 h-2"></span>
           </div>
-          <span class="text-white opacity-75">Steve_Nilo</span>
+          <span class="text-white opacity-75">steve</span>
         </div>
       </div>
       <!-- Since DMs don't have a 'selected' concept, we won't show any when collapsed -->

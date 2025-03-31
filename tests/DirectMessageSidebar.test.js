@@ -66,14 +66,14 @@ describe('DirectMessageSidebar.vue', () => {
     expect(wrapper.props().isConnected).toBe(false);
   });
   
-  test('displays Steve_Nilo in the direct messages list', () => {
+  test('displays steve in the direct messages list', () => {
     const wrapper = shallowMount(DirectMessageSidebar, {
       propsData: defaultProps
     });
     
-    // Check if Steve_Nilo appears in the HTML
+    // Check if steve appears in the HTML
     const html = wrapper.html();
-    expect(html).toContain('Steve_Nilo');
+    expect(html).toContain('steve');
   });
   
   test('toggleChannels method toggles showChannels state', async () => {
@@ -150,14 +150,14 @@ describe('DirectMessageSidebar.vue', () => {
       propsData: defaultProps
     });
     
-    // Initially, we should see the "Steve_Nilo" text in the component
-    expect(wrapper.html()).toContain('Steve_Nilo');
+    // Initially, we should see the "steve" text in the component
+    expect(wrapper.html()).toContain('steve');
     
     // Toggle showDirectMessages to false
     await wrapper.setData({ showDirectMessages: false });
     
-    // Now we shouldn't see the "Steve_Nilo" text
-    expect(wrapper.html()).not.toContain('Steve_Nilo');
+    // Now we shouldn't see the "steve" text
+    expect(wrapper.html()).not.toContain('steve');
   });
   
   test('renders only selected channel and no direct messages when both toggles are false', async () => {
@@ -178,8 +178,8 @@ describe('DirectMessageSidebar.vue', () => {
     expect(wrapper.html()).toContain('<span>general</span>');
     expect(wrapper.html()).not.toContain('<span>feedback</span>');
     
-    // Should not show Steve_Nilo
-    expect(wrapper.html()).not.toContain('Steve_Nilo');
+    // Should not show steve
+    expect(wrapper.html()).not.toContain('steve');
   });
   
   test('connection status indicator changes with isConnected prop', async () => {
