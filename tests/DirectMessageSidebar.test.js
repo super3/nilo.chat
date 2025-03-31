@@ -239,4 +239,88 @@ describe('DirectMessageSidebar.vue', () => {
     let rightArrows = wrapper.findAll('svg path[d^="M7.293 14.707a1 1 0 010-1.414L10.586"]');
     expect(rightArrows.length).toBe(2);
   });
+  
+  test('switchChannel method emits channel-change event', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'general'
+      }
+    });
+    
+    // Call the method with a different channel
+    wrapper.vm.switchChannel('feedback');
+    
+    // Check that the event was emitted with the correct value
+    expect(wrapper.emitted('channel-change')).toBeTruthy();
+    expect(wrapper.emitted('channel-change')[0]).toEqual(['feedback']);
+  });
+  
+  test('switchChannel method does not emit for same channel', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'feedback'
+      }
+    });
+    
+    // Call the method with the same channel
+    wrapper.vm.switchChannel('feedback');
+    
+    // Should not emit anything
+    expect(wrapper.emitted('channel-change')).toBeFalsy();
+  });
+  
+  test('channel selection highlights the active channel', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'general'
+      }
+    });
+    
+    // Find the channel items
+    const channelItems = wrapper.findAll('.px-4.py-1.text-white.flex.items-center.cursor-pointer');
+    expect(channelItems.length).toBeGreaterThanOrEqual(2);
+    
+    // The first one (general) should have the active class
+    expect(channelItems[0].classes()).toContain('bg-teal-dark');
+    
+    // The second one (feedback) should not have the active class
+    expect(channelItems[1].classes()).not.toContain('bg-teal-dark');
+    
+    // Change the current channel
+    await wrapper.setProps({ currentChannel: 'feedback' });
+    
+    // Now the second one should have the active class
+    expect(channelItems[1].classes()).toContain('bg-teal-dark');
+    
+    // And the first one should not
+    expect(channelItems[0].classes()).not.toContain('bg-teal-dark');
+  });
+  
+  test('channel items trigger switchChannel when clicked', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'general'
+      }
+    });
+    
+    // Spy on the switchChannel method
+    const switchChannelSpy = jest.spyOn(wrapper.vm, 'switchChannel');
+    
+    // Find the channel items
+    const channelItems = wrapper.findAll('.px-4.py-1.text-white.flex.items-center.cursor-pointer');
+    expect(channelItems.length).toBeGreaterThanOrEqual(2);
+    
+    // Click the second channel (feedback)
+    await channelItems[1].trigger('click');
+    
+    // Check if switchChannel was called with 'feedback'
+    expect(switchChannelSpy).toHaveBeenCalledWith('feedback');
+    
+    // Restore the spy
+    switchChannelSpy.mockRestore();
+  });
 }); 

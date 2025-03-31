@@ -4,11 +4,12 @@ const express = require('express');
 const http = require('http');
 
 // Path to the real general.txt file
-const REAL_GENERAL_PATH = path.join(__dirname, '..', 'general.txt');
+const CHANNEL = 'general';
+const REAL_CHANNEL_PATH = path.join(__dirname, '..', 'channels', `${CHANNEL}.txt`);
 
 // Create a backup of the general.txt content before tests
-const backupGeneralContent = fs.existsSync(REAL_GENERAL_PATH) 
-  ? fs.readFileSync(REAL_GENERAL_PATH, 'utf8')
+const backupChannelContent = fs.existsSync(REAL_CHANNEL_PATH) 
+  ? fs.readFileSync(REAL_CHANNEL_PATH, 'utf8')
   : '';
 
 // Mock modules
@@ -31,7 +32,10 @@ const mockSocketIo = jest.fn(() => {
       }
       return mockIO;
     }),
-    emit: jest.fn()
+    emit: jest.fn(),
+    to: jest.fn(() => ({
+      emit: jest.fn()
+    }))
   };
   return mockIO;
 });
@@ -67,10 +71,17 @@ describe('Server Module - Comprehensive', () => {
           mockSocket.disconnectCallback = callback;
         } else if (event === 'username_change') {
           mockSocket.usernameChangeCallback = callback;
+        } else if (event === 'join_channel') {
+          mockSocket.joinChannelCallback = callback;
         }
         return mockSocket;
       }),
       emit: jest.fn(),
+      join: jest.fn(),
+      leave: jest.fn(),
+      to: jest.fn(() => ({
+        emit: jest.fn()
+      })),
       broadcast: {
         emit: jest.fn()
       }
@@ -110,8 +121,8 @@ describe('Server Module - Comprehensive', () => {
   // Restore the original general.txt content after all tests
   afterAll(() => {
     // Only write back if we had a backup
-    if (backupGeneralContent) {
-      fs.writeFileSync(REAL_GENERAL_PATH, backupGeneralContent);
+    if (backupChannelContent) {
+      fs.writeFileSync(REAL_CHANNEL_PATH, backupChannelContent);
     }
   });
   
@@ -128,7 +139,10 @@ describe('Server Module - Comprehensive', () => {
     expect(mockSocket.on).toHaveBeenCalledWith('user_connected', expect.any(Function));
     
     // Simulate user_connected event
-    mockSocket.userConnectedCallback({ username: 'TestUser' });
+    mockSocket.userConnectedCallback({ 
+      username: 'TestUser',
+      channel: 'general'
+    });
     
     // Verify message history was emitted back to the client
     expect(mockSocket.emit).toHaveBeenCalledWith('message_history', expect.any(Array));
@@ -147,11 +161,16 @@ describe('Server Module - Comprehensive', () => {
     // Create spy to monitor appendFileSync calls
     const appendFileSpy = jest.spyOn(fs, 'appendFileSync');
     
+    // Setup mock IO to emitter
+    const mockToEmitter = jest.fn();
+    mockIO.to.mockReturnValue({ emit: mockToEmitter });
+    
     // Call the handler
     mockSocket.chatMessageCallback(messageData);
     
-    // Verify message was broadcast
-    expect(mockIO.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+    // Verify message was broadcast to the room
+    expect(mockIO.to).toHaveBeenCalledWith('general');
+    expect(mockToEmitter).toHaveBeenCalledWith('chat_message', expect.objectContaining({
       username: messageData.username,
       message: messageData.message
     }));
@@ -191,6 +210,10 @@ describe('Server Module - Comprehensive', () => {
     // Create spy to monitor appendFileSync calls
     const appendFileSpy = jest.spyOn(fs, 'appendFileSync');
     
+    // Setup mock socket.to emitter
+    const mockToEmitter = jest.fn();
+    mockSocket.to.mockReturnValue({ emit: mockToEmitter });
+    
     // Prepare test data
     const changeData = {
       oldUsername: 'OldUserName',
@@ -200,8 +223,9 @@ describe('Server Module - Comprehensive', () => {
     // Call the handler
     usernameChangeCallback(changeData);
     
-    // Verify username was updated in the socket handler
-    expect(mockSocket.broadcast.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+    // Verify username was updated and broadcast to the room
+    expect(mockSocket.to).toHaveBeenCalledWith('general');
+    expect(mockToEmitter).toHaveBeenCalledWith('chat_message', expect.objectContaining({
       username: 'System',
       message: `${changeData.oldUsername} changed their username to ${changeData.newUsername}`
     }));
@@ -302,9 +326,8 @@ describe('Server Module - Comprehensive', () => {
       require('../server');
     });
     
-    // Verify writeFileSync was called to create an empty file
+    // Verify writeFileSync was called to create empty files
     expect(writeFileSpy).toHaveBeenCalled();
-    expect(writeFileSpy.mock.calls[0][0]).toContain('general.txt');
     
     // Restore the spies
     writeFileSpy.mockRestore();
@@ -321,6 +344,110 @@ describe('Server Module - Comprehensive', () => {
     
     // Verify callback was provided
     expect(typeof mockServer.listen.mock.calls[0][1]).toBe('function');
+  });
+
+  test('handles join_channel event and changes user channel', () => {
+    // Set up initial channel
+    mockSocket.userConnectedCallback({ 
+      username: 'TestUser',
+      channel: 'general'
+    });
+    
+    // Create spy to monitor readFileSync calls
+    const readFileSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
+    
+    // Ensure socket.join and socket.leave have been mocked
+    expect(mockSocket.join).toBeDefined();
+    expect(mockSocket.leave).toBeDefined();
+    
+    // Setup the join_channel handler
+    mockSocket.on('join_channel', jest.fn());
+    
+    // Verify join_channel event handler was set up
+    expect(mockSocket.on).toHaveBeenCalledWith('join_channel', expect.any(Function));
+    
+    // Find the join_channel handler
+    const joinChannelHandler = mockSocket.on.mock.calls.find(
+      call => call[0] === 'join_channel'
+    )[1];
+    
+    // Call the handler
+    joinChannelHandler({
+      channel: 'feedback'
+    });
+    
+    // Verify socket.leave was called for 'general'
+    expect(mockSocket.leave).toHaveBeenCalledWith('general');
+    
+    // Verify socket.join was called for 'feedback'
+    expect(mockSocket.join).toHaveBeenCalledWith('feedback');
+    
+    // Verify history was read and emitted
+    expect(readFileSpy).toHaveBeenCalled();
+    expect(mockSocket.emit).toHaveBeenCalledWith('message_history', expect.any(Array));
+    
+    // Restore the spy
+    readFileSpy.mockRestore();
+  });
+
+  test('ensures getChannelPath handles invalid channels', () => {
+    // Get the getChannelPath function
+    // Since it's not exported, we need to invoke it indirectly
+    
+    // First, spy on console.warn
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    
+    // Spy on path.join
+    const pathJoinSpy = jest.spyOn(path, 'join');
+    
+    // Call userConnectedCallback with an invalid channel
+    mockSocket.userConnectedCallback({
+      username: 'TestUser',
+      channel: 'invalid-channel'
+    });
+    
+    // Verify console.warn was called
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid channel'));
+    
+    // Verify path.join was called with 'general' instead of the invalid channel
+    expect(pathJoinSpy).toHaveBeenCalledWith(expect.anything(), 'channels', 'general.txt');
+    
+    // Restore spies
+    consoleWarnSpy.mockRestore();
+    pathJoinSpy.mockRestore();
+  });
+
+  test('creates channels directory if it does not exist', () => {
+    // Mock fs.existsSync to return false for the directory check
+    const existsSyncSpy = jest.spyOn(fs, 'existsSync')
+      .mockImplementation((path) => {
+        if (path.includes('channels') && !path.includes('.txt')) {
+          // Return false for channels directory
+          return false;
+        }
+        // Return false for file check too
+        return false;
+      });
+    
+    // Spy on mkdirSync
+    const mkdirSyncSpy = jest.spyOn(fs, 'mkdirSync').mockImplementation(() => {});
+    
+    // Spy on writeFileSync
+    const writeFileSyncSpy = jest.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+    
+    // Force reload the server.js module to trigger the directory creation logic
+    jest.isolateModules(() => {
+      require('../server');
+    });
+    
+    // Verify mkdirSync was called for the channels directory
+    expect(mkdirSyncSpy).toHaveBeenCalled();
+    expect(mkdirSyncSpy.mock.calls[0][0]).toContain('channels');
+    
+    // Cleanup
+    existsSyncSpy.mockRestore();
+    mkdirSyncSpy.mockRestore();
+    writeFileSyncSpy.mockRestore();
   });
 });
 

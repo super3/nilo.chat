@@ -6,6 +6,7 @@
       </div>
       <div class="text-center text-white opacity-50 text-sm">&#8984;1</div>
     </div>
+    
     <a href="https://github.com/super3/nilo.chat" target="_blank" class="cursor-pointer block">
       <div class="bg-white opacity-25 h-12 w-12 flex items-center justify-center text-black text-2xl font-semibold rounded-lg mb-1 overflow-hidden hover:opacity-30 transition-opacity">
         <svg class="fill-current h-10 w-10 block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -18,6 +19,12 @@
 
 <script>
 export default {
-  name: 'ChannelSidebar'
+  name: 'ChannelSidebar',
+  props: {
+    currentChannel: {
+      type: String,
+      default: 'general'
+    }
+  }
 }
 </script> 

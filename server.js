@@ -9,13 +9,32 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Path to general.txt file for storing messages
-const generalLogPath = path.join(__dirname, 'general.txt');
+// Define available channels
+const CHANNELS = ['general', 'feedback'];
 
-// Ensure general.txt exists (create if it doesn't)
-if (!fs.existsSync(generalLogPath)) {
-  fs.writeFileSync(generalLogPath, '');
-}
+// Get channel log path function
+const getChannelPath = (channel) => {
+  if (!CHANNELS.includes(channel)) {
+    console.warn(`Invalid channel: ${channel}, defaulting to general`);
+    channel = 'general';
+  }
+  return path.join(__dirname, 'channels', `${channel}.txt`);
+};
+
+// Ensure channel files exist
+CHANNELS.forEach(channel => {
+  const channelPath = getChannelPath(channel);
+  
+  if (!fs.existsSync(channelPath)) {
+    // Ensure the channels directory exists
+    const channelsDir = path.join(__dirname, 'channels');
+    if (!fs.existsSync(channelsDir)) {
+      fs.mkdirSync(channelsDir);
+    }
+    fs.writeFileSync(channelPath, '');
+    console.log(`Created channel file: ${channelPath}`);
+  }
+});
 
 // Debug current environment
 console.log(`Current NODE_ENV: "${process.env.NODE_ENV}"`);
@@ -46,23 +65,45 @@ io.on('connection', (socket) => {
   // Handle user joining
   socket.on('user_connected', (data) => {
     username = data.username;
-    console.log(`User connected: ${username}`);
+    const channel = data.channel || 'general';
+    
+    // Join the room for this channel
+    socket.join(channel);
     
     // Send message history to the newly connected client
-    const history = fs.readFileSync(generalLogPath, 'utf8').split('\n').filter(Boolean);
+    const channelPath = getChannelPath(channel);
+    const history = fs.readFileSync(channelPath, 'utf8').split('\n').filter(Boolean);
+    socket.emit('message_history', history);
+  });
+
+  // Handle channel change
+  socket.on('join_channel', (data) => {
+    const newChannel = data.channel || 'general';
+    
+    // Leave all channels and join the new one
+    CHANNELS.forEach(channel => {
+      socket.leave(channel);
+    });
+    socket.join(newChannel);
+    
+    // Send message history for the new channel
+    const channelPath = getChannelPath(newChannel);
+    const history = fs.readFileSync(channelPath, 'utf8').split('\n').filter(Boolean);
     socket.emit('message_history', history);
   });
 
   // Handle new messages
   socket.on('chat_message', (data) => {
     const timestamp = new Date().toISOString();
+    const channel = data.channel || 'general';
     const message = `${timestamp}|${data.username}|${data.message}`;
     
-    // Log message to general.txt
-    fs.appendFileSync(generalLogPath, message + '\n');
+    // Log message to the channel's file
+    const channelPath = getChannelPath(channel);
+    fs.appendFileSync(channelPath, message + '\n');
     
-    // Broadcast to all clients
-    io.emit('chat_message', {
+    // Broadcast to all clients in the channel
+    io.to(channel).emit('chat_message', {
       timestamp,
       username: data.username,
       message: data.message
@@ -71,20 +112,20 @@ io.on('connection', (socket) => {
 
   // Handle username changes
   socket.on('username_change', (data) => {
-    console.log(`Username change: ${data.oldUsername} -> ${data.newUsername}`);
-    
     // Update the username for this socket
     username = data.newUsername;
     
-    // Log the username change as a system message
+    // Log the username change as a system message to the specified channel
     const timestamp = new Date().toISOString();
+    const channel = data.channel || 'general';
     const systemMessage = `${timestamp}|System|${data.oldUsername} changed their username to ${data.newUsername}`;
     
-    // Log message to general.txt
-    fs.appendFileSync(generalLogPath, systemMessage + '\n');
+    // Log message to the channel's file
+    const channelPath = getChannelPath(channel);
+    fs.appendFileSync(channelPath, systemMessage + '\n');
     
-    // Broadcast to all clients except the sender
-    socket.broadcast.emit('chat_message', {
+    // Broadcast to all clients in the channel except the sender
+    socket.to(channel).emit('chat_message', {
       timestamp,
       username: 'System',
       message: `${data.oldUsername} changed their username to ${data.newUsername}`

@@ -135,7 +135,8 @@ describe('ChatContent.vue', () => {
     
     // Should emit user_connected to the socket
     expect(mockSocketEmit).toHaveBeenCalledWith('user_connected', {
-      username: 'testuser'
+      username: 'testuser',
+      channel: 'general'
     });
   });
   
@@ -300,22 +301,23 @@ describe('ChatContent.vue', () => {
   });
   
   test('sendMessage method sends message to socket', () => {
-    // Set connected state and message
+    // Prepare component for test
     wrapper.setData({
       isConnected: true,
       newMessage: 'Hello socket world'
     });
     
-    // Call the method
+    // Call the sendMessage method
     wrapper.vm.sendMessage();
     
     // Check that socket.emit was called with correct data
     expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
       username: 'testuser',
-      message: 'Hello socket world'
+      message: 'Hello socket world',
+      channel: 'general'
     });
     
-    // Check that input was cleared
+    // Check that the input was cleared
     expect(wrapper.vm.newMessage).toBe('');
   });
   
@@ -367,7 +369,8 @@ describe('ChatContent.vue', () => {
     // Verify username_change was emitted to socket
     expect(mockSocketEmit).toHaveBeenCalledWith('username_change', {
       oldUsername: 'testuser',
-      newUsername: 'NewUsername'
+      newUsername: 'NewUsername',
+      channel: 'general'
     });
     
     // Verify system message was added
@@ -411,23 +414,25 @@ describe('ChatContent.vue', () => {
     expect(formatted).toMatch(/^\d{2}:\d{2}$/);
   });
   
-  test('formatTimestamp handles invalid timestamps', () => {
-    // Create a mock Date constructor that throws an error
+  test('formatTimestamp handles invalid dates', () => {
+    // Mock the Date constructor to throw on invalid dates
     const originalDate = global.Date;
-    global.Date = jest.fn(() => {
-      throw new Error('Invalid date');
-    });
+    global.Date = function(date) {
+      if (date === 'invalid-date') {
+        throw new Error('Invalid date');
+      }
+      return new originalDate(date);
+    };
+    global.Date.toISOString = originalDate.toISOString;
     
-    try {
-      // Test with a value that will cause the Date constructor to throw
-      const result = wrapper.vm.formatTimestamp('invalid');
-      
-      // In the catch block, it should return the original timestamp
-      expect(result).toBe('invalid');
-    } finally {
-      // Restore the original Date constructor
-      global.Date = originalDate;
-    }
+    // Test with an invalid timestamp
+    const result = wrapper.vm.formatTimestamp('invalid-date');
+    
+    // Should return the original input
+    expect(result).toBe('invalid-date');
+    
+    // Restore Date
+    global.Date = originalDate;
   });
   
   test('getAvatarColor generates consistent colors', () => {
@@ -678,5 +683,66 @@ describe('ChatContent.vue', () => {
     
     // Verify scrollTop was set to scrollHeight
     expect(mockContainer.scrollTop).toBe(mockContainer.scrollHeight);
+  });
+  
+  test('handles socket disconnect event on component unmount', () => {
+    // Set socket to simulate connected state
+    wrapper.vm.socket = {
+      disconnect: jest.fn()
+    };
+    
+    // Trigger the beforeUnmount lifecycle hook
+    wrapper.vm.$options.beforeUnmount.call(wrapper.vm);
+    
+    // Check that disconnect was called
+    expect(wrapper.vm.socket.disconnect).toHaveBeenCalled();
+  });
+
+  test('handles disconnected state when sending message', async () => {
+    // Set up component with a disconnected state
+    wrapper.setData({
+      isConnected: false,
+      newMessage: 'Test message'
+    });
+    
+    // Try to send a message
+    wrapper.vm.sendMessage();
+    
+    // Should not emit any socket events
+    expect(mockSocketEmit).not.toHaveBeenCalled();
+    
+    // Message input should still be cleared
+    expect(wrapper.vm.newMessage).toBe('Test message');
+  });
+
+  test('send message with empty input does nothing', async () => {
+    // Set connected state and empty message
+    wrapper.setData({
+      isConnected: true,
+      newMessage: '   ' // Just whitespace
+    });
+    
+    // Try to send message
+    wrapper.vm.sendMessage();
+    
+    // Should not emit anything
+    expect(mockSocketEmit).not.toHaveBeenCalled();
+  });
+
+  test('join_channel is emitted when currentChannel changes', async () => {
+    // Set socket and connected state
+    wrapper.vm.socket = {
+      emit: jest.fn()
+    };
+    wrapper.vm.isConnected = true;
+    
+    // Change the channel
+    await wrapper.setProps({ currentChannel: 'feedback' });
+    
+    // Should emit join_channel
+    expect(wrapper.vm.socket.emit).toHaveBeenCalledWith('join_channel', {
+      channel: 'feedback',
+      username: 'testuser'
+    });
   });
 }); 

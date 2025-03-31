@@ -165,4 +165,4 @@ Thumbs.db
 .env.*.local
 
 # Application
-general.txt
+channels/*.txt

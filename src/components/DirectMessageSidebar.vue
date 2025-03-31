@@ -29,9 +29,21 @@
         </div>
       </div>
       <div v-if="showChannels">
-        <div class="px-4 py-1 text-white flex items-center bg-teal-dark">
+        <div 
+          @click="switchChannel('general')" 
+          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
+          :class="{ 'bg-teal-dark': currentChannel === 'general' }"
+        >
           <div class="w-4 mr-2 text-center">#</div>
           <span>general</span>
+        </div>
+        <div 
+          @click="switchChannel('feedback')" 
+          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
+          :class="{ 'bg-teal-dark': currentChannel === 'feedback' }"
+        >
+          <div class="w-4 mr-2 text-center">#</div>
+          <span>feedback</span>
         </div>
       </div>
     </div>
@@ -83,6 +95,10 @@ export default {
     isConnected: {
       type: Boolean,
       default: false
+    },
+    currentChannel: {
+      type: String,
+      default: 'general'
     }
   },
   data() {
@@ -97,6 +113,11 @@ export default {
     },
     toggleDirectMessages() {
       this.showDirectMessages = !this.showDirectMessages;
+    },
+    switchChannel(channel) {
+      if (channel !== this.currentChannel) {
+        this.$emit('channel-change', channel);
+      }
     }
   }
 }
