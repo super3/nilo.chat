@@ -118,19 +118,31 @@ describe('DirectMessageSidebar.vue', () => {
     expect(wrapper.vm.showDirectMessages).toBe(true);
   });
   
-  test('does not render channels section when showChannels is false', async () => {
+  test('renders only the selected channel when showChannels is false', async () => {
     const wrapper = shallowMount(DirectMessageSidebar, {
-      propsData: defaultProps
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'general'
+      }
     });
     
-    // Initially, channels section should be visible
-    expect(wrapper.find('div.px-4.py-1.text-white.flex.items-center.bg-teal-dark').exists()).toBe(true);
+    // Initially, both channels should be visible
+    expect(wrapper.html()).toContain('<span>general</span>');
+    expect(wrapper.html()).toContain('<span>feedback</span>');
     
     // Toggle showChannels to false
     await wrapper.setData({ showChannels: false });
     
-    // Now the channels section should be hidden
-    expect(wrapper.find('div.px-4.py-1.text-white.flex.items-center.bg-teal-dark').exists()).toBe(false);
+    // Now only the selected channel (general) should be visible
+    expect(wrapper.html()).toContain('<span>general</span>');
+    expect(wrapper.html()).not.toContain('<span>feedback</span>');
+    
+    // Change the selected channel to 'feedback'
+    await wrapper.setProps({ currentChannel: 'feedback' });
+    
+    // Now only feedback should be visible
+    expect(wrapper.html()).not.toContain('<span>general</span>');
+    expect(wrapper.html()).toContain('<span>feedback</span>');
   });
   
   test('does not render direct messages when showDirectMessages is false', async () => {
@@ -148,9 +160,12 @@ describe('DirectMessageSidebar.vue', () => {
     expect(wrapper.html()).not.toContain('Steve_Nilo');
   });
   
-  test('renders neither channels nor direct messages when both toggles are false', async () => {
+  test('renders only selected channel and no direct messages when both toggles are false', async () => {
     const wrapper = shallowMount(DirectMessageSidebar, {
-      propsData: defaultProps
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'general'
+      }
     });
     
     // Set both toggles to false
@@ -159,8 +174,9 @@ describe('DirectMessageSidebar.vue', () => {
       showDirectMessages: false 
     });
     
-    // Should not show general channel
-    expect(wrapper.html()).not.toContain('<span>general</span>');
+    // Should only show the selected channel (general)
+    expect(wrapper.html()).toContain('<span>general</span>');
+    expect(wrapper.html()).not.toContain('<span>feedback</span>');
     
     // Should not show Steve_Nilo
     expect(wrapper.html()).not.toContain('Steve_Nilo');

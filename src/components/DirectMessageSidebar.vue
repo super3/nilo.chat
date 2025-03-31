@@ -28,6 +28,7 @@
           </svg>
         </div>
       </div>
+      <!-- Show all channels when showChannels is true -->
       <div v-if="showChannels">
         <div 
           @click="switchChannel('general')" 
@@ -41,6 +42,25 @@
           @click="switchChannel('feedback')" 
           class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
           :class="{ 'bg-teal-dark': currentChannel === 'feedback' }"
+        >
+          <div class="w-4 mr-2 text-center">#</div>
+          <span>feedback</span>
+        </div>
+      </div>
+      <!-- Show only selected channel when showChannels is false -->
+      <div v-else>
+        <div 
+          v-if="currentChannel === 'general'"
+          @click="switchChannel('general')" 
+          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
+        >
+          <div class="w-4 mr-2 text-center">#</div>
+          <span>general</span>
+        </div>
+        <div 
+          v-if="currentChannel === 'feedback'"
+          @click="switchChannel('feedback')" 
+          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
         >
           <div class="w-4 mr-2 text-center">#</div>
           <span>feedback</span>
@@ -66,6 +86,7 @@
           </svg>
         </div>
       </div>
+      <!-- Show all DMs when expanded -->
       <div v-if="showDirectMessages">
         <div class="px-4 flex items-center mb-2" :class="{ 'opacity-50': !isConnected }">
           <div class="w-4 mr-2 flex justify-center">
@@ -80,6 +101,7 @@
           <span class="text-white opacity-75">Steve_Nilo</span>
         </div>
       </div>
+      <!-- Since DMs don't have a 'selected' concept, we won't show any when collapsed -->
     </div>
   </div>
 </template>
