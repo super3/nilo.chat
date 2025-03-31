@@ -37,6 +37,11 @@
         >
           <div class="w-4 mr-2 text-center">#</div>
           <span>general</span>
+          <div v-if="getUnreadCount('general') > 0" class="ml-auto">
+            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
+              {{ getUnreadCount('general') }}
+            </span>
+          </div>
         </div>
         <div 
           @click="switchChannel('feedback')" 
@@ -45,6 +50,11 @@
         >
           <div class="w-4 mr-2 text-center">#</div>
           <span>feedback</span>
+          <div v-if="getUnreadCount('feedback') > 0" class="ml-auto">
+            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
+              {{ getUnreadCount('feedback') }}
+            </span>
+          </div>
         </div>
       </div>
       <!-- Show only selected channel when showChannels is false -->
@@ -56,6 +66,11 @@
         >
           <div class="w-4 mr-2 text-center">#</div>
           <span>general</span>
+          <div v-if="getUnreadCount('general') > 0" class="ml-auto">
+            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
+              {{ getUnreadCount('general') }}
+            </span>
+          </div>
         </div>
         <div 
           v-if="currentChannel === 'feedback'"
@@ -64,6 +79,11 @@
         >
           <div class="w-4 mr-2 text-center">#</div>
           <span>feedback</span>
+          <div v-if="getUnreadCount('feedback') > 0" class="ml-auto">
+            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
+              {{ getUnreadCount('feedback') }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -98,6 +118,11 @@
           <span class="text-white opacity-75">{{ username }} 
             <span :class="[currentChannel === 'dm_self' ? 'text-white text-opacity-80' : 'text-gray-500', 'text-sm']">(you)</span>
           </span>
+          <div v-if="getUnreadCount('dm_self') > 0" class="ml-auto">
+            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
+              {{ getUnreadCount('dm_self') }}
+            </span>
+          </div>
         </div>
         <div class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker" 
              :class="{ 'bg-teal-dark': currentChannel === 'dm_steve' }"
@@ -108,7 +133,7 @@
           </div>
           <span class="text-white opacity-75">steve</span>
           <div v-if="steveUnreadCount > 0" class="ml-auto">
-            <span class="bg-red-500 text-white text-xs rounded-full py-1 px-2 font-semibold">
+            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
               {{ steveUnreadCount }}
             </span>
           </div>
@@ -138,6 +163,15 @@ export default {
     steveUnreadCount: {
       type: Number,
       default: 0
+    },
+    channelUnreadCounts: {
+      type: Object,
+      default: () => ({
+        general: 0,
+        feedback: 0,
+        dm_steve: 0,
+        dm_self: 0
+      })
     }
   },
   data() {
@@ -157,6 +191,11 @@ export default {
       if (channel !== this.currentChannel) {
         this.$emit('channel-change', channel);
       }
+    },
+    getUnreadCount(channel) {
+      const count = this.channelUnreadCounts[channel] || 0;
+      console.log(`Getting unread count for ${channel}: ${count}`);
+      return count;
     }
   }
 }

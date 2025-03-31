@@ -1,20 +1,25 @@
 <template>
   <div class="font-sans antialiased h-screen flex w-full">
     <!-- Sidebar / channel list -->
-    <ChannelSidebar />
+    <ChannelSidebar 
+      :current-channel="currentChannel"
+      :channel-unread-counts="channelUnreadCounts"
+      @channel-change="changeChannel"
+    />
     <DirectMessageSidebar 
       :username="username" 
       :is-connected="isConnected"
       :current-channel="currentChannel"
       :steve-unread-count="steveUnreadCount"
+      :channel-unread-counts="channelUnreadCounts"
       @channel-change="changeChannel"
     />
     <!-- Chat content -->
     <ChatContent 
       :username="username" 
       :current-channel="currentChannel"
-      @connection-change="updateConnectionStatus"
-      @username-change="changeUsername" 
+      @connection-change="handleConnectionStatusChange"
+      @username-change="handleUsernameChange" 
       @channel-change="changeChannel"
       @message-received="handleMessageReceived"
       @steve-message-read="clearSteveUnreadCount"
@@ -53,7 +58,13 @@ export default {
       isConnected: false,
       currentChannel: savedChannel,
       steveUnreadCount: isFirstJoin ? 1 : 0,
-      isFirstJoin: isFirstJoin
+      isFirstJoin: isFirstJoin,
+      channelUnreadCounts: {
+        general: 0,
+        feedback: 0,
+        dm_self: 0,
+        dm_steve: isFirstJoin ? 1 : 0
+      }
     }
   },
   mounted() {
@@ -76,17 +87,45 @@ export default {
     },
     changeChannel(channel) {
       this.currentChannel = channel;
-      // Save channel to localStorage
-      localStorage.setItem('nilo_channel', channel);
+      localStorage.setItem('nilo_chat_last_channel', channel);
+      
+      // Reset unread count when switching to a channel
+      this.channelUnreadCounts[channel] = 0;
+      
+      // Also reset steve's unread count when switching to dm_steve
+      if (channel === 'dm_steve') {
+        this.steveUnreadCount = 0;
+      }
+    },
+    handleUsernameChange(newUsername) {
+      this.username = newUsername;
+    },
+    handleConnectionStatusChange(status) {
+      this.isConnected = status;
     },
     handleMessageReceived(message) {
-      // Increment unread count if message is from steve
-      if (message.username === 'steve') {
+      console.log(`ChatLayout received message:`, message);
+      
+      // If this is a message from steve and the current channel is not dm_steve
+      if (message.username === 'steve' && this.currentChannel !== 'dm_steve') {
+        console.log(`Incrementing steve unread count`);
         this.steveUnreadCount++;
+      }
+      
+      // If the message has an explicit channel property
+      if (message.channel) {
+        console.log(`Message has channel: ${message.channel}, current channel: ${this.currentChannel}`);
+        // Increment unread count if the message is for a channel that's not currently viewed
+        if (message.channel !== this.currentChannel) {
+          console.log(`Incrementing unread count for channel ${message.channel}`);
+          this.channelUnreadCounts[message.channel]++;
+          console.log(`New unread counts:`, this.channelUnreadCounts);
+        }
       }
     },
     clearSteveUnreadCount() {
       this.steveUnreadCount = 0;
+      this.channelUnreadCounts['dm_steve'] = 0;
     }
   }
 }

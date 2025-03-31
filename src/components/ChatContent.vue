@@ -101,7 +101,7 @@ export default {
       return descriptions[this.currentChannel] || 'Channel description';
     },
     isDmChannel() {
-      return this.currentChannel.startsWith('dm_');
+      return this.currentChannel && this.currentChannel.startsWith('dm_');
     }
   },
   watch: {
@@ -179,19 +179,34 @@ export default {
     });
     
     // Listen for new messages
-    this.socket.on('chat_message', (data) => {
-      // Add the message
-      this.messages.push(data);
+    this.socket.on('chat_message', ({ timestamp, username, message, channel }) => {
+      console.log(`Received message from ${username} in channel ${channel}: ${message}`);
+      console.log(`Current channel: ${this.currentChannel}`);
       
-      // Emit event when a message is received 
-      this.$emit('message-received', data);
-      
-      // Only scroll if user was at the bottom
-      if (this.isAtBottom) {
-        this.$nextTick(() => {
-          this.scrollToBottom();
-        });
+      // Handle messages based on channel
+      if (channel && channel !== this.currentChannel) {
+        console.log(`Message is for a different channel, emitting message-received event`);
+        // If the message is for a different channel, don't add it to the current channel's messages
+        // But still emit the message-received event for notification purposes
+        this.$emit('message-received', { timestamp, username, message, channel });
+        return;
       }
+
+      // Add message to the appropriate channel's messages
+      console.log(`Adding message to current channel`);
+      const messageObj = { timestamp, username, message };
+      this.messages.push(messageObj);
+      
+      // Emit message received event (for notification handling)
+      console.log(`Emitting message-received event for current channel`);
+      this.$emit('message-received', { ...messageObj, channel: this.currentChannel });
+
+      // Scroll to bottom if user is at bottom
+      this.$nextTick(() => {
+        if (this.isAtBottom) {
+          this.scrollToBottom();
+        }
+      });
     });
 
     // Handle username changes
@@ -310,6 +325,11 @@ export default {
         
         // Update messages for the new channel
         this.messages = [];
+        
+        // If switching to Steve's DM channel, mark messages as read
+        if (channel === 'dm_steve') {
+          this.markSteveMessagesAsRead();
+        }
       }
     },
     fetchMessages() {

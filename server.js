@@ -111,7 +111,8 @@ function setupSocketHandlers(io) {
         const welcomeMessage = {
           timestamp,
           username: 'steve',
-          message: `Hello ${username}! Welcome to nilo.chat! Let me know if you need any help getting started.`
+          message: `Hello ${username}! Welcome to nilo.chat! Let me know if you need any help getting started.`,
+          channel: 'dm_steve'  // Explicitly specify the channel
         };
         socket.emit('chat_message', welcomeMessage);
       }
@@ -150,16 +151,25 @@ function setupSocketHandlers(io) {
       const channel = data.channel || 'general';
       const message = `${timestamp}|${data.username}|${data.message}`;
       
+      console.log(`New message from ${data.username} in channel ${channel}: ${data.message}`);
+      
       // Log message to the channel's file
       const channelPath = getChannelPath(channel);
       fs.appendFileSync(channelPath, message + '\n');
       
-      // Broadcast to all clients in the channel
-      io.to(channel).emit('chat_message', {
+      // Create message object with channel explicitly included
+      const messageObject = {
         timestamp,
         username: data.username,
-        message: data.message
-      });
+        message: data.message,
+        channel: channel
+      };
+      
+      console.log(`Broadcasting message to all clients with channel ${channel}:`, messageObject);
+      
+      // Broadcast to ALL clients, not just those in the channel
+      // This way everyone can see notifications even if they're not in the channel
+      io.emit('chat_message', messageObject);
     });
 
     // Handle username changes
@@ -180,7 +190,8 @@ function setupSocketHandlers(io) {
       socket.to(channel).emit('chat_message', {
         timestamp,
         username: 'System',
-        message: `${data.oldUsername} changed their username to ${data.newUsername}`
+        message: `${data.oldUsername} changed their username to ${data.newUsername}`,
+        channel: channel
       });
     });
 

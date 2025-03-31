@@ -1,10 +1,15 @@
 <template>
   <div class="bg-indigo-darkest text-purple-lighter flex-none w-24 p-6 hidden md:block">
-    <div class="cursor-pointer mb-4">
+    <div class="cursor-pointer mb-4 relative" @click="switchChannel('general')">
       <div class="bg-indigo-lighter opacity-25 h-12 w-12 flex items-center justify-center text-black text-2xl font-semibold rounded-lg mb-1 overflow-hidden">
         N
       </div>
       <div class="text-center text-white opacity-50 text-sm">&#8984;1</div>
+      <div v-if="getUnreadCount('general') > 0" class="absolute -top-1 -right-1">
+        <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
+          {{ getUnreadCount('general') }}
+        </span>
+      </div>
     </div>
     
     <a href="https://github.com/super3/nilo.chat" target="_blank" class="cursor-pointer block">
@@ -24,6 +29,25 @@ export default {
     currentChannel: {
       type: String,
       default: 'general'
+    },
+    channelUnreadCounts: {
+      type: Object,
+      default: () => ({
+        general: 0,
+        feedback: 0,
+        dm_steve: 0,
+        dm_self: 0
+      })
+    }
+  },
+  methods: {
+    switchChannel(channel) {
+      if (channel !== this.currentChannel) {
+        this.$emit('channel-change', channel);
+      }
+    },
+    getUnreadCount(channel) {
+      return this.channelUnreadCounts[channel] || 0;
     }
   }
 }
