@@ -90,7 +90,8 @@
       <div v-if="showDirectMessages">
         <div class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker"
              :class="{ 'bg-teal-dark': currentChannel === 'dm_self' }"
-             @click="switchChannel('dm_self')">
+             @click="switchChannel('dm_self')"
+             data-testid="dm-self">
           <div class="w-4 mr-2 flex justify-center">
             <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2']"></span>
           </div>
@@ -98,7 +99,8 @@
         </div>
         <div class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker" 
              :class="{ 'bg-teal-dark': currentChannel === 'dm_steve' }"
-             @click="switchChannel('dm_steve')">
+             @click="switchChannel('dm_steve')"
+             data-testid="dm-steve">
           <div class="w-4 mr-2 flex justify-center">
             <span class="bg-green-500 rounded-full block w-2 h-2"></span>
           </div>
