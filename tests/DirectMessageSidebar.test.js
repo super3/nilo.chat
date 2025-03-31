@@ -209,7 +209,7 @@ describe('DirectMessageSidebar.vue', () => {
     expect(connectedIndicator.classes()).toContain('bg-green-500');
   });
   
-  test('click events on toggle indicators work correctly', async () => {
+  test('click events on toggle indicators and section titles work correctly', async () => {
     const wrapper = shallowMount(DirectMessageSidebar, {
       propsData: defaultProps
     });
@@ -225,14 +225,28 @@ describe('DirectMessageSidebar.vue', () => {
     // Verify the state changed
     expect(wrapper.vm.showChannels).toBe(false);
     
-    // Find and click the direct messages toggle icon (second toggle in the component)
+    // Click on the Channels title text to toggle it back
+    const channelsTitle = wrapper.findAll('div.opacity-75.flex-1.cursor-pointer').at(0);
+    await channelsTitle.trigger('click');
+    
+    // Verify the state changed back
+    expect(wrapper.vm.showChannels).toBe(true);
+    
+    // Find the direct messages title and click it
+    const dmTitle = wrapper.findAll('div.opacity-75.flex-1.cursor-pointer').at(1);
+    await dmTitle.trigger('click');
+    
+    // Verify the state changed
+    expect(wrapper.vm.showDirectMessages).toBe(false);
+    
+    // Find and click the direct messages toggle icon (second toggle in the component) to toggle it back
     const dmToggles = wrapper.findAll('div.cursor-pointer.w-4.mr-2.flex.justify-center');
     expect(dmToggles.length).toBeGreaterThan(1);
     
     await dmToggles[1].trigger('click');
     
-    // Verify the state changed
-    expect(wrapper.vm.showDirectMessages).toBe(false);
+    // Verify the state changed back
+    expect(wrapper.vm.showDirectMessages).toBe(true);
   });
   
   test('renders all icon states correctly', async () => {
