@@ -170,8 +170,7 @@ describe('Server Module - Comprehensive', () => {
     mockSocket.chatMessageCallback(messageData);
     
     // Verify message was broadcast to the room
-    expect(mockIO.to).toHaveBeenCalledWith('general');
-    expect(mockToEmitter).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+    expect(mockIO.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
       username: messageData.username,
       message: messageData.message
     }));

@@ -133,7 +133,7 @@
           </div>
           <span class="text-white opacity-75">steve</span>
           <div v-if="steveUnreadCount > 0" class="ml-auto">
-            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
+            <span class="bg-red-500 text-white text-xs rounded-full py-1 px-2 font-bold">
               {{ steveUnreadCount }}
             </span>
           </div>
