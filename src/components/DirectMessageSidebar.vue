@@ -95,7 +95,9 @@
           <div class="w-4 mr-2 flex justify-center">
             <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2']"></span>
           </div>
-          <span class="text-white opacity-75">{{ username }} <span class="text-gray-500 text-sm">(you)</span></span>
+          <span class="text-white opacity-75">{{ username }} 
+            <span :class="[currentChannel === 'dm_self' ? 'text-white text-opacity-80' : 'text-gray-500', 'text-sm']">(you)</span>
+          </span>
         </div>
         <div class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker" 
              :class="{ 'bg-teal-dark': currentChannel === 'dm_steve' }"
