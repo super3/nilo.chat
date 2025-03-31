@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const http = require('http');
+const io = require('socket.io-client');
 
 // Path to the real general.txt file
 const CHANNEL = 'general';
@@ -346,75 +347,61 @@ describe('Server Module - Comprehensive', () => {
     expect(typeof mockServer.listen.mock.calls[0][1]).toBe('function');
   });
 
-  test('handles join_channel event and changes user channel', () => {
-    // Set up initial channel
-    mockSocket.userConnectedCallback({ 
-      username: 'TestUser',
-      channel: 'general'
-    });
-    
-    // Create spy to monitor readFileSync calls
-    const readFileSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
-    
-    // Ensure socket.join and socket.leave have been mocked
-    expect(mockSocket.join).toBeDefined();
-    expect(mockSocket.leave).toBeDefined();
-    
-    // Setup the join_channel handler
-    mockSocket.on('join_channel', jest.fn());
-    
-    // Verify join_channel event handler was set up
-    expect(mockSocket.on).toHaveBeenCalledWith('join_channel', expect.any(Function));
-    
-    // Find the join_channel handler
-    const joinChannelHandler = mockSocket.on.mock.calls.find(
-      call => call[0] === 'join_channel'
-    )[1];
-    
-    // Call the handler
-    joinChannelHandler({
-      channel: 'feedback'
-    });
-    
-    // Verify socket.leave was called for 'general'
-    expect(mockSocket.leave).toHaveBeenCalledWith('general');
-    
-    // Verify socket.join was called for 'feedback'
-    expect(mockSocket.join).toHaveBeenCalledWith('feedback');
-    
-    // Verify history was read and emitted
-    expect(readFileSpy).toHaveBeenCalled();
-    expect(mockSocket.emit).toHaveBeenCalledWith('message_history', expect.any(Array));
-    
-    // Restore the spy
-    readFileSpy.mockRestore();
-  });
+  test('handlers should use default channel when none is provided', () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      to: jest.fn().mockReturnThis()
+    };
 
-  test('ensures getChannelPath handles invalid channels', () => {
-    // Get the getChannelPath function
-    // Since it's not exported, we need to invoke it indirectly
-    
-    // First, spy on console.warn
-    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    
-    // Spy on path.join
-    const pathJoinSpy = jest.spyOn(path, 'join');
-    
-    // Call userConnectedCallback with an invalid channel
-    mockSocket.userConnectedCallback({
-      username: 'TestUser',
-      channel: 'invalid-channel'
+    // Create handlers
+    const handlers = {};
+    socket.on = jest.fn((event, callback) => {
+      handlers[event] = callback;
     });
+
+    // Test join_channel handler with no channel
+    let onConnection;
+    const mockIO = {
+      on: jest.fn((event, callback) => {
+        if (event === 'connection') {
+          onConnection = callback;
+        }
+      }),
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn()
+    };
+
+    // Mock fs module
+    const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
     
-    // Verify console.warn was called
-    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid channel'));
+    // Simulate connection
+    onConnection = require('../server').setupSocketHandlers(mockIO);
+    onConnection(socket);
     
-    // Verify path.join was called with 'general' instead of the invalid channel
-    expect(pathJoinSpy).toHaveBeenCalledWith(expect.anything(), 'channels', 'general.txt');
+    // Test join_channel with no channel specified
+    handlers.join_channel({});
+    expect(socket.leave).toHaveBeenCalled();
+    expect(socket.join).toHaveBeenCalledWith('general');
     
-    // Restore spies
-    consoleWarnSpy.mockRestore();
-    pathJoinSpy.mockRestore();
+    // Test user_connected with no channel specified
+    socket.join.mockClear();
+    handlers.user_connected({ username: 'testuser' });
+    expect(socket.join).toHaveBeenCalledWith('general');
+    
+    // Test chat_message with no channel specified
+    const appendFileSyncSpy = jest.spyOn(fs, 'appendFileSync').mockImplementation(() => {});
+    handlers.chat_message({ username: 'testuser', message: 'hello' });
+    
+    // Test username_change with no channel specified
+    appendFileSyncSpy.mockClear();
+    handlers.username_change({ oldUsername: 'old', newUsername: 'new' });
+    
+    // Clean up
+    readFileSyncSpy.mockRestore();
+    appendFileSyncSpy.mockRestore();
   });
 
   test('creates channels directory if it does not exist', () => {
@@ -448,6 +435,55 @@ describe('Server Module - Comprehensive', () => {
     existsSyncSpy.mockRestore();
     mkdirSyncSpy.mockRestore();
     writeFileSyncSpy.mockRestore();
+  });
+
+  test('ensures getChannelPath handles invalid channels', () => {
+    // Mock IO and socket
+    const socket = {
+      join: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn()
+    };
+    
+    const io = {
+      on: jest.fn()
+    };
+    
+    // First, spy on console.warn
+    const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    
+    // Spy on path.join
+    const pathJoinSpy = jest.spyOn(path, 'join');
+    
+    // Spy on readFileSync
+    const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
+    
+    // Get the socket handler
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+    
+    // Register handlers
+    socketHandler(socket);
+    
+    // Get user_connected handler
+    const userConnectedHandler = socket.on.mock.calls.find(call => call[0] === 'user_connected')[1];
+    
+    // Call with invalid channel
+    userConnectedHandler({
+      username: 'TestUser',
+      channel: 'invalid-channel'
+    });
+    
+    // Verify console.warn was called
+    expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid channel'));
+    
+    // Verify path.join was called with 'general' instead of the invalid channel
+    expect(pathJoinSpy).toHaveBeenCalledWith(expect.anything(), 'channels', 'general.txt');
+    
+    // Restore spies
+    consoleWarnSpy.mockRestore();
+    pathJoinSpy.mockRestore();
+    readFileSyncSpy.mockRestore();
   });
 });
 

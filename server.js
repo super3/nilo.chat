@@ -59,87 +59,96 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Socket.IO event handling
-io.on('connection', (socket) => {
-  let username = 'Unknown User';
-  
-  // Handle user joining
-  socket.on('user_connected', (data) => {
-    username = data.username;
-    const channel = data.channel || 'general';
+function setupSocketHandlers(io, socket) {
+  return (socket) => {
+    let username = 'Unknown User';
     
-    // Join the room for this channel
-    socket.join(channel);
-    
-    // Send message history to the newly connected client
-    const channelPath = getChannelPath(channel);
-    const history = fs.readFileSync(channelPath, 'utf8').split('\n').filter(Boolean);
-    socket.emit('message_history', history);
-  });
-
-  // Handle channel change
-  socket.on('join_channel', (data) => {
-    const newChannel = data.channel || 'general';
-    
-    // Leave all channels and join the new one
-    CHANNELS.forEach(channel => {
-      socket.leave(channel);
+    // Handle user joining
+    socket.on('user_connected', (data) => {
+      username = data.username;
+      const channel = data.channel || 'general';
+      
+      // Join the room for this channel
+      socket.join(channel);
+      
+      // Send message history to the newly connected client
+      const channelPath = getChannelPath(channel);
+      const history = fs.readFileSync(channelPath, 'utf8').split('\n').filter(Boolean);
+      socket.emit('message_history', history);
     });
-    socket.join(newChannel);
-    
-    // Send message history for the new channel
-    const channelPath = getChannelPath(newChannel);
-    const history = fs.readFileSync(channelPath, 'utf8').split('\n').filter(Boolean);
-    socket.emit('message_history', history);
-  });
 
-  // Handle new messages
-  socket.on('chat_message', (data) => {
-    const timestamp = new Date().toISOString();
-    const channel = data.channel || 'general';
-    const message = `${timestamp}|${data.username}|${data.message}`;
-    
-    // Log message to the channel's file
-    const channelPath = getChannelPath(channel);
-    fs.appendFileSync(channelPath, message + '\n');
-    
-    // Broadcast to all clients in the channel
-    io.to(channel).emit('chat_message', {
-      timestamp,
-      username: data.username,
-      message: data.message
+    // Handle channel change
+    socket.on('join_channel', (data) => {
+      const newChannel = data.channel || 'general';
+      
+      // Leave all channels and join the new one
+      CHANNELS.forEach(channel => {
+        socket.leave(channel);
+      });
+      socket.join(newChannel);
+      
+      // Send message history for the new channel
+      const channelPath = getChannelPath(newChannel);
+      const history = fs.readFileSync(channelPath, 'utf8').split('\n').filter(Boolean);
+      socket.emit('message_history', history);
     });
-  });
 
-  // Handle username changes
-  socket.on('username_change', (data) => {
-    // Update the username for this socket
-    username = data.newUsername;
-    
-    // Log the username change as a system message to the specified channel
-    const timestamp = new Date().toISOString();
-    const channel = data.channel || 'general';
-    const systemMessage = `${timestamp}|System|${data.oldUsername} changed their username to ${data.newUsername}`;
-    
-    // Log message to the channel's file
-    const channelPath = getChannelPath(channel);
-    fs.appendFileSync(channelPath, systemMessage + '\n');
-    
-    // Broadcast to all clients in the channel except the sender
-    socket.to(channel).emit('chat_message', {
-      timestamp,
-      username: 'System',
-      message: `${data.oldUsername} changed their username to ${data.newUsername}`
+    // Handle new messages
+    socket.on('chat_message', (data) => {
+      const timestamp = new Date().toISOString();
+      const channel = data.channel || 'general';
+      const message = `${timestamp}|${data.username}|${data.message}`;
+      
+      // Log message to the channel's file
+      const channelPath = getChannelPath(channel);
+      fs.appendFileSync(channelPath, message + '\n');
+      
+      // Broadcast to all clients in the channel
+      io.to(channel).emit('chat_message', {
+        timestamp,
+        username: data.username,
+        message: data.message
+      });
     });
-  });
 
-  socket.on('disconnect', () => {
-    console.log(`User disconnected: ${username}`);
-  });
-});
+    // Handle username changes
+    socket.on('username_change', (data) => {
+      // Update the username for this socket
+      username = data.newUsername;
+      
+      // Log the username change as a system message to the specified channel
+      const timestamp = new Date().toISOString();
+      const channel = data.channel || 'general';
+      const systemMessage = `${timestamp}|System|${data.oldUsername} changed their username to ${data.newUsername}`;
+      
+      // Log message to the channel's file
+      const channelPath = getChannelPath(channel);
+      fs.appendFileSync(channelPath, systemMessage + '\n');
+      
+      // Broadcast to all clients in the channel except the sender
+      socket.to(channel).emit('chat_message', {
+        timestamp,
+        username: 'System',
+        message: `${data.oldUsername} changed their username to ${data.newUsername}`
+      });
+    });
+
+    socket.on('disconnect', () => {
+      console.log(`User disconnected: ${username}`);
+    });
+  };
+}
+
+io.on('connection', setupSocketHandlers(io));
 
 // Start the server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
-}); 
+});
+
+// Export for testing
+if (process.env.NODE_ENV === 'test') {
+  module.exports = { setupSocketHandlers };
+} 
