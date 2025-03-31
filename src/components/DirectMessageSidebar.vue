@@ -12,7 +12,7 @@
     
     <!-- Channels section -->
     <div class="mb-8">
-      <div class="px-4 mb-2 text-white flex items-center">
+      <div class="px-4 mb-1 text-white flex items-center">
         <div @click="toggleChannels" class="cursor-pointer w-4 mr-2 flex justify-center">
           <svg v-if="showChannels" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
@@ -70,7 +70,7 @@
     
     <!-- Direct Messages section -->
     <div class="mb-8">
-      <div class="px-4 mb-3 text-white flex items-center">
+      <div class="px-4 mb-1 text-white flex items-center">
         <div @click="toggleDirectMessages" class="cursor-pointer w-4 mr-2 flex justify-center">
           <svg v-if="showDirectMessages" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
