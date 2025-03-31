@@ -125,7 +125,26 @@
           </div>
         </div>
       </div>
-      <!-- Since DMs don't have a 'selected' concept, we won't show any when collapsed -->
+      <!-- Show only selected DM when showDirectMessages is false -->
+      <div v-else>
+        <div 
+          v-if="currentChannel === 'dm_self'"
+          class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
+          @click="switchChannel('dm_self')"
+          data-testid="dm-self-collapsed">
+          <div class="w-4 mr-2 flex justify-center">
+            <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2']"></span>
+          </div>
+          <span class="text-white opacity-75">{{ username }} 
+            <span class="text-white text-opacity-80 text-sm">(you)</span>
+          </span>
+          <div v-if="getUnreadCount('dm_self') > 0" class="ml-auto">
+            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
+              {{ getUnreadCount('dm_self') }}
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

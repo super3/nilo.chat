@@ -160,6 +160,13 @@ describe('DirectMessageSidebar.vue', () => {
     
     // Now we shouldn't see the "(you)" text which is only in the DM section
     expect(wrapper.html()).not.toContain('(you)');
+    
+    // But if current channel is dm_self, it should still be visible
+    await wrapper.setProps({ currentChannel: 'dm_self' });
+    
+    // "(you)" text should be visible again because dm_self is selected
+    expect(wrapper.html()).toContain('(you)');
+    expect(wrapper.find('[data-testid="dm-self-collapsed"]').exists()).toBe(true);
   });
   
   test('renders only selected channel and no direct messages when both toggles are false', async () => {
@@ -461,5 +468,32 @@ describe('DirectMessageSidebar.vue', () => {
     wrapper.vm.switchChannel('dm_self');
     expect(wrapper.emitted('channel-change')).toBeTruthy();
     expect(wrapper.emitted('channel-change')[0]).toEqual(['dm_self']);
+  });
+  
+  test('shows only selected dm_self when direct messages are collapsed', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'dm_self'
+      }
+    });
+    
+    // Initially, all DMs should be visible
+    expect(wrapper.find('[data-testid="dm-self"]').exists()).toBe(true);
+    
+    // Toggle showDirectMessages to false
+    await wrapper.setData({ showDirectMessages: false });
+    
+    // Regular DM section should be hidden
+    expect(wrapper.find('[data-testid="dm-self"]').exists()).toBe(false);
+    
+    // But the collapsed version should be visible since dm_self is selected
+    expect(wrapper.find('[data-testid="dm-self-collapsed"]').exists()).toBe(true);
+    
+    // Change to a non-DM channel
+    await wrapper.setProps({ currentChannel: 'general' });
+    
+    // No DMs should be visible now
+    expect(wrapper.find('[data-testid="dm-self-collapsed"]').exists()).toBe(false);
   });
 }); 
