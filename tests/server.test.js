@@ -531,6 +531,113 @@ describe('Server Module - Comprehensive', () => {
     // Clean up
     readFileSyncSpy.mockRestore();
   });
+
+  test('properly filters empty lines when reading message history', () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn()
+    };
+    
+    const io = {
+      on: jest.fn()
+    };
+    
+    // Create a message history with empty lines to test the filter(Boolean) branch
+    const mockHistory = '2025-03-31T22:10:36.978Z|user1|message1\n\n2025-03-31T22:10:37.978Z|user2|message2\n\n';
+    
+    // Spy on readFileSync to return our mock history with empty lines
+    const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue(mockHistory);
+    
+    // Get the socket handler function
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+    
+    // Register handlers
+    socketHandler(socket);
+    
+    // Get join_channel handler
+    const joinChannelHandler = socket.on.mock.calls.find(call => call[0] === 'join_channel')[1];
+    
+    // Call handler with a channel
+    joinChannelHandler({ channel: 'general' });
+    
+    // Verify socket.emit was called with filtered history (empty lines removed)
+    const expectedHistory = [
+      '2025-03-31T22:10:36.978Z|user1|message1',
+      '2025-03-31T22:10:37.978Z|user2|message2'
+    ];
+    expect(socket.emit).toHaveBeenCalledWith('message_history', expectedHistory);
+    
+    // Clean up
+    readFileSyncSpy.mockRestore();
+  });
+
+  test('handles both first-time and returning users correctly', () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn()
+    };
+    
+    const io = {
+      on: jest.fn()
+    };
+    
+    // Spy on readFileSync to avoid actual file operations
+    const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
+    
+    // Get the socket handler function
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+    
+    // Register handlers
+    socketHandler(socket);
+    
+    // Get user_connected handler
+    const userConnectedHandler = socket.on.mock.calls.find(call => call[0] === 'user_connected')[1];
+    
+    // Reset socket.emit mock to clear previous calls
+    socket.emit.mockClear();
+    
+    // Test first-time user (isReturningUser = false or undefined)
+    userConnectedHandler({ 
+      username: 'TestUser',
+      channel: 'general',
+      // isReturningUser not provided (undefined)
+    });
+    
+    // For first-time users, should emit both message_history and a welcome chat_message
+    expect(socket.emit).toHaveBeenCalledWith('message_history', expect.any(Array));
+    expect(socket.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+      username: 'steve',
+      message: expect.stringContaining('Welcome to nilo.chat'),
+      channel: 'dm_steve'
+    }));
+    
+    // Reset socket.emit mock
+    socket.emit.mockClear();
+    
+    // Test returning user (isReturningUser = true)
+    userConnectedHandler({ 
+      username: 'ReturningUser',
+      channel: 'general',
+      isReturningUser: true
+    });
+    
+    // For returning users, should only emit message_history, not the welcome message
+    expect(socket.emit).toHaveBeenCalledWith('message_history', expect.any(Array));
+    
+    // Make sure we only had one call to emit (the message_history)
+    expect(socket.emit).toHaveBeenCalledTimes(1);
+    
+    // Clean up
+    readFileSyncSpy.mockRestore();
+  });
 });
 
 describe('Chat Message Operations', () => {
