@@ -496,4 +496,187 @@ describe('DirectMessageSidebar.vue', () => {
     // No DMs should be visible now
     expect(wrapper.find('[data-testid="dm-self-collapsed"]').exists()).toBe(false);
   });
+  
+  test('getUnreadCount handles non-existent channels correctly', () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: defaultProps
+    });
+    
+    // Spy on console.log to verify it's called
+    const consoleLogSpy = jest.spyOn(console, 'log');
+    
+    // Test with a channel that doesn't exist in channelUnreadCounts
+    const count = wrapper.vm.getUnreadCount('non_existent_channel');
+    
+    // Should return 0 for non-existent channels
+    expect(count).toBe(0);
+    
+    // Verify console.log was called with the right message
+    expect(consoleLogSpy).toHaveBeenCalledWith(
+      'Getting unread count for non_existent_channel: 0'
+    );
+    
+    // Restore the spy
+    consoleLogSpy.mockRestore();
+  });
+  
+  test('switchChannel does not emit event when current channel is selected', () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'general'
+      }
+    });
+    
+    // Call switchChannel with the same channel
+    wrapper.vm.switchChannel('general');
+    
+    // No event should be emitted
+    expect(wrapper.emitted('channel-change')).toBeFalsy();
+    
+    // Now test with a different channel to ensure the event is emitted
+    wrapper.vm.switchChannel('feedback');
+    expect(wrapper.emitted('channel-change')).toBeTruthy();
+    expect(wrapper.emitted('channel-change')[0]).toEqual(['feedback']);
+  });
+  
+  test('collapsed DM section correctly handles click events', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        currentChannel: 'dm_self'
+      }
+    });
+    
+    // Set showDirectMessages to false
+    await wrapper.setData({ showDirectMessages: false });
+    
+    // Find the collapsed DM item
+    const collapsedDmItem = wrapper.find('[data-testid="dm-self-collapsed"]');
+    expect(collapsedDmItem.exists()).toBe(true);
+    
+    // Spy on the switchChannel method
+    const switchChannelSpy = jest.spyOn(wrapper.vm, 'switchChannel');
+    
+    // Click on the collapsed DM item
+    await collapsedDmItem.trigger('click');
+    
+    // Verify switchChannel was called with dm_self
+    expect(switchChannelSpy).toHaveBeenCalledWith('dm_self');
+    
+    // Restore the spy
+    switchChannelSpy.mockRestore();
+  });
+  
+  test('unread notification badge displays for all channel types', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: {
+        ...defaultProps,
+        channelUnreadCounts: {
+          general: 2,
+          feedback: 3,
+          dm_self: 4
+        }
+      }
+    });
+    
+    // Check badges for all channel types
+    const badges = wrapper.findAll('.bg-red-600');
+    expect(badges.length).toBe(3);
+    
+    // Verify badge texts
+    expect(badges.at(0).text()).toBe('2'); // general
+    expect(badges.at(1).text()).toBe('3'); // feedback
+    expect(badges.at(2).text()).toBe('4'); // dm_self
+  });
+  
+  test('comprehensive test to trigger all component functionality', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: defaultProps
+    });
+    
+    // Initial state check
+    expect(wrapper.vm.showChannels).toBe(true);
+    expect(wrapper.vm.showDirectMessages).toBe(true);
+    
+    // Toggle channels
+    wrapper.vm.toggleChannels();
+    expect(wrapper.vm.showChannels).toBe(false);
+    wrapper.vm.toggleChannels();
+    expect(wrapper.vm.showChannels).toBe(true);
+    
+    // Toggle direct messages
+    wrapper.vm.toggleDirectMessages();
+    expect(wrapper.vm.showDirectMessages).toBe(false);
+    wrapper.vm.toggleDirectMessages();
+    expect(wrapper.vm.showDirectMessages).toBe(true);
+    
+    // Test switching channels
+    wrapper.vm.switchChannel('general');
+    
+    // Test channel unread counts with various values
+    await wrapper.setProps({ 
+      channelUnreadCounts: {
+        general: 5,
+        feedback: 10,
+        dm_self: 15
+      }
+    });
+    
+    expect(wrapper.vm.getUnreadCount('general')).toBe(5);
+    expect(wrapper.vm.getUnreadCount('feedback')).toBe(10);
+    expect(wrapper.vm.getUnreadCount('dm_self')).toBe(15);
+    
+    // Test switching to the same channel (no event emitted)
+    await wrapper.setProps({ currentChannel: 'general' });
+    wrapper.vm.switchChannel('general');
+    
+    // Test that the component handles collapsed state properly
+    await wrapper.setData({ showChannels: false });
+    await wrapper.setProps({ currentChannel: 'general' });
+    
+    await wrapper.setData({ showDirectMessages: false });
+    await wrapper.setProps({ currentChannel: 'dm_self' });
+    
+    // Verify correct elements are displayed
+    expect(wrapper.find('[data-testid="dm-self-collapsed"]').exists()).toBe(true);
+    
+    // Switch back to normal state
+    await wrapper.setData({ 
+      showChannels: true,
+      showDirectMessages: true
+    });
+  });
+  
+  test('switchChannel function covers all branches', async () => {
+    const wrapper = shallowMount(DirectMessageSidebar, {
+      propsData: defaultProps
+    });
+    
+    // Test case 1: Different channel - should emit
+    wrapper.vm.switchChannel('feedback');
+    
+    // Verify event was emitted
+    expect(wrapper.emitted('channel-change')).toBeTruthy();
+    expect(wrapper.emitted('channel-change')[0]).toEqual(['feedback']);
+    
+    // Set the current channel
+    await wrapper.setProps({ currentChannel: 'feedback' });
+    
+    // Clear previous emitted events
+    wrapper.emitted()['channel-change'] = [];
+    
+    // Test case 2: Same channel - should NOT emit
+    wrapper.vm.switchChannel('feedback');
+    
+    // No event should be emitted (array is empty)
+    expect(wrapper.emitted('channel-change').length).toBe(0);
+    
+    // Test case 3: Back to different channel - should emit
+    wrapper.vm.switchChannel('general');
+    
+    // Verify event was emitted
+    expect(wrapper.emitted('channel-change')).toBeTruthy();
+    expect(wrapper.emitted('channel-change')[0]).toEqual(['general']);
+  });
 }); 
