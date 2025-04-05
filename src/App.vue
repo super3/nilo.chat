@@ -6,6 +6,7 @@
 
 <script>
 import ChatLayout from './components/ChatLayout.vue'
+import './assets/styles/main.css'
 
 export default {
   name: 'App',
@@ -16,10 +17,6 @@ export default {
 </script>
 
 <style>
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Remove default outline and set subtle border color on focus */
 input:focus {
   outline: none;
