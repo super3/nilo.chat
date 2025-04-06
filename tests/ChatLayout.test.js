@@ -7,9 +7,9 @@ jest.mock('../src/components/ServerSidebar.vue', () => ({
   template: '<div>Channel Sidebar</div>'
 }));
 
-jest.mock('../src/components/DirectMessageSidebar.vue', () => ({
-  name: 'DirectMessageSidebar',
-  template: '<div>Direct Message Sidebar</div>',
+jest.mock('../src/components/MainSidebar.vue', () => ({
+  name: 'MainSidebar',
+  template: '<div>Main Sidebar</div>',
   props: ['username', 'isConnected', 'steveUnreadCount']
 }));
 
@@ -75,8 +75,8 @@ describe('ChatLayout.vue', () => {
     const serverSidebar = wrapper.findComponent({ name: 'ServerSidebar' });
     expect(serverSidebar.exists()).toBe(true);
     
-    const directMessageSidebar = wrapper.findComponent({ name: 'DirectMessageSidebar' });
-    expect(directMessageSidebar.exists()).toBe(true);
+    const mainSidebar = wrapper.findComponent({ name: 'MainSidebar' });
+    expect(mainSidebar.exists()).toBe(true);
     
     const chatContent = wrapper.findComponent({ name: 'ChatContent' });
     expect(chatContent.exists()).toBe(true);
@@ -121,11 +121,11 @@ describe('ChatLayout.vue', () => {
     expect(wrapper.vm.isConnected).toBe(false);
     
     // Find the child components
-    const directMessageSidebar = wrapper.findComponent({ name: 'DirectMessageSidebar' });
+    const mainSidebar = wrapper.findComponent({ name: 'MainSidebar' });
     const chatContent = wrapper.findComponent({ name: 'ChatContent' });
     
     // Verify they exist
-    expect(directMessageSidebar.exists()).toBe(true);
+    expect(mainSidebar.exists()).toBe(true);
     expect(chatContent.exists()).toBe(true);
   });
   

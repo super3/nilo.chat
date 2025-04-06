@@ -177,7 +177,7 @@
 
 <script>
 export default {
-  name: 'DirectMessageSidebar',
+  name: 'MainSidebar',
   props: {
     username: {
       type: String,

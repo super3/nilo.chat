@@ -8,8 +8,8 @@ jest.mock('../src/components/ServerSidebar.vue', () => ({
   props: ['currentChannel', 'channelUnreadCounts'],
 }));
 
-jest.mock('../src/components/DirectMessageSidebar.vue', () => ({
-  name: 'DirectMessageSidebar',
+jest.mock('../src/components/MainSidebar.vue', () => ({
+  name: 'MainSidebar',
   template: '<div class="dm-sidebar" data-testid="dm-sidebar"><slot></slot></div>',
   props: ['username', 'isConnected', 'currentChannel', 'steveUnreadCount', 'channelUnreadCounts'],
 }));
@@ -210,8 +210,8 @@ describe('Channel Notifications', () => {
     const serverSidebar = wrapper.findComponent({ name: 'ServerSidebar' });
     expect(serverSidebar.props('channelUnreadCounts').feedback).toBe(2);
     
-    // Check that the DirectMessageSidebar also received the updated counts
-    const dmSidebar = wrapper.findComponent({ name: 'DirectMessageSidebar' });
+    // Check that the MainSidebar also received the updated counts
+    const dmSidebar = wrapper.findComponent({ name: 'MainSidebar' });
     expect(dmSidebar.props('channelUnreadCounts').feedback).toBe(2);
     
     // Switch to feedback channel

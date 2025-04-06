@@ -6,7 +6,7 @@
       :channel-unread-counts="channelUnreadCounts"
       @channel-change="changeChannel"
     />
-    <DirectMessageSidebar 
+    <MainSidebar 
       :username="username" 
       :is-connected="isConnected"
       :current-channel="currentChannel"
@@ -28,14 +28,14 @@
 
 <script>
 import ServerSidebar from './ServerSidebar.vue'
-import DirectMessageSidebar from './DirectMessageSidebar.vue'
+import MainSidebar from './MainSidebar.vue'
 import ChatContent from './ChatContent.vue'
 
 export default {
   name: 'ChatLayout',
   components: {
     ServerSidebar,
-    DirectMessageSidebar,
+    MainSidebar,
     ChatContent
   },
   data() {
