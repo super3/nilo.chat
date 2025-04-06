@@ -2,8 +2,8 @@ import { shallowMount } from '@vue/test-utils';
 import ChatLayout from '../src/components/ChatLayout.vue';
 
 // Mock child components
-jest.mock('../src/components/ChannelSidebar.vue', () => ({
-  name: 'ChannelSidebar',
+jest.mock('../src/components/ServerSidebar.vue', () => ({
+  name: 'ServerSidebar',
   template: '<div>Channel Sidebar</div>'
 }));
 
@@ -72,8 +72,8 @@ describe('ChatLayout.vue', () => {
     expect(rootDiv.classes()).toContain('w-full');
     
     // Check if all child components exist
-    const channelSidebar = wrapper.findComponent({ name: 'ChannelSidebar' });
-    expect(channelSidebar.exists()).toBe(true);
+    const serverSidebar = wrapper.findComponent({ name: 'ServerSidebar' });
+    expect(serverSidebar.exists()).toBe(true);
     
     const directMessageSidebar = wrapper.findComponent({ name: 'DirectMessageSidebar' });
     expect(directMessageSidebar.exists()).toBe(true);

@@ -1,7 +1,7 @@
 <template>
   <div class="font-sans antialiased h-screen flex w-full">
     <!-- Sidebar / channel list -->
-    <ChannelSidebar 
+    <ServerSidebar 
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
       @channel-change="changeChannel"
@@ -27,14 +27,14 @@
 </template>
 
 <script>
-import ChannelSidebar from './ChannelSidebar.vue'
+import ServerSidebar from './ServerSidebar.vue'
 import DirectMessageSidebar from './DirectMessageSidebar.vue'
 import ChatContent from './ChatContent.vue'
 
 export default {
   name: 'ChatLayout',
   components: {
-    ChannelSidebar,
+    ServerSidebar,
     DirectMessageSidebar,
     ChatContent
   },

@@ -1,9 +1,9 @@
 import { shallowMount } from '@vue/test-utils';
-import ChannelSidebar from '../src/components/ChannelSidebar.vue';
+import ServerSidebar from '../src/components/ServerSidebar.vue';
 
-describe('ChannelSidebar.vue', () => {
+describe('ServerSidebar.vue', () => {
   test('renders correctly', () => {
-    const wrapper = shallowMount(ChannelSidebar);
+    const wrapper = shallowMount(ServerSidebar);
     
     // Check if component exists
     expect(wrapper.exists()).toBe(true);

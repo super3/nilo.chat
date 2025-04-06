@@ -24,7 +24,7 @@
 
 <script>
 export default {
-  name: 'ChannelSidebar',
+  name: 'ServerSidebar',
   props: {
     currentChannel: {
       type: String,

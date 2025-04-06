@@ -1,6 +1,6 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import ChatLayout from '../src/components/ChatLayout.vue';
-import ChannelSidebar from '../src/components/ChannelSidebar.vue';
+import ServerSidebar from '../src/components/ServerSidebar.vue';
 import DirectMessageSidebar from '../src/components/DirectMessageSidebar.vue';
 
 // Helper function to create a mock socket
@@ -13,8 +13,8 @@ const createMockSocket = () => {
 };
 
 // Mock child components for better control
-jest.mock('../src/components/ChannelSidebar.vue', () => ({
-  name: 'ChannelSidebar',
+jest.mock('../src/components/ServerSidebar.vue', () => ({
+  name: 'ServerSidebar',
   template: '<div class="channel-sidebar"><slot></slot></div>',
   props: ['currentChannel', 'channelUnreadCounts'],
 }));
@@ -115,7 +115,7 @@ describe('Unread Notifications Feature', () => {
     const wrapper = mount(ChatLayout);
     
     // Access channel sidebar component
-    const channelSidebar = wrapper.findComponent(ChannelSidebar);
+    const serverSidebar = wrapper.findComponent(ServerSidebar);
     
     // Access DM sidebar component
     const dmSidebar = wrapper.findComponent(DirectMessageSidebar);
@@ -131,7 +131,7 @@ describe('Unread Notifications Feature', () => {
     await wrapper.vm.$nextTick();
     
     // Verify they received the correct props
-    expect(channelSidebar.props('channelUnreadCounts')).toEqual({
+    expect(serverSidebar.props('channelUnreadCounts')).toEqual({
       general: 3,
       feedback: 2,
       dm_self: 4

@@ -2,8 +2,8 @@ import { mount, flushPromises } from '@vue/test-utils';
 import ChatLayout from '../src/components/ChatLayout.vue';
 
 // Mock child components for better control
-jest.mock('../src/components/ChannelSidebar.vue', () => ({
-  name: 'ChannelSidebar',
+jest.mock('../src/components/ServerSidebar.vue', () => ({
+  name: 'ServerSidebar',
   template: '<div class="channel-sidebar" data-testid="channel-sidebar"><slot></slot></div>',
   props: ['currentChannel', 'channelUnreadCounts'],
 }));
@@ -206,9 +206,9 @@ describe('Channel Notifications', () => {
     // Wait for Vue to update
     await wrapper.vm.$nextTick();
     
-    // Check that the ChannelSidebar received the updated counts
-    const channelSidebar = wrapper.findComponent({ name: 'ChannelSidebar' });
-    expect(channelSidebar.props('channelUnreadCounts').feedback).toBe(2);
+    // Check that the ServerSidebar received the updated counts
+    const serverSidebar = wrapper.findComponent({ name: 'ServerSidebar' });
+    expect(serverSidebar.props('channelUnreadCounts').feedback).toBe(2);
     
     // Check that the DirectMessageSidebar also received the updated counts
     const dmSidebar = wrapper.findComponent({ name: 'DirectMessageSidebar' });
@@ -230,7 +230,7 @@ describe('Channel Notifications', () => {
     await wrapper.vm.$nextTick();
     
     // Check that both components received the updated counts
-    expect(channelSidebar.props('channelUnreadCounts').general).toBe(1);
+    expect(serverSidebar.props('channelUnreadCounts').general).toBe(1);
     expect(dmSidebar.props('channelUnreadCounts').general).toBe(1);
   });
 }); 
