@@ -24,9 +24,38 @@ async function fetchRedditPosts(keyword = 'slack') {
 
     const data = await response.json();
     
-    // Extract post data from Reddit's response
-    const posts = data.data.children.map(post => {
+    // Extract basic post data and fetch full details for each post
+    const postsPromises = data.data.children.map(async post => {
       const postData = post.data;
+      
+      // Get the full post content by making another request to the post URL
+      const postUrl = `https://www.reddit.com${postData.permalink}.json`;
+      const postResponse = await fetch(postUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Node.js Reddit Scraper)'
+        }
+      });
+      
+      if (!postResponse.ok) {
+        console.error(`Error fetching post details for ${postData.title}: ${postResponse.status}`);
+        return {
+          title: postData.title,
+          author: postData.author,
+          url: `https://www.reddit.com${postData.permalink}`,
+          created_utc: postData.created_utc,
+          score: postData.score,
+          num_comments: postData.num_comments,
+          subreddit: postData.subreddit_name_prefixed,
+          body: "Failed to retrieve post body"
+        };
+      }
+      
+      const postDetail = await postResponse.json();
+      
+      // The post body text is in the 'selftext' property of the post data
+      // For link posts without text, selftext may be empty
+      const bodyText = postDetail[0].data.children[0].data.selftext || "(No text content - link post)";
+      
       return {
         title: postData.title,
         author: postData.author,
@@ -34,9 +63,13 @@ async function fetchRedditPosts(keyword = 'slack') {
         created_utc: postData.created_utc,
         score: postData.score,
         num_comments: postData.num_comments,
-        subreddit: postData.subreddit_name_prefixed
+        subreddit: postData.subreddit_name_prefixed,
+        body: bodyText
       };
     });
+    
+    // Wait for all post detail requests to complete
+    const posts = await Promise.all(postsPromises);
 
     // Output posts as JSON
     console.log(JSON.stringify(posts, null, 2));
