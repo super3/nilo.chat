@@ -96,7 +96,8 @@ export default {
       
       const descriptions = {
         general: 'Main discussion area for our self-improving chat application.',
-        feedback: 'Share your thoughts and suggestions about the app here.'
+        feedback: 'Share your thoughts and suggestions about the app here.',
+        'slack-feed': 'All social media mentions of the word "slack" from across the web.'
       };
       return descriptions[this.currentChannel] || 'Channel description';
     },

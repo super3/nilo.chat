@@ -10,7 +10,7 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 // Define available channels
-const CHANNELS = ['general', 'feedback'];
+const CHANNELS = ['general', 'feedback', 'slack-feed'];
 // Define available DM channels
 const DM_CHANNELS = ['dm_steve', 'dm_self'];
 

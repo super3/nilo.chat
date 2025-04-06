@@ -35,6 +35,7 @@ export default {
       default: () => ({
         general: 0,
         feedback: 0,
+        'slack-feed': 0,
         dm_self: 0
       })
     }
