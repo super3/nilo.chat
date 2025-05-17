@@ -33,4 +33,45 @@ describe('ServerSidebar.vue', () => {
     const svgIcon = githubLink.find('svg');
     expect(svgIcon.exists()).toBe(true);
   });
-}); 
+
+  test('shows unread badge only when there are unread messages', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: {
+        channelUnreadCounts: { general: 2 }
+      }
+    });
+
+    const badge = wrapper.find('span.bg-red-600');
+    expect(badge.exists()).toBe(true);
+    expect(badge.text()).toBe('2');
+
+    wrapper.setProps({ channelUnreadCounts: { general: 0 } });
+
+    return wrapper.vm.$nextTick().then(() => {
+      expect(wrapper.find('span.bg-red-600').exists()).toBe(false);
+    });
+  });
+
+  test('switchChannel emits event only for different channels', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { currentChannel: 'general' }
+    });
+
+    wrapper.vm.switchChannel('feedback');
+    expect(wrapper.emitted('channel-change')).toEqual([['feedback']]);
+
+    wrapper.vm.switchChannel('general');
+    expect(wrapper.emitted('channel-change').length).toBe(1);
+  });
+
+  test('getUnreadCount returns 0 when channel missing', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: {
+        channelUnreadCounts: { general: 1 }
+      }
+    });
+
+    expect(wrapper.vm.getUnreadCount('general')).toBe(1);
+    expect(wrapper.vm.getUnreadCount('feedback')).toBe(0);
+  });
+});
