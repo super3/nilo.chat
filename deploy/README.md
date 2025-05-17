@@ -48,7 +48,7 @@ This directory contains a script for easily setting up a VPS for nilo.chat deplo
 
 ```bash
 # Download the setup script
-curl -o setup.sh https://raw.githubusercontent.com/yourusername/nilo.chat/main/server-config/setup.sh
+curl -o setup.sh https://raw.githubusercontent.com/yourusername/nilo.chat/main/deploy/setup.sh
 
 # Make it executable
 chmod +x setup.sh
