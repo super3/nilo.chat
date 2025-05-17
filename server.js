@@ -14,19 +14,23 @@ const CHANNELS = ['general', 'feedback', 'slack-feed'];
 // Define available DM channels
 const DM_CHANNELS = ['dm_steve', 'dm_self'];
 
-// Get channel log path function
-const getChannelPath = (channel) => {
+// Sanitize a channel name and return a valid channel
+function sanitizeChannel(channel) {
   if (DM_CHANNELS.includes(channel)) {
-    // Handle DM channels
-    return path.join(__dirname, 'channels', `${channel}.txt`);
+    return channel;
   }
-  
   if (!CHANNELS.includes(channel)) {
     console.warn(`Invalid channel: ${channel}, defaulting to general`);
-    channel = 'general';
+    return 'general';
   }
-  return path.join(__dirname, 'channels', `${channel}.txt`);
-};
+  return channel;
+}
+
+// Get channel log path function
+function getChannelPath(channel) {
+  const sanitized = sanitizeChannel(channel);
+  return path.join(__dirname, 'channels', `${sanitized}.txt`);
+}
 
 // Ensure channel files exist
 [...CHANNELS, ...DM_CHANNELS].forEach(channel => {
@@ -87,9 +91,9 @@ function setupSocketHandlers(io) {
     // Handle user joining
     socket.on('user_connected', (data) => {
       username = data.username;
-      const channel = data.channel || 'general';
-      
-      // Join the room for this channel
+      const channel = sanitizeChannel(data.channel || 'general');
+
+      // Join the room for this (sanitized) channel
       socket.join(channel);
       
       // Also join the steve DM channel
@@ -120,7 +124,7 @@ function setupSocketHandlers(io) {
 
     // Handle channel change
     socket.on('join_channel', (data) => {
-      const newChannel = data.channel || 'general';
+      const newChannel = sanitizeChannel(data.channel || 'general');
       
       // Leave all regular channels (but stay in DM channels)
       CHANNELS.forEach(channel => {
@@ -136,7 +140,7 @@ function setupSocketHandlers(io) {
         });
       }
       
-      // Join the new channel
+      // Join the new (sanitized) channel
       socket.join(newChannel);
       
       // Send message history for the new channel
@@ -148,7 +152,7 @@ function setupSocketHandlers(io) {
     // Handle new messages
     socket.on('chat_message', (data) => {
       const timestamp = new Date().toISOString();
-      const channel = data.channel || 'general';
+      const channel = sanitizeChannel(data.channel || 'general');
       const message = `${timestamp}|${data.username}|${data.message}`;
       
       console.log(`New message from ${data.username} in channel ${channel}: ${data.message}`);
@@ -179,7 +183,7 @@ function setupSocketHandlers(io) {
       
       // Log the username change as a system message to the specified channel
       const timestamp = new Date().toISOString();
-      const channel = data.channel || 'general';
+      const channel = sanitizeChannel(data.channel || 'general');
       const systemMessage = `${timestamp}|System|${data.oldUsername} changed their username to ${data.newUsername}`;
       
       // Log message to the channel's file
