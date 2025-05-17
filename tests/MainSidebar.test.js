@@ -57,4 +57,91 @@ describe('MainSidebar.vue', () => {
     expect(disconnectedWrapper.find('.w-2.h-2.mr-2').classes()).toContain('border');
     expect(connectedWrapper.find('.w-2.h-2.mr-2').classes()).toContain('bg-green-500');
   });
-}) 
+
+  test('toggle functions change visibility flags', async () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general'
+      }
+    });
+
+    expect(wrapper.vm.showChannels).toBe(true);
+    wrapper.vm.toggleChannels();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.showChannels).toBe(false);
+
+    expect(wrapper.vm.showDirectMessages).toBe(true);
+    wrapper.vm.toggleDirectMessages();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.showDirectMessages).toBe(false);
+  });
+
+  test('collapsed channels show only active channel', async () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'feedback'
+      }
+    });
+    wrapper.vm.showChannels = false;
+    await wrapper.vm.$nextTick();
+    const channelItems = wrapper.findAll('.bg-teal-dark');
+    expect(channelItems).toHaveLength(1);
+    expect(channelItems.at(0).text()).toContain('feedback');
+  });
+
+  test('collapsed direct messages show only active DM', async () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'dm_self'
+      }
+    });
+    wrapper.vm.showDirectMessages = false;
+    await wrapper.vm.$nextTick();
+    const dmCollapsed = wrapper.find('[data-testid="dm-self-collapsed"]');
+    expect(dmCollapsed.exists()).toBe(true);
+    expect(dmCollapsed.text()).toContain('testuser');
+  });
+
+  test('switchChannel emits event only when channel changes', () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general'
+      }
+    });
+
+    wrapper.vm.switchChannel('general');
+    expect(wrapper.emitted('channel-change')).toBeUndefined();
+
+    wrapper.vm.switchChannel('feedback');
+    expect(wrapper.emitted('channel-change')[0]).toEqual(['feedback']);
+  });
+
+  test('getUnreadCount returns values and logs output', () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general',
+        channelUnreadCounts: {
+          general: 2
+        }
+      }
+    });
+
+    expect(wrapper.vm.getUnreadCount('general')).toBe(2);
+    expect(wrapper.vm.getUnreadCount('missing')).toBe(0);
+    expect(logSpy).toHaveBeenCalledWith('Getting unread count for general: 2');
+    expect(logSpy).toHaveBeenCalledWith('Getting unread count for missing: 0');
+    logSpy.mockRestore();
+  });
+})
+
