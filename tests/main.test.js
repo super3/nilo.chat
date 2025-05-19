@@ -8,7 +8,7 @@ jest.mock('vue', () => ({
 }));
 
 // Mock the App component
-jest.mock('../client/src/App.vue', () => ({
+jest.mock('../src/App.vue', () => ({
   name: 'App'
 }));
 
@@ -42,7 +42,7 @@ describe('main.js', () => {
   
   test('initializes Vue app and mounts it to #app', () => {
     // Import the main.js file which executes the code
-    require('../client/src/main.js');
+    require('../src/main.js');
     
     // Assert createApp was called with the App component
     expect(createApp).toHaveBeenCalled();

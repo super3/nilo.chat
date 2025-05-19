@@ -1,19 +1,19 @@
 import { shallowMount } from '@vue/test-utils';
-import ChatLayout from '../client/src/components/ChatLayout.vue';
+import ChatLayout from '../src/components/ChatLayout.vue';
 
 // Mock child components
-jest.mock('../client/src/components/ServerSidebar.vue', () => ({
+jest.mock('../src/components/ServerSidebar.vue', () => ({
   name: 'ServerSidebar',
   template: '<div>Channel Sidebar</div>'
 }));
 
-jest.mock('../client/src/components/MainSidebar.vue', () => ({
+jest.mock('../src/components/MainSidebar.vue', () => ({
   name: 'MainSidebar',
   template: '<div>Main Sidebar</div>',
   props: ['username', 'isConnected', 'steveUnreadCount']
 }));
 
-jest.mock('../client/src/components/ChatContent.vue', () => ({
+jest.mock('../src/components/ChatContent.vue', () => ({
   name: 'ChatContent',
   template: '<div>Chat Content</div>',
   props: ['username'],

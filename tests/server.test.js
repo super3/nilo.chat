@@ -102,7 +102,7 @@ describe('Server Module - Comprehensive', () => {
     
     // Load the server with our mocks in place
     jest.isolateModules(() => {
-      serverModule = require('../server/server');
+      serverModule = require('../server');
     });
     
     // Simulate socket connection if callback was stored
@@ -288,7 +288,7 @@ describe('Server Module - Comprehensive', () => {
       
       // Reload server module in production mode
       jest.isolateModules(() => {
-        require('../server/server');
+        require('../server');
       });
       
       // Verify catch-all route was configured
@@ -323,7 +323,7 @@ describe('Server Module - Comprehensive', () => {
     
     // Require the server again to trigger file creation
     jest.isolateModules(() => {
-      require('../server/server');
+      require('../server');
     });
     
     // Verify writeFileSync was called to create empty files
@@ -377,7 +377,7 @@ describe('Server Module - Comprehensive', () => {
     const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
     
     // Simulate connection
-    onConnection = require('../server/server').setupSocketHandlers(mockIO);
+    onConnection = require('../server').setupSocketHandlers(mockIO);
     onConnection(socket);
     
     // Test join_channel with no channel specified
@@ -423,7 +423,7 @@ describe('Server Module - Comprehensive', () => {
     
     // Force reload the server.js module to trigger the directory creation logic
     jest.isolateModules(() => {
-      require('../server/server');
+      require('../server');
     });
     
     // Verify mkdirSync was called for the channels directory
@@ -458,7 +458,7 @@ describe('Server Module - Comprehensive', () => {
     const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
     
     // Get the socket handler
-    const setupSocketHandlers = require('../server/server').setupSocketHandlers;
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
     
     // Register handlers
@@ -502,7 +502,7 @@ describe('Server Module - Comprehensive', () => {
     const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
     
     // Get the socket handler function
-    const setupSocketHandlers = require('../server/server').setupSocketHandlers;
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
     
     // Register handlers
@@ -552,7 +552,7 @@ describe('Server Module - Comprehensive', () => {
     const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue(mockHistory);
     
     // Get the socket handler function
-    const setupSocketHandlers = require('../server/server').setupSocketHandlers;
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
     
     // Register handlers
@@ -592,7 +592,7 @@ describe('Server Module - Comprehensive', () => {
     const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
     
     // Get the socket handler function
-    const setupSocketHandlers = require('../server/server').setupSocketHandlers;
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
     
     // Register handlers

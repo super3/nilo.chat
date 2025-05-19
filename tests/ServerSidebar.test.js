@@ -1,5 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
-import ServerSidebar from '../client/src/components/ServerSidebar.vue';
+import ServerSidebar from '../src/components/ServerSidebar.vue';
 
 describe('ServerSidebar.vue', () => {
   test('renders correctly', () => {

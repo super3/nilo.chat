@@ -1,5 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
-import MainSidebar from '../client/src/components/MainSidebar.vue';
+import MainSidebar from '../src/components/MainSidebar.vue';
 
 describe('MainSidebar.vue', () => {
   // Add a test to check that the component renders correctly

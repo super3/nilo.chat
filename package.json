@@ -7,7 +7,7 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "deploy": "vue-cli-service build && cp dist/index.html dist/404.html && push-dir --dir=dist --branch=gh-pages --cleanup --allow-unclean",
-    "start": "node server/server.js",
+    "start": "node server.js",
     "dev": "npm run build && npm start",
     "test": "jest",
     "test:coverage": "jest --coverage"
