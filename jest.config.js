@@ -22,5 +22,5 @@ module.exports = {
     '!**/node_modules/**',
     '!**/tests/**'
   ],
-  coverageReporters: ['text', 'lcov', 'html']
-} 
+  coverageReporters: ['text', 'lcov', 'html', 'json-summary']
+}

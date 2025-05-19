@@ -1,0 +1,38 @@
+name: Code Coverage
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Read coverage percentage
+        id: coverage
+        run: |
+          COVERAGE=$(node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('coverage/coverage-summary.json','utf8'));console.log(s.total.lines.pct)")
+          echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload coverage to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Show coverage percentage
+        run: echo "Coverage: ${{ steps.coverage.outputs.coverage }}%"
