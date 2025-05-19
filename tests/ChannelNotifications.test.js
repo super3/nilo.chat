@@ -1,20 +1,20 @@
 import { mount, flushPromises } from '@vue/test-utils';
-import ChatLayout from '../src/components/ChatLayout.vue';
+import ChatLayout from '../client/src/components/ChatLayout.vue';
 
 // Mock child components for better control
-jest.mock('../src/components/ServerSidebar.vue', () => ({
+jest.mock('../client/src/components/ServerSidebar.vue', () => ({
   name: 'ServerSidebar',
   template: '<div class="channel-sidebar" data-testid="channel-sidebar"><slot></slot></div>',
   props: ['currentChannel', 'channelUnreadCounts'],
 }));
 
-jest.mock('../src/components/MainSidebar.vue', () => ({
+jest.mock('../client/src/components/MainSidebar.vue', () => ({
   name: 'MainSidebar',
   template: '<div class="dm-sidebar" data-testid="dm-sidebar"><slot></slot></div>',
   props: ['username', 'isConnected', 'currentChannel', 'steveUnreadCount', 'channelUnreadCounts'],
 }));
 
-jest.mock('../src/components/ChatContent.vue', () => ({
+jest.mock('../client/src/components/ChatContent.vue', () => ({
   name: 'ChatContent',
   template: '<div class="chat-content" data-testid="chat-content"><slot></slot></div>',
   props: ['username', 'currentChannel'],
