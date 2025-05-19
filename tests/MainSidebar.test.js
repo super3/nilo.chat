@@ -197,5 +197,35 @@ describe('MainSidebar.vue', () => {
 
     expect(wrapper.emitted()['channel-change'].length).toBeGreaterThan(0);
   });
+
+  test('collapsed view without unread counts does not show badges', async () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: false,
+        currentChannel: 'general',
+        channelUnreadCounts: {
+          general: 0,
+          feedback: 0,
+          'slack-feed': 0,
+          dm_self: 0
+        }
+      }
+    });
+
+    wrapper.vm.showChannels = false;
+    wrapper.vm.showDirectMessages = false;
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('[data-testid="channel-general"] .bg-red-600').exists()).toBe(false);
+
+    await wrapper.setProps({ currentChannel: 'slack-feed' });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('[data-testid="channel-slack-feed"] .bg-red-600').exists()).toBe(false);
+
+    await wrapper.setProps({ currentChannel: 'dm_self' });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('[data-testid="dm-self-collapsed"] .bg-red-600').exists()).toBe(false);
+  });
 })
 
