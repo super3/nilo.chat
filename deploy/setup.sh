@@ -385,7 +385,7 @@ cat > $APP_PATH/ecosystem.config.js << EOF
 module.exports = {
   apps: [{
     name: 'nilo-chat',
-    script: 'server.js',
+    script: 'server/server.js',
     instances: 1,
     autorestart: true,
     watch: false,

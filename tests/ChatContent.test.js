@@ -1,5 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
-import ChatContent from '../src/components/ChatContent.vue';
+import ChatContent from '../client/src/components/ChatContent.vue';
 
 // Mock Socket.io
 const mockSocketOn = jest.fn();
@@ -16,7 +16,7 @@ jest.mock('socket.io-client', () => {
 });
 
 // Mock ChatMessage component
-jest.mock('../src/components/ChatMessage.vue', () => ({
+jest.mock('../client/src/components/ChatMessage.vue', () => ({
   name: 'ChatMessage',
   template: '<div class="chat-message-mock">{{ message }}</div>',
   props: ['username', 'timestamp', 'message', 'code', 'avatarColor']

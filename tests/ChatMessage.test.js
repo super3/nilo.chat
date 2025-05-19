@@ -1,5 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
-import ChatMessage from '../src/components/ChatMessage.vue';
+import ChatMessage from '../client/src/components/ChatMessage.vue';
 
 describe('ChatMessage.vue', () => {
   const defaultProps = {

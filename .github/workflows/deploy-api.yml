@@ -94,7 +94,7 @@ jobs:
             
             # Restart the application with PM2 directly
             echo "Starting/restarting application with PM2"
-            pm2 restart nilo-chat --update-env || pm2 start server.js --name nilo-chat
+            pm2 restart nilo-chat --update-env || pm2 start server/server.js --name nilo-chat
             
             # Debug: Verify the process is running with correct env
             pm2 list

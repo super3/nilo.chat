@@ -1,7 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
-import ChatLayout from '../src/components/ChatLayout.vue';
-import ServerSidebar from '../src/components/ServerSidebar.vue';
-import MainSidebar from '../src/components/MainSidebar.vue';
+import ChatLayout from '../client/src/components/ChatLayout.vue';
+import ServerSidebar from '../client/src/components/ServerSidebar.vue';
+import MainSidebar from '../client/src/components/MainSidebar.vue';
 
 // Helper function to create a mock socket
 const createMockSocket = () => {
@@ -13,19 +13,19 @@ const createMockSocket = () => {
 };
 
 // Mock child components for better control
-jest.mock('../src/components/ServerSidebar.vue', () => ({
+jest.mock('../client/src/components/ServerSidebar.vue', () => ({
   name: 'ServerSidebar',
   template: '<div class="channel-sidebar"><slot></slot></div>',
   props: ['currentChannel', 'channelUnreadCounts'],
 }));
 
-jest.mock('../src/components/MainSidebar.vue', () => ({
+jest.mock('../client/src/components/MainSidebar.vue', () => ({
   name: 'MainSidebar',
   template: '<div class="dm-sidebar"><slot></slot></div>',
   props: ['username', 'isConnected', 'currentChannel', 'steveUnreadCount', 'channelUnreadCounts'],
 }));
 
-jest.mock('../src/components/ChatContent.vue', () => ({
+jest.mock('../client/src/components/ChatContent.vue', () => ({
   name: 'ChatContent',
   template: '<div class="chat-content"><slot></slot></div>',
   props: ['username', 'currentChannel'],
