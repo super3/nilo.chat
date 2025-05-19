@@ -2,7 +2,7 @@ module.exports = {
   testEnvironment: 'jsdom',
   moduleFileExtensions: ['js', 'json', 'vue'],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/(.*)$': '<rootDir>/client/src/$1',
     '\\.(css|less|scss|sass)$': '<rootDir>/tests/mocks/styleMock.js'
   },
   transform: {
@@ -17,8 +17,8 @@ module.exports = {
   },
   collectCoverage: true,
   collectCoverageFrom: [
-    'src/**/*.{js,vue}',
-    'server.js',
+    'client/src/**/*.{js,vue}',
+    'server/server.js',
     '!**/node_modules/**',
     '!**/tests/**'
   ],

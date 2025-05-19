@@ -1,8 +1,8 @@
 import { shallowMount } from '@vue/test-utils';
-import App from '../src/App.vue';
+import App from '../client/src/App.vue';
 
 // Mock the ChatLayout component
-jest.mock('../src/components/ChatLayout.vue', () => ({
+jest.mock('../client/src/components/ChatLayout.vue', () => ({
   name: 'ChatLayout',
   render: () => null
 }));
