@@ -64,6 +64,16 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.emitted('channel-change').length).toBe(1);
   });
 
+  test('clicking logo switches channel when not current', async () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { currentChannel: 'feedback' }
+    });
+
+    await wrapper.find('.cursor-pointer.mb-4').trigger('click');
+
+    expect(wrapper.emitted('channel-change')).toEqual([['general']]);
+  });
+
   test('getUnreadCount returns 0 when channel missing', () => {
     const wrapper = shallowMount(ServerSidebar, {
       propsData: {
