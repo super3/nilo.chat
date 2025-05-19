@@ -13,7 +13,7 @@
     <!-- Channels section -->
     <div class="mb-8">
       <div class="px-4 mb-1 text-white flex items-center">
-        <div @click="toggleChannels" class="cursor-pointer w-4 mr-2 flex justify-center">
+        <div @click="toggleChannels" class="cursor-pointer w-4 mr-2 flex justify-center" data-testid="toggle-channels">
           <svg v-if="showChannels" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
           </svg>
@@ -21,7 +21,7 @@
             <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
           </svg>
         </div>
-        <div @click="toggleChannels" class="opacity-75 flex-1 cursor-pointer">Channels</div>
+        <div @click="toggleChannels" class="opacity-75 flex-1 cursor-pointer" data-testid="toggle-channels-text">Channels</div>
         <div>
           <svg class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M11 9h4v2h-4v4H9v-4H5V9h4V5h2v4zm-1 11a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />
@@ -31,8 +31,9 @@
       <!-- Show all channels when showChannels is true -->
       <div v-if="showChannels">
         <div 
-          @click="switchChannel('general')" 
+          @click="switchChannel('general')"
           class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
+          data-testid="channel-general"
           :class="{ 'bg-teal-dark': currentChannel === 'general' }"
         >
           <div class="w-4 mr-2 text-center">#</div>
@@ -44,8 +45,9 @@
           </div>
         </div>
         <div 
-          @click="switchChannel('feedback')" 
+          @click="switchChannel('feedback')"
           class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
+          data-testid="channel-feedback"
           :class="{ 'bg-teal-dark': currentChannel === 'feedback' }"
         >
           <div class="w-4 mr-2 text-center">#</div>
@@ -57,8 +59,9 @@
           </div>
         </div>
         <div 
-          @click="switchChannel('slack-feed')" 
+          @click="switchChannel('slack-feed')"
           class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
+          data-testid="channel-slack-feed"
           :class="{ 'bg-teal-dark': currentChannel === 'slack-feed' }"
         >
           <div class="w-4 mr-2 text-center">#</div>
@@ -72,10 +75,11 @@
       </div>
       <!-- Show only selected channel when showChannels is false -->
       <div v-else>
-        <div 
+        <div
           v-if="currentChannel === 'general'"
-          @click="switchChannel('general')" 
+          @click="switchChannel('general')"
           class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
+          data-testid="channel-general"
         >
           <div class="w-4 mr-2 text-center">#</div>
           <span>general</span>
@@ -85,10 +89,11 @@
             </span>
           </div>
         </div>
-        <div 
+        <div
           v-if="currentChannel === 'feedback'"
-          @click="switchChannel('feedback')" 
+          @click="switchChannel('feedback')"
           class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
+          data-testid="channel-feedback"
         >
           <div class="w-4 mr-2 text-center">#</div>
           <span>feedback</span>
@@ -98,10 +103,11 @@
             </span>
           </div>
         </div>
-        <div 
+        <div
           v-if="currentChannel === 'slack-feed'"
-          @click="switchChannel('slack-feed')" 
+          @click="switchChannel('slack-feed')"
           class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
+          data-testid="channel-slack-feed"
         >
           <div class="w-4 mr-2 text-center">#</div>
           <span>slack-feed</span>
@@ -117,7 +123,7 @@
     <!-- Direct Messages section -->
     <div class="mb-8">
       <div class="px-4 mb-1 text-white flex items-center">
-        <div @click="toggleDirectMessages" class="cursor-pointer w-4 mr-2 flex justify-center">
+        <div @click="toggleDirectMessages" class="cursor-pointer w-4 mr-2 flex justify-center" data-testid="toggle-dm">
           <svg v-if="showDirectMessages" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
           </svg>
@@ -125,7 +131,7 @@
             <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
           </svg>
         </div>
-        <div @click="toggleDirectMessages" class="opacity-75 flex-1 cursor-pointer">Direct Messages</div>
+        <div @click="toggleDirectMessages" class="opacity-75 flex-1 cursor-pointer" data-testid="toggle-dm-text">Direct Messages</div>
         <div>
           <svg class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M11 9h4v2h-4v4H9v-4H5V9h4V5h2v4zm-1 11a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />
