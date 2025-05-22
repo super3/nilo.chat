@@ -247,9 +247,18 @@ async function fetchRedditPosts(keyword = 'slack') {
   }
 }
 
-// Get keyword from command-line arguments, if provided
-const keyword = process.argv[2] || 'slack';
-console.log(`Searching Reddit for: "${keyword}" in the last hour...`);
+if (require.main === module) {
+  // Get keyword from command-line arguments, if provided
+  const keyword = process.argv[2] || 'slack';
+  console.log(`Searching Reddit for: "${keyword}" in the last hour...`);
 
-// Execute the function with the keyword
-fetchRedditPosts(keyword); 
+  // Execute the function with the keyword
+  fetchRedditPosts(keyword);
+}
+
+module.exports = {
+  fetchRedditPosts,
+  extractPostedIds,
+  updatePostedIds,
+  sendToSlackFeed
+};
