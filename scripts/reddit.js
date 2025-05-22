@@ -1,5 +1,5 @@
 // For Node.js versions < 18, use this import
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const fs = require('fs');
 const path = require('path');
 const socketIo = require('socket.io-client');
@@ -14,8 +14,9 @@ const POSTED_IDS_PREFIX = '!POSTED_IDS:';
  */
 function extractPostedIds(messages) {
   try {
-    for (const msg of messages) {
-      const parts = msg.split('|');
+    // Search from the most recent messages backwards so we get the latest list
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const parts = messages[i].split('|');
       if (parts.length >= 3 && parts[1] === 'RedditBot' && parts[2].startsWith(POSTED_IDS_PREFIX)) {
         const idsJson = parts[2].substring(POSTED_IDS_PREFIX.length).trim();
         return new Set(JSON.parse(idsJson));
@@ -83,8 +84,13 @@ function sendToSlackFeed(post, socket) {
  */
 async function fetchRedditPosts(keyword = 'slack') {
   try {
-    // Setup socket.io connection
-    const socket = socketIo(process.env.NODE_ENV === 'production' ? 'https://api.nilo.chat' : 'http://localhost:3000');
+    // Setup socket.io connection. Allow overriding the URL via environment.
+    const socketUrl = process.env.VUE_APP_SOCKET_URL ||
+      (process.env.NODE_ENV === 'production'
+        ? 'https://api.nilo.chat'
+        : 'http://localhost:3000');
+    console.log(`Connecting to chat server at ${socketUrl}`);
+    const socket = socketIo(socketUrl);
     
     let connected = false;
     let messageHistory = [];
