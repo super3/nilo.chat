@@ -120,64 +120,6 @@
       </div>
     </div>
     
-    <!-- Direct Messages section -->
-    <div class="mb-8">
-      <div class="px-4 mb-1 text-white flex items-center">
-        <div @click="toggleDirectMessages" class="cursor-pointer w-4 mr-2 flex justify-center" data-testid="toggle-dm">
-          <svg v-if="showDirectMessages" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-          </svg>
-          <svg v-else class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-            <path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
-          </svg>
-        </div>
-        <div @click="toggleDirectMessages" class="opacity-75 flex-1 cursor-pointer" data-testid="toggle-dm-text">Direct Messages</div>
-        <div>
-          <svg class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-            <path d="M11 9h4v2h-4v4H9v-4H5V9h4V5h2v4zm-1 11a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" />
-          </svg>
-        </div>
-      </div>
-      <!-- Show all DMs when expanded -->
-      <div v-if="showDirectMessages">
-        <div class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker"
-             :class="{ 'bg-teal-dark': currentChannel === 'dm_self' }"
-             @click="switchChannel('dm_self')"
-             data-testid="dm-self">
-          <div class="w-4 mr-2 flex justify-center">
-            <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2']"></span>
-          </div>
-          <span class="text-white opacity-75">{{ username }} 
-            <span :class="[currentChannel === 'dm_self' ? 'text-white text-opacity-80' : 'text-gray-500', 'text-sm']">(you)</span>
-          </span>
-          <div v-if="getUnreadCount('dm_self') > 0" class="ml-auto">
-            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
-              {{ getUnreadCount('dm_self') }}
-            </span>
-          </div>
-        </div>
-      </div>
-      <!-- Show only selected DM when showDirectMessages is false -->
-      <div v-else>
-        <div 
-          v-if="currentChannel === 'dm_self'"
-          class="px-4 py-1 flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
-          @click="switchChannel('dm_self')"
-          data-testid="dm-self-collapsed">
-          <div class="w-4 mr-2 flex justify-center">
-            <span :class="[isConnected ? 'bg-green-500' : 'border border-white', 'rounded-full block w-2 h-2']"></span>
-          </div>
-          <span class="text-white opacity-75">{{ username }} 
-            <span class="text-white text-opacity-80 text-sm">(you)</span>
-          </span>
-          <div v-if="getUnreadCount('dm_self') > 0" class="ml-auto">
-            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
-              {{ getUnreadCount('dm_self') }}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -202,23 +144,18 @@ export default {
       default: () => ({
         general: 0,
         feedback: 0,
-        'slack-feed': 0,
-        dm_self: 0
+        'slack-feed': 0
       })
     }
   },
   data() {
     return {
-      showChannels: true,
-      showDirectMessages: true
+      showChannels: true
     }
   },
   methods: {
     toggleChannels() {
       this.showChannels = !this.showChannels;
-    },
-    toggleDirectMessages() {
-      this.showDirectMessages = !this.showDirectMessages;
     },
     switchChannel(channel) {
       if (channel !== this.currentChannel) {

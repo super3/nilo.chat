@@ -55,8 +55,7 @@ describe('Unread Notifications Feature', () => {
     // Setup initial state with 0 unread messages
     wrapper.vm.channelUnreadCounts = {
       general: 0,
-      feedback: 0,
-      dm_self: 0
+      feedback: 0
     };
     
     // Simulate receiving a message from the feedback channel
@@ -97,7 +96,7 @@ describe('Unread Notifications Feature', () => {
     wrapper.vm.channelUnreadCounts = {
       general: 0,
       feedback: 5,
-      dm_self: 3
+      'slack-feed': 2
     };
     
     // Change to feedback channel
@@ -107,7 +106,7 @@ describe('Unread Notifications Feature', () => {
     expect(wrapper.vm.channelUnreadCounts.feedback).toBe(0);
     
     // Other unread counts should not change
-    expect(wrapper.vm.channelUnreadCounts.dm_self).toBe(3);
+    expect(wrapper.vm.channelUnreadCounts['slack-feed']).toBe(2);
   });
   
   test('unread notifications appear in the UI', async () => {
@@ -123,8 +122,7 @@ describe('Unread Notifications Feature', () => {
     // Set unread counts
     wrapper.vm.channelUnreadCounts = {
       general: 3,
-      feedback: 2,
-      dm_self: 4
+      feedback: 2
     };
     
     // Pass the updated unread counts to children
@@ -133,13 +131,11 @@ describe('Unread Notifications Feature', () => {
     // Verify they received the correct props
     expect(serverSidebar.props('channelUnreadCounts')).toEqual({
       general: 3,
-      feedback: 2,
-      dm_self: 4
+      feedback: 2
     });
     expect(mainSidebar.props('channelUnreadCounts')).toEqual({
       general: 3,
-      feedback: 2,
-      dm_self: 4
+      feedback: 2
     });
   });
 }); 

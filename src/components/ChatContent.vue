@@ -4,12 +4,7 @@
     <div class="border-b border-border-light flex px-6 py-2 items-center flex-none">
       <div class="flex flex-col">
         <h3 class="text-gray-900 mb-1 font-extrabold">
-          <template v-if="isDmChannel">
-            <span>{{ getChannelDisplayName() }}</span>
-          </template>
-          <template v-else>
-            <span>#{{ currentChannel }}</span>
-          </template>
+          <span>#{{ getChannelDisplayName() }}</span>
         </h3>
         <div class="text-gray-600 text-sm truncate">
           {{ channelDescription }}
@@ -89,20 +84,12 @@ export default {
   },
   computed: {
     channelDescription() {
-      if (this.isDmChannel) {
-        const dmUser = this.getDmUserFromChannel();
-        return `Direct message with ${dmUser}.`;
-      }
-      
       const descriptions = {
         general: 'Main discussion area for our self-improving chat application.',
         feedback: 'Share your thoughts and suggestions about the app here.',
         'slack-feed': 'All social media mentions of the word "slack" from across the web.'
       };
       return descriptions[this.currentChannel] || 'Channel description';
-    },
-    isDmChannel() {
-      return this.currentChannel && this.currentChannel.startsWith('dm_');
     }
   },
   watch: {
@@ -328,25 +315,9 @@ export default {
       // We just need it here for the tests to pass
     },
     getChannelDisplayName() {
-      if (this.isDmChannel) {
-        if (this.currentChannel === 'dm_self') {
-          return this.username;
-        }
-        return this.getDmUserFromChannel();
-      }
       return this.currentChannel;
     },
-    getDmUserFromChannel() {
-      // Extract username from dm_username channel format
-      if (this.currentChannel === 'dm_self') {
-        return this.username;
-      }
-      return this.currentChannel.replace('dm_', '');
-    },
     getInputPlaceholder() {
-      if (this.isDmChannel) {
-        return `Message ${this.getDmUserFromChannel()}`;
-      }
       return `Message #${this.currentChannel}`;
     }
   }
