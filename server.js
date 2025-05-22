@@ -11,16 +11,9 @@ const io = socketIo(server);
 
 // Define available channels
 const CHANNELS = ['general', 'feedback', 'slack-feed'];
-// Define available DM channels
-const DM_CHANNELS = ['dm_steve', 'dm_self'];
 
 // Get channel log path function
 const getChannelPath = (channel) => {
-  if (DM_CHANNELS.includes(channel)) {
-    // Handle DM channels
-    return path.join(__dirname, 'channels', `${channel}.txt`);
-  }
-  
   if (!CHANNELS.includes(channel)) {
     console.warn(`Invalid channel: ${channel}, defaulting to general`);
     channel = 'general';
@@ -29,7 +22,7 @@ const getChannelPath = (channel) => {
 };
 
 // Ensure channel files exist
-[...CHANNELS, ...DM_CHANNELS].forEach(channel => {
+CHANNELS.forEach(channel => {
   const channelPath = getChannelPath(channel);
   
   if (!fs.existsSync(channelPath)) {
@@ -40,20 +33,6 @@ const getChannelPath = (channel) => {
     }
     fs.writeFileSync(channelPath, '');
     console.log(`Created channel file: ${channelPath}`);
-    
-    // If this is the steve DM channel, add a welcome message
-    if (channel === 'dm_steve') {
-      const timestamp = new Date().toISOString();
-      const welcomeMessage = `${timestamp}|steve|Welcome to nilo.chat! I'm steve, your friendly assistant. Let me know if you need any help!`;
-      fs.appendFileSync(channelPath, welcomeMessage + '\n');
-    }
-    
-    // If this is the self DM channel, add info about the /nick command
-    if (channel === 'dm_self') {
-      const timestamp = new Date().toISOString();
-      const selfWelcomeMessage = `${timestamp}|System|This is your personal space. You can change your username using the /nick command followed by your new username. Example: /nick SuperCoder`;
-      fs.appendFileSync(channelPath, selfWelcomeMessage + '\n');
-    }
   }
 });
 
@@ -92,49 +71,22 @@ function setupSocketHandlers(io) {
       // Join the room for this channel
       socket.join(channel);
       
-      // Also join the steve DM channel
-      socket.join('dm_steve');
-      
-      // Also join the self DM channel
-      socket.join('dm_self');
       
       // Send message history to the newly connected client
       const channelPath = getChannelPath(channel);
       const history = fs.readFileSync(channelPath, 'utf8').split('\n').filter(Boolean);
       socket.emit('message_history', history);
       
-      // For first-time users, add a welcome message from steve to the dm_steve channel
-      // but don't switch them to that channel
-      const isFirstJoin = !data.isReturningUser;
-      if (isFirstJoin) {
-        const timestamp = new Date().toISOString();
-        const welcomeMessage = {
-          timestamp,
-          username: 'steve',
-          message: `Hello ${username}! Welcome to nilo.chat! Let me know if you need any help getting started.`,
-          channel: 'dm_steve'  // Explicitly specify the channel
-        };
-        socket.emit('chat_message', welcomeMessage);
-      }
     });
 
     // Handle channel change
     socket.on('join_channel', (data) => {
       const newChannel = data.channel || 'general';
       
-      // Leave all regular channels (but stay in DM channels)
+      // Leave all channels
       CHANNELS.forEach(channel => {
         socket.leave(channel);
       });
-      
-      // If switching to a DM channel, leave other DM channels
-      if (newChannel.startsWith('dm_')) {
-        DM_CHANNELS.forEach(channel => {
-          if (channel !== newChannel) {
-            socket.leave(channel);
-          }
-        });
-      }
       
       // Join the new channel
       socket.join(newChannel);

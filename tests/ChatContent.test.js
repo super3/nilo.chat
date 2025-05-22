@@ -747,26 +747,6 @@ describe('ChatContent.vue', () => {
     });
   });
 
-  test('isDmChannel computed property correctly detects DM channels', () => {
-    // Test with regular channel
-    const wrapper = shallowMount(ChatContent, {
-      propsData: {
-        username: 'testuser',
-        currentChannel: 'general'
-      }
-    });
-    
-    // Regular channel should not be a DM channel
-    expect(wrapper.vm.isDmChannel).toBe(false);
-    
-    // Need to override the computed property since we can't properly change it in the test
-    Object.defineProperty(wrapper.vm, 'isDmChannel', {
-      get() { return true; }
-    });
-    
-    // Now it should return true
-    expect(wrapper.vm.isDmChannel).toBe(true);
-  });
   
   test('getChannelDisplayName works correctly for regular channels', () => {
     const wrapper = shallowMount(ChatContent, {
@@ -780,36 +760,6 @@ describe('ChatContent.vue', () => {
     expect(wrapper.vm.getChannelDisplayName()).toBe('general');
   });
   
-  test('getChannelDisplayName works correctly for DM channels', () => {
-    const wrapper = shallowMount(ChatContent, {
-      propsData: {
-        username: 'testuser',
-        currentChannel: 'dm_steve'
-      },
-      computed: {
-        isDmChannel() {
-          return true;
-        }
-      }
-    });
-    
-    // Mock the getDmUserFromChannel method
-    wrapper.vm.getDmUserFromChannel = jest.fn().mockReturnValue('steve');
-    
-    // Now test the method
-    expect(wrapper.vm.getChannelDisplayName()).toBe('steve');
-  });
-  
-  test('getDmUserFromChannel correctly handles steve', () => {
-    const wrapper = shallowMount(ChatContent, {
-      propsData: {
-        username: 'testuser',
-        currentChannel: 'dm_steve'
-      }
-    });
-    
-    expect(wrapper.vm.getDmUserFromChannel()).toBe('steve');
-  });
   
   test('getInputPlaceholder works for regular channels', () => {
     const wrapper = shallowMount(ChatContent, {
@@ -822,24 +772,6 @@ describe('ChatContent.vue', () => {
     expect(wrapper.vm.getInputPlaceholder()).toBe('Message #general');
   });
   
-  test('getInputPlaceholder works for DM channels', () => {
-    const wrapper = shallowMount(ChatContent, {
-      propsData: {
-        username: 'testuser',
-        currentChannel: 'dm_steve'
-      }
-    });
-    
-    // Mock the isDmChannel computed property
-    Object.defineProperty(wrapper.vm, 'isDmChannel', {
-      get() { return true; }
-    });
-    
-    // Mock the getDmUserFromChannel method
-    wrapper.vm.getDmUserFromChannel = jest.fn().mockReturnValue('steve');
-    
-    expect(wrapper.vm.getInputPlaceholder()).toBe('Message steve');
-  });
   
   test('channelDescription works for regular channels', () => {
     const wrapper = shallowMount(ChatContent, {
@@ -852,44 +784,6 @@ describe('ChatContent.vue', () => {
     expect(wrapper.vm.channelDescription).toContain('Main discussion');
   });
   
-  test('channelDescription works for DM channels', () => {
-    const wrapper = shallowMount(ChatContent, {
-      propsData: {
-        username: 'testuser',
-        currentChannel: 'dm_steve'
-      }
-    });
-
-    expect(wrapper.vm.channelDescription).toBe('Direct message with steve.');
-  });
-  
-  test('getChannelDisplayName handles dm_self channel correctly', () => {
-    const wrapper = shallowMount(ChatContent, {
-      propsData: {
-        username: 'testuser',
-        currentChannel: 'dm_self'
-      }
-    });
-    
-    // Mock the isDmChannel computed property
-    Object.defineProperty(wrapper.vm, 'isDmChannel', {
-      get() { return true; }
-    });
-    
-    // Now test the method
-    expect(wrapper.vm.getChannelDisplayName()).toBe('testuser');
-  });
-  
-  test('getDmUserFromChannel handles dm_self channel correctly', () => {
-    const wrapper = shallowMount(ChatContent, {
-      propsData: {
-        username: 'testuser',
-        currentChannel: 'dm_self'
-      }
-    });
-
-    expect(wrapper.vm.getDmUserFromChannel()).toBe('testuser');
-  });
 
   test('username watcher updates localUsername', async () => {
     await wrapper.setProps({ username: 'updated' });

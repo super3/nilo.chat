@@ -485,52 +485,6 @@ describe('Server Module - Comprehensive', () => {
     readFileSyncSpy.mockRestore();
   });
 
-  test('handles DM channel switching correctly', () => {
-    // Mock socket for testing
-    const socket = {
-      join: jest.fn(),
-      leave: jest.fn(),
-      emit: jest.fn(),
-      on: jest.fn()
-    };
-    
-    const io = {
-      on: jest.fn()
-    };
-    
-    // Spy on readFileSync to avoid actual file operations
-    const readFileSyncSpy = jest.spyOn(fs, 'readFileSync').mockReturnValue('');
-    
-    // Get the socket handler function
-    const setupSocketHandlers = require('../server').setupSocketHandlers;
-    const socketHandler = setupSocketHandlers(io);
-    
-    // Register handlers
-    socketHandler(socket);
-    
-    // Get join_channel handler
-    const joinChannelHandler = socket.on.mock.calls.find(call => call[0] === 'join_channel')[1];
-    
-    // Call handler with a DM channel
-    joinChannelHandler({ channel: 'dm_self' });
-    
-    // Verify socket.leave was called for regular channels
-    expect(socket.leave).toHaveBeenCalledWith('general');
-    expect(socket.leave).toHaveBeenCalledWith('feedback');
-    
-    // Verify socket.leave was also called for other DM channels
-    expect(socket.leave).toHaveBeenCalledWith('dm_steve');
-    
-    // But it should NOT leave the channel we're joining
-    const leaveCallArgs = socket.leave.mock.calls.flat();
-    expect(leaveCallArgs).not.toContain('dm_self');
-    
-    // Verify socket.join was called with the new channel
-    expect(socket.join).toHaveBeenCalledWith('dm_self');
-    
-    // Clean up
-    readFileSyncSpy.mockRestore();
-  });
 
   test('properly filters empty lines when reading message history', () => {
     // Mock socket for testing
@@ -611,13 +565,8 @@ describe('Server Module - Comprehensive', () => {
       // isReturningUser not provided (undefined)
     });
     
-    // For first-time users, should emit both message_history and a welcome chat_message
+    // For first-time users, should only emit message_history
     expect(socket.emit).toHaveBeenCalledWith('message_history', expect.any(Array));
-    expect(socket.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
-      username: 'steve',
-      message: expect.stringContaining('Welcome to nilo.chat'),
-      channel: 'dm_steve'
-    }));
     
     // Reset socket.emit mock
     socket.emit.mockClear();

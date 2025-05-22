@@ -12,8 +12,7 @@ describe('MainSidebar.vue', () => {
         channelUnreadCounts: {
           general: 0,
           feedback: 0,
-          'slack-feed': 0,
-          dm_self: 0
+          'slack-feed': 0
         }
       }
     });
@@ -29,8 +28,6 @@ describe('MainSidebar.vue', () => {
     // Check that the channels section exists
     expect(wrapper.text()).toContain('Channels');
     
-    // Check that the direct messages section exists
-    expect(wrapper.text()).toContain('Direct Messages');
   });
   
   // Test connection status indicator
@@ -71,11 +68,6 @@ describe('MainSidebar.vue', () => {
     wrapper.vm.toggleChannels();
     await wrapper.vm.$nextTick();
     expect(wrapper.vm.showChannels).toBe(false);
-
-    expect(wrapper.vm.showDirectMessages).toBe(true);
-    wrapper.vm.toggleDirectMessages();
-    await wrapper.vm.$nextTick();
-    expect(wrapper.vm.showDirectMessages).toBe(false);
   });
 
   test('collapsed channels show only active channel', async () => {
@@ -93,20 +85,6 @@ describe('MainSidebar.vue', () => {
     expect(channelItems.at(0).text()).toContain('feedback');
   });
 
-  test('collapsed direct messages show only active DM', async () => {
-    const wrapper = shallowMount(MainSidebar, {
-      propsData: {
-        username: 'testuser',
-        isConnected: true,
-        currentChannel: 'dm_self'
-      }
-    });
-    wrapper.vm.showDirectMessages = false;
-    await wrapper.vm.$nextTick();
-    const dmCollapsed = wrapper.find('[data-testid="dm-self-collapsed"]');
-    expect(dmCollapsed.exists()).toBe(true);
-    expect(dmCollapsed.text()).toContain('testuser');
-  });
 
   test('switchChannel emits event only when channel changes', () => {
     const wrapper = shallowMount(MainSidebar, {
@@ -155,8 +133,7 @@ describe('MainSidebar.vue', () => {
     expect(wrapper.vm.channelUnreadCounts).toEqual({
       general: 0,
       feedback: 0,
-      'slack-feed': 0,
-      dm_self: 0
+      'slack-feed': 0
     });
   });
 
@@ -166,7 +143,7 @@ describe('MainSidebar.vue', () => {
         username: 'testuser',
         isConnected: true,
         currentChannel: 'general',
-        channelUnreadCounts: { general: 1, feedback: 1, 'slack-feed': 1, dm_self: 1 }
+        channelUnreadCounts: { general: 1, feedback: 1, 'slack-feed': 1 }
       }
     });
 
@@ -176,12 +153,7 @@ describe('MainSidebar.vue', () => {
     await wrapper.find('[data-testid="channel-feedback"]').trigger('click');
     await wrapper.find('[data-testid="channel-slack-feed"]').trigger('click');
 
-    await wrapper.find('[data-testid="toggle-dm"]').trigger('click');
-    await wrapper.find('[data-testid="toggle-dm-text"]').trigger('click');
-    await wrapper.find('[data-testid="dm-self"]').trigger('click');
-
     wrapper.vm.showChannels = false;
-    wrapper.vm.showDirectMessages = false;
     await wrapper.vm.$nextTick();
 
     await wrapper.find('[data-testid="channel-general"]').trigger('click');
@@ -191,9 +163,6 @@ describe('MainSidebar.vue', () => {
     await wrapper.setProps({ currentChannel: 'slack-feed' });
     await wrapper.vm.$nextTick();
     await wrapper.find('[data-testid="channel-slack-feed"]').trigger('click');
-    await wrapper.setProps({ currentChannel: 'dm_self' });
-    await wrapper.vm.$nextTick();
-    await wrapper.find('[data-testid="dm-self-collapsed"]').trigger('click');
 
     expect(wrapper.emitted()['channel-change'].length).toBeGreaterThan(0);
   });
@@ -207,14 +176,12 @@ describe('MainSidebar.vue', () => {
         channelUnreadCounts: {
           general: 0,
           feedback: 0,
-          'slack-feed': 0,
-          dm_self: 0
+          'slack-feed': 0
         }
       }
     });
 
     wrapper.vm.showChannels = false;
-    wrapper.vm.showDirectMessages = false;
     await wrapper.vm.$nextTick();
 
     expect(wrapper.find('[data-testid="channel-general"] .bg-red-600').exists()).toBe(false);
@@ -223,9 +190,6 @@ describe('MainSidebar.vue', () => {
     await wrapper.vm.$nextTick();
     expect(wrapper.find('[data-testid="channel-slack-feed"] .bg-red-600').exists()).toBe(false);
 
-    await wrapper.setProps({ currentChannel: 'dm_self' });
-    await wrapper.vm.$nextTick();
-    expect(wrapper.find('[data-testid="dm-self-collapsed"] .bg-red-600').exists()).toBe(false);
   });
 })
 

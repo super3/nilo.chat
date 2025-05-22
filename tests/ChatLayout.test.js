@@ -253,8 +253,7 @@ describe('ChatLayout.vue', () => {
     // Setup initial state
     wrapper.vm.channelUnreadCounts = {
       general: 0,
-      feedback: 5,
-      dm_self: 0
+      feedback: 5
     };
     
     // Change to the feedback channel
@@ -301,8 +300,7 @@ describe('ChatLayout.vue', () => {
     // Setup initial state
     wrapper.vm.channelUnreadCounts = {
       general: 0,
-      feedback: 0,
-      dm_self: 0
+      feedback: 0
     };
     
     // Simulate receiving a message from the feedback channel
