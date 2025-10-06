@@ -111,9 +111,9 @@ describe('ChatContent.vue', () => {
       propsData: defaultProps
     });
     
-    // Check that socket.io-client was called with production URL
+    // Check that socket.io-client was called with production URL from environment variable
     const socketioClient = require('socket.io-client');
-    expect(socketioClient).toHaveBeenCalledWith('https://api.nilo.chat');
+    expect(socketioClient).toHaveBeenCalledWith(process.env.VUE_APP_SOCKET_URL);
   });
   
   test('handles connect event from socket', () => {
