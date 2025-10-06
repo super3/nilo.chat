@@ -3,7 +3,6 @@ const http = require('http');
 const path = require('path');
 const socketIo = require('socket.io');
 const fs = require('fs');
-const { fetchRedditPosts } = require('./scripts/reddit');
 
 // Create Express app and HTTP server
 const app = express();
@@ -162,14 +161,6 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV}`);
 });
-
-// Run the Reddit fetcher every 10 minutes for the "slack" keyword
-if (process.env.NODE_ENV !== 'test') {
-  const TEN_MINUTES = 10 * 60 * 1000;
-  // Kick off immediately then repeat
-  fetchRedditPosts('slack');
-  setInterval(() => fetchRedditPosts('slack'), TEN_MINUTES);
-}
 
 // Export for testing
 if (process.env.NODE_ENV === 'test') {

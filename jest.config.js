@@ -19,7 +19,6 @@ module.exports = {
   collectCoverageFrom: [
     'src/**/*.{js,vue}',
     'server.js',
-    'scripts/reddit.js',
     '!**/node_modules/**',
     '!**/tests/**'
   ],
