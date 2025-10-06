@@ -114,9 +114,9 @@ export default {
                         window.location.hostname === '127.0.0.1';
     
     // Connect to the WebSocket server
-    const socketUrl = isLocalhost 
-      ? 'http://localhost:3000' 
-      : 'https://api.nilo.chat';
+    const socketUrl = isLocalhost
+      ? 'http://localhost:3000'
+      : process.env.VUE_APP_SOCKET_URL;
     
     console.log(`Connecting to Socket.IO server at: ${socketUrl}`);
     this.socket = io(socketUrl);
