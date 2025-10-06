@@ -39,6 +39,16 @@ CHANNELS.forEach(channel => {
 // Debug current environment
 console.log(`Current NODE_ENV: "${process.env.NODE_ENV}"`);
 
+// Health check endpoint - must come before other routes
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Root endpoint for Railway health checks
+app.get('/', (req, res) => {
+  res.status(200).send('Nilo.chat API Server - OK');
+});
+
 // Serve static files and frontend routes only in development mode
 if (process.env.NODE_ENV !== 'production') {
   console.log('Running in development mode - serving frontend files');
@@ -51,11 +61,6 @@ if (process.env.NODE_ENV !== 'production') {
   });
 } else {
   console.log('Running in production mode - not serving frontend files');
-  
-  // API-only mode in production - respond to non-socket requests with 200 OK
-  app.get('*', (req, res) => {
-    res.status(200).send('API Server Running');
-  });
 }
 
 // Socket.IO event handling

@@ -259,19 +259,47 @@ describe('Server Module - Comprehensive', () => {
   });
   
   test('configures express with catch-all route', () => {
-    // Verify catch-all route was configured
+    // Verify health check route was configured
+    expect(mockExpressApp.get).toHaveBeenCalledWith('/health', expect.any(Function));
+
+    // Verify root route was configured
+    expect(mockExpressApp.get).toHaveBeenCalledWith('/', expect.any(Function));
+
+    // Verify catch-all route was configured in development mode
     expect(mockExpressApp.get).toHaveBeenCalledWith('*', expect.any(Function));
-    
-    // Get the route handler
-    const handler = mockExpressApp.get.mock.calls[0][1];
-    
+
+    // Test health check endpoint
+    const healthHandler = mockExpressApp.get.mock.calls.find(call => call[0] === '/health')[1];
+    const healthReq = {};
+    const healthRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
+    healthHandler(healthReq, healthRes);
+    expect(healthRes.status).toHaveBeenCalledWith(200);
+    expect(healthRes.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'ok' }));
+
+    // Test root endpoint
+    const rootHandler = mockExpressApp.get.mock.calls.find(call => call[0] === '/')[1];
+    const rootReq = {};
+    const rootRes = {
+      status: jest.fn().mockReturnThis(),
+      send: jest.fn()
+    };
+    rootHandler(rootReq, rootRes);
+    expect(rootRes.status).toHaveBeenCalledWith(200);
+    expect(rootRes.send).toHaveBeenCalled();
+
+    // Get the catch-all route handler (should be the one with '*')
+    const handler = mockExpressApp.get.mock.calls.find(call => call[0] === '*')[1];
+
     // Create mock request and response
     const req = {};
     const res = { sendFile: jest.fn() };
-    
+
     // Call the handler
     handler(req, res);
-    
+
     // Verify response.sendFile was called with the index.html path
     expect(res.sendFile).toHaveBeenCalled();
     expect(res.sendFile.mock.calls[0][0]).toContain('index.html');
@@ -280,38 +308,55 @@ describe('Server Module - Comprehensive', () => {
   test('handles production mode routes correctly', () => {
     // Save original NODE_ENV
     const originalNodeEnv = process.env.NODE_ENV;
-    
+
     try {
       // Set to production mode
       process.env.NODE_ENV = 'production';
-      
+
       // Clear mocks
       jest.clearAllMocks();
-      
+
       // Reload server module in production mode
       jest.isolateModules(() => {
         require('../server');
       });
-      
-      // Verify catch-all route was configured
-      expect(mockExpressApp.get).toHaveBeenCalledWith('*', expect.any(Function));
-      
-      // Get the route handler
-      const handler = mockExpressApp.get.mock.calls[0][1];
-      
+
+      // Verify health check route was configured
+      expect(mockExpressApp.get).toHaveBeenCalledWith('/health', expect.any(Function));
+
+      // Verify root route was configured
+      expect(mockExpressApp.get).toHaveBeenCalledWith('/', expect.any(Function));
+
+      // In production mode, there should NOT be a wildcard route
+      const wildcardCalls = mockExpressApp.get.mock.calls.filter(call => call[0] === '*');
+      expect(wildcardCalls.length).toBe(0);
+
+      // Test health check endpoint
+      const healthHandler = mockExpressApp.get.mock.calls.find(call => call[0] === '/health')[1];
+      const healthReq = {};
+      const healthRes = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn()
+      };
+      healthHandler(healthReq, healthRes);
+      expect(healthRes.status).toHaveBeenCalledWith(200);
+
+      // Test root endpoint
+      const rootHandler = mockExpressApp.get.mock.calls.find(call => call[0] === '/')[1];
+
       // Create mock request and response
       const req = {};
-      const res = { 
+      const res = {
         status: jest.fn().mockReturnThis(),
         send: jest.fn()
       };
-      
+
       // Call the handler
-      handler(req, res);
-      
+      rootHandler(req, res);
+
       // Verify response status and message
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.send).toHaveBeenCalledWith('API Server Running');
+      expect(res.send).toHaveBeenCalledWith('Nilo.chat API Server - OK');
     } finally {
       // Restore original NODE_ENV
       process.env.NODE_ENV = originalNodeEnv;
