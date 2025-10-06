@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const socketIo = require('socket.io');
-const fs = require('fs');
+const { Pool } = require('pg');
 
 // Create Express app and HTTP server
 const app = express();
@@ -12,27 +12,18 @@ const io = socketIo(server);
 // Define available channels
 const CHANNELS = ['general', 'feedback'];
 
-// Get channel log path function
-const getChannelPath = (channel) => {
-  if (!CHANNELS.includes(channel)) {
-    console.warn(`Invalid channel: ${channel}, defaulting to general`);
-    channel = 'general';
-  }
-  return path.join(__dirname, 'channels', `${channel}.txt`);
-};
+// Database connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-// Ensure channel files exist
-CHANNELS.forEach(channel => {
-  const channelPath = getChannelPath(channel);
-  
-  if (!fs.existsSync(channelPath)) {
-    // Ensure the channels directory exists
-    const channelsDir = path.join(__dirname, 'channels');
-    if (!fs.existsSync(channelsDir)) {
-      fs.mkdirSync(channelsDir);
-    }
-    fs.writeFileSync(channelPath, '');
-    console.log(`Created channel file: ${channelPath}`);
+// Test database connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Database connection error:', err);
+  } else {
+    console.log('Database connected successfully');
   }
 });
 
@@ -69,87 +60,123 @@ function setupSocketHandlers(io) {
     let username = 'Unknown User';
     
     // Handle user joining
-    socket.on('user_connected', (data) => {
+    socket.on('user_connected', async (data) => {
       username = data.username;
       const channel = data.channel || 'general';
-      
+
       // Join the room for this channel
       socket.join(channel);
-      
-      
-      // Send message history to the newly connected client
-      const channelPath = getChannelPath(channel);
-      const history = fs.readFileSync(channelPath, 'utf8').split('\n').filter(Boolean);
-      socket.emit('message_history', history);
-      
+
+      // Send message history to the newly connected client from database
+      try {
+        const result = await pool.query(
+          'SELECT timestamp, username, message FROM messages WHERE channel = $1 ORDER BY timestamp ASC',
+          [channel]
+        );
+
+        // Format messages in the same format as before: timestamp|username|message
+        const history = result.rows.map(row =>
+          `${row.timestamp.toISOString()}|${row.username}|${row.message}`
+        );
+
+        socket.emit('message_history', history);
+      } catch (error) {
+        console.error('Error loading message history:', error);
+        socket.emit('message_history', []);
+      }
     });
 
     // Handle channel change
-    socket.on('join_channel', (data) => {
+    socket.on('join_channel', async (data) => {
       const newChannel = data.channel || 'general';
-      
+
       // Leave all channels
       CHANNELS.forEach(channel => {
         socket.leave(channel);
       });
-      
+
       // Join the new channel
       socket.join(newChannel);
-      
-      // Send message history for the new channel
-      const channelPath = getChannelPath(newChannel);
-      const history = fs.readFileSync(channelPath, 'utf8').split('\n').filter(Boolean);
-      socket.emit('message_history', history);
+
+      // Send message history for the new channel from database
+      try {
+        const result = await pool.query(
+          'SELECT timestamp, username, message FROM messages WHERE channel = $1 ORDER BY timestamp ASC',
+          [newChannel]
+        );
+
+        // Format messages in the same format as before: timestamp|username|message
+        const history = result.rows.map(row =>
+          `${row.timestamp.toISOString()}|${row.username}|${row.message}`
+        );
+
+        socket.emit('message_history', history);
+      } catch (error) {
+        console.error('Error loading message history:', error);
+        socket.emit('message_history', []);
+      }
     });
 
     // Handle new messages
-    socket.on('chat_message', (data) => {
+    socket.on('chat_message', async (data) => {
       const timestamp = new Date().toISOString();
       const channel = data.channel || 'general';
-      const message = `${timestamp}|${data.username}|${data.message}`;
-      
+
       console.log(`New message from ${data.username} in channel ${channel}: ${data.message}`);
-      
-      // Log message to the channel's file
-      const channelPath = getChannelPath(channel);
-      fs.appendFileSync(channelPath, message + '\n');
-      
-      // Create message object with channel explicitly included
-      const messageObject = {
-        timestamp,
-        username: data.username,
-        message: data.message,
-        channel: channel
-      };
-      
-      console.log(`Broadcasting message to all clients with channel ${channel}:`, messageObject);
-      
-      // Broadcast to ALL clients, not just those in the channel
-      // This way everyone can see notifications even if they're not in the channel
-      io.emit('chat_message', messageObject);
+
+      // Save message to database
+      try {
+        await pool.query(
+          'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
+          [timestamp, data.username, data.message, channel]
+        );
+
+        // Create message object with channel explicitly included
+        const messageObject = {
+          timestamp,
+          username: data.username,
+          message: data.message,
+          channel: channel
+        };
+
+        console.log(`Broadcasting message to all clients with channel ${channel}:`, messageObject);
+
+        // Broadcast to ALL clients, not just those in the channel
+        // This way everyone can see notifications even if they're not in the channel
+        io.emit('chat_message', messageObject);
+      } catch (error) {
+        console.error('Error saving message to database:', error);
+        socket.emit('error', { message: 'Failed to save message' });
+      }
     });
 
     // Handle username changes
-    socket.on('username_change', (data) => {
+    socket.on('username_change', async (data) => {
       // Update the username for this socket
       username = data.newUsername;
-      
+
       // Log the username change as a system message to the specified channel
       const timestamp = new Date().toISOString();
       const channel = data.channel || 'general';
-      const systemMessage = `${timestamp}|System|${data.oldUsername} changed their username to ${data.newUsername}`;
-      
-      // Log message to the channel's file
-      const channelPath = getChannelPath(channel);
-      fs.appendFileSync(channelPath, systemMessage + '\n');
-      
-      // Broadcast to all clients in the channel except the sender
-      socket.to(channel).emit('chat_message', {
-        timestamp,
-        username: 'System',
-        message: `${data.oldUsername} changed their username to ${data.newUsername}`,
-        channel: channel
-      });
+      const systemMessage = `${data.oldUsername} changed their username to ${data.newUsername}`;
+
+      // Save system message to database
+      try {
+        await pool.query(
+          'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
+          [timestamp, 'System', systemMessage, channel]
+        );
+
+        // Broadcast to all clients in the channel except the sender
+        socket.to(channel).emit('chat_message', {
+          timestamp,
+          username: 'System',
+          message: systemMessage,
+          channel: channel
+        });
+      } catch (error) {
+        console.error('Error saving username change to database:', error);
+      }
     });
 
     socket.on('disconnect', () => {
@@ -170,5 +197,5 @@ server.listen(PORT, HOST, () => {
 
 // Export for testing
 if (process.env.NODE_ENV === 'test') {
-  module.exports = { setupSocketHandlers };
+  module.exports = { setupSocketHandlers, pool };
 }
