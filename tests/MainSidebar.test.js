@@ -11,8 +11,7 @@ describe('MainSidebar.vue', () => {
         currentChannel: 'general',
         channelUnreadCounts: {
           general: 0,
-          feedback: 0,
-          'slack-feed': 0
+          feedback: 0
         }
       }
     });
@@ -132,8 +131,7 @@ describe('MainSidebar.vue', () => {
     });
     expect(wrapper.vm.channelUnreadCounts).toEqual({
       general: 0,
-      feedback: 0,
-      'slack-feed': 0
+      feedback: 0
     });
   });
 
@@ -143,7 +141,7 @@ describe('MainSidebar.vue', () => {
         username: 'testuser',
         isConnected: true,
         currentChannel: 'general',
-        channelUnreadCounts: { general: 1, feedback: 1, 'slack-feed': 1 }
+        channelUnreadCounts: { general: 1, feedback: 1 }
       }
     });
 
@@ -151,7 +149,6 @@ describe('MainSidebar.vue', () => {
     await wrapper.find('[data-testid="toggle-channels-text"]').trigger('click');
     await wrapper.find('[data-testid="channel-general"]').trigger('click');
     await wrapper.find('[data-testid="channel-feedback"]').trigger('click');
-    await wrapper.find('[data-testid="channel-slack-feed"]').trigger('click');
 
     wrapper.vm.showChannels = false;
     await wrapper.vm.$nextTick();
@@ -160,9 +157,6 @@ describe('MainSidebar.vue', () => {
     await wrapper.setProps({ currentChannel: 'feedback' });
     await wrapper.vm.$nextTick();
     await wrapper.find('[data-testid="channel-feedback"]').trigger('click');
-    await wrapper.setProps({ currentChannel: 'slack-feed' });
-    await wrapper.vm.$nextTick();
-    await wrapper.find('[data-testid="channel-slack-feed"]').trigger('click');
 
     expect(wrapper.emitted()['channel-change'].length).toBeGreaterThan(0);
   });
@@ -175,8 +169,7 @@ describe('MainSidebar.vue', () => {
         currentChannel: 'general',
         channelUnreadCounts: {
           general: 0,
-          feedback: 0,
-          'slack-feed': 0
+          feedback: 0
         }
       }
     });
@@ -185,10 +178,6 @@ describe('MainSidebar.vue', () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.find('[data-testid="channel-general"] .bg-red-600').exists()).toBe(false);
-
-    await wrapper.setProps({ currentChannel: 'slack-feed' });
-    await wrapper.vm.$nextTick();
-    expect(wrapper.find('[data-testid="channel-slack-feed"] .bg-red-600').exists()).toBe(false);
 
   });
 })

@@ -58,8 +58,7 @@ export default {
       isFirstJoin: isFirstJoin,
       channelUnreadCounts: {
         general: 0,
-        feedback: 0,
-        'slack-feed': 0
+        feedback: 0
       }
     }
   },

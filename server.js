@@ -10,7 +10,7 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 // Define available channels
-const CHANNELS = ['general', 'feedback', 'slack-feed'];
+const CHANNELS = ['general', 'feedback'];
 
 // Get channel log path function
 const getChannelPath = (channel) => {

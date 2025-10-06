@@ -34,8 +34,7 @@ export default {
       type: Object,
       default: () => ({
         general: 0,
-        feedback: 0,
-        'slack-feed': 0
+        feedback: 0
       })
     }
   },

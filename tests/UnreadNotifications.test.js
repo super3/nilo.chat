@@ -95,18 +95,17 @@ describe('Unread Notifications Feature', () => {
     // Setup initial state with some unread messages
     wrapper.vm.channelUnreadCounts = {
       general: 0,
-      feedback: 5,
-      'slack-feed': 2
+      feedback: 5
     };
-    
+
     // Change to feedback channel
     wrapper.vm.changeChannel('feedback');
-    
+
     // Unread count for feedback should be reset
     expect(wrapper.vm.channelUnreadCounts.feedback).toBe(0);
-    
-    // Other unread counts should not change
-    expect(wrapper.vm.channelUnreadCounts['slack-feed']).toBe(2);
+
+    // General count should not change
+    expect(wrapper.vm.channelUnreadCounts.general).toBe(0);
   });
   
   test('unread notifications appear in the UI', async () => {

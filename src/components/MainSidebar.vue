@@ -58,20 +58,6 @@
             </span>
           </div>
         </div>
-        <div 
-          @click="switchChannel('slack-feed')"
-          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
-          data-testid="channel-slack-feed"
-          :class="{ 'bg-teal-dark': currentChannel === 'slack-feed' }"
-        >
-          <div class="w-4 mr-2 text-center">#</div>
-          <span>slack-feed</span>
-          <div v-if="getUnreadCount('slack-feed') > 0" class="ml-auto">
-            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
-              {{ getUnreadCount('slack-feed') }}
-            </span>
-          </div>
-        </div>
       </div>
       <!-- Show only selected channel when showChannels is false -->
       <div v-else>
@@ -103,20 +89,6 @@
             </span>
           </div>
         </div>
-        <div
-          v-if="currentChannel === 'slack-feed'"
-          @click="switchChannel('slack-feed')"
-          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
-          data-testid="channel-slack-feed"
-        >
-          <div class="w-4 mr-2 text-center">#</div>
-          <span>slack-feed</span>
-          <div v-if="getUnreadCount('slack-feed') > 0" class="ml-auto">
-            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
-              {{ getUnreadCount('slack-feed') }}
-            </span>
-          </div>
-        </div>
       </div>
     </div>
     
@@ -143,8 +115,7 @@ export default {
       type: Object,
       default: () => ({
         general: 0,
-        feedback: 0,
-        'slack-feed': 0
+        feedback: 0
       })
     }
   },
