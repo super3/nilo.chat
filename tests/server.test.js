@@ -90,8 +90,10 @@ describe('Server Module - Comprehensive', () => {
     
     // Mock http server
     mockServer = {
-      listen: jest.fn((port, callback) => {
-        if (callback) callback();
+      listen: jest.fn((port, host, callback) => {
+        // Handle both listen(port, callback) and listen(port, host, callback)
+        const cb = typeof host === 'function' ? host : callback;
+        if (cb) cb();
         return mockServer;
       })
     };
@@ -337,13 +339,16 @@ describe('Server Module - Comprehensive', () => {
   test('server listens on configured port', () => {
     // Verify server.listen was called
     expect(mockServer.listen).toHaveBeenCalled();
-    
+
     // Verify port
     const port = process.env.PORT || 3000;
     expect(mockServer.listen.mock.calls[0][0]).toBe(port);
-    
+
+    // Verify host
+    expect(mockServer.listen.mock.calls[0][1]).toBe('0.0.0.0');
+
     // Verify callback was provided
-    expect(typeof mockServer.listen.mock.calls[0][1]).toBe('function');
+    expect(typeof mockServer.listen.mock.calls[0][2]).toBe('function');
   });
 
   test('handlers should use default channel when none is provided', () => {
