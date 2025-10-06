@@ -7,7 +7,17 @@ const { Pool } = require('pg');
 // Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+  cors: {
+    origin: [
+      'https://nilo.chat',
+      'https://super3.github.io',
+      'http://localhost:8080'
+    ],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
 // Define available channels
 const CHANNELS = ['general', 'feedback'];
