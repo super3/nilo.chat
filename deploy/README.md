@@ -1,10 +1,10 @@
-# Nilo.chat Server Configurations and Deployment
+# Nilo.chat Deployment Guide
 
-This directory contains server configuration and deployment instructions for nilo.chat.
+This guide covers deployment for both the frontend (static site) and backend (API server).
 
-## GitHub Pages Deployment
+## Frontend Deployment (GitHub Pages)
 
-This project is automatically deployed to GitHub Pages using GitHub Actions. The deployment process is triggered whenever changes are pushed to the `main` branch. 
+The frontend is automatically deployed to GitHub Pages using GitHub Actions.
 
 ### GitHub Pages Setup
 
@@ -19,12 +19,7 @@ The site will be available at: `https://<your-username>.github.io/nilo.chat/`
 
 ### Automatic Deployment
 
-This repository includes a GitHub Actions workflow that automatically builds and deploys the app whenever you push to the main branch. To use it:
-
-1. Ensure GitHub Actions is enabled in your repository settings
-2. Make changes to your code and push to the main branch
-3. GitHub Actions will automatically build and deploy to the gh-pages branch
-4. You can view the deployment progress in the "Actions" tab of your repository
+This repository includes a GitHub Actions workflow that automatically builds and deploys the frontend whenever you push to the main branch. The workflow is located at `.github/workflows/deploy-front.yml`.
 
 ### Manual Deployment
 
@@ -36,67 +31,153 @@ npm run deploy
 
 This command builds the project and pushes the dist folder to the gh-pages branch.
 
-## VPS Server Setup
+---
 
-This directory contains a script for easily setting up a VPS for nilo.chat deployment. We currently use Digital Ocean, but any VPS provider should work just fine.  
+## Backend API Deployment (Railway)
 
-## Quick Start
+The backend API is deployed to [Railway](https://railway.app), a modern platform-as-a-service that simplifies deployment.
 
-1. Create a new VPS (Ubuntu 22.04 recommended)
-2. SSH into your new server as root
-3. Run the following commands:
+### Quick Start
+
+1. **Create a Railway Account**
+   - Go to [railway.app](https://railway.app)
+   - Sign up with your GitHub account
+
+2. **Create a New Project**
+   - Click "New Project"
+   - Select "Deploy from GitHub repo"
+   - Choose your `nilo.chat` repository
+   - Railway will automatically detect it's a Node.js project
+
+3. **Configure Environment Variables**
+
+   Add these environment variables in the Railway dashboard:
+
+   ```
+   NODE_ENV=production
+   PORT=3000
+   ```
+
+   Note: Railway automatically provides a `PORT` environment variable, but we set it explicitly for consistency.
+
+4. **Deploy**
+   - Railway will automatically build and deploy your application
+   - You'll get a public URL like: `https://your-app.railway.app`
+   - Every push to your main branch will trigger an automatic deployment
+
+### Environment Variables
+
+Required environment variables for Railway:
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `NODE_ENV` | `production` | Sets the app to production mode |
+| `PORT` | `3000` | Port the server listens on (Railway manages this automatically) |
+
+### Custom Domain (Optional)
+
+To use a custom domain like `api.nilo.chat`:
+
+1. Go to your Railway project settings
+2. Click on "Settings" → "Domains"
+3. Click "Custom Domain"
+4. Enter your domain (e.g., `api.nilo.chat`)
+5. Add the CNAME record to your DNS provider as shown by Railway
+6. Update your frontend's `.env.production` file:
+   ```
+   VUE_APP_SOCKET_URL=https://api.nilo.chat
+   ```
+
+### Monitoring and Logs
+
+Railway provides built-in monitoring and logging:
+
+- **View Logs**: Click on "Deployments" → Select your deployment → View logs in real-time
+- **Metrics**: Railway shows CPU, Memory, and Network usage automatically
+- **Deployment History**: View all past deployments and rollback if needed
+
+### Manual Deployment Trigger
+
+If you need to manually trigger a deployment:
+
+1. Go to your Railway project
+2. Click "Deployments"
+3. Click "Deploy" → "Deploy from main"
+
+### Troubleshooting
+
+**Build Fails:**
+- Check the build logs in Railway dashboard
+- Ensure all dependencies are in `package.json`
+- Verify the start script is correctly defined
+
+**Application Crashes:**
+- Check the application logs in Railway
+- Verify all required environment variables are set
+- Ensure the PORT environment variable is being used correctly
+
+**Connection Issues:**
+- Verify the frontend is using the correct Railway URL
+- Check CORS settings if you have custom CORS configuration
+- Ensure Socket.IO connection URLs are correct
+
+### Railway CLI (Optional)
+
+For advanced users, you can use the Railway CLI:
 
 ```bash
-# Download the setup script
-curl -o setup.sh https://raw.githubusercontent.com/yourusername/nilo.chat/main/deploy/setup.sh
+# Install Railway CLI
+npm i -g @railway/cli
 
-# Make it executable
-chmod +x setup.sh
+# Login to Railway
+railway login
 
-# Run the script
-./setup.sh
+# Link to your project
+railway link
+
+# View logs
+railway logs
+
+# Run commands in Railway environment
+railway run npm start
 ```
 
-## What the Setup Script Does
+### Cost
 
-1. Updates the system
-2. Installs Node.js, PM2, and Nginx
-3. Creates a new sudo user
-4. Configures firewall (UFW)
-5. Sets up the application directory
-6. Configures Nginx with WebSocket support
-7. Sets up SSL with Certbot
-8. Creates environment file
-9. Generates deployment keys for GitHub Actions
-10. Configures PM2 to start on boot
+Railway offers:
+- **Free Tier**: $5 of usage per month (sufficient for small projects)
+- **Developer Plan**: $20/month for more resources
+- Automatic scaling based on usage
 
-## After Running the Script
+For most chat applications with moderate traffic, the free tier should be sufficient to get started.
 
-The script will display all the GitHub Actions secrets you need to add to your repository:
+---
 
-- `SSH_PRIVATE_KEY`
-- `SSH_KNOWN_HOSTS`
-- `SSH_USER`
-- `SSH_HOST`
-- `SSH_PATH`
+## Architecture
 
-Add these secrets to your GitHub repository (Settings → Secrets and variables → Actions).
+- **Frontend**: Vue.js SPA hosted on GitHub Pages
+- **Backend**: Node.js/Express with Socket.IO hosted on Railway
+- **Communication**: WebSocket connections via Socket.IO for real-time chat
 
-## Troubleshooting
+---
 
-If you encounter any issues during deployment:
+## Complete Deployment Checklist
 
-1. Check Nginx logs:
-   ```bash
-   sudo tail -f /var/log/nginx/nilo-chat.error.log
-   ```
+- [ ] Fork and clone the repository
+- [ ] Set up GitHub Pages (automatic via Actions)
+- [ ] Create Railway account
+- [ ] Deploy backend to Railway
+- [ ] Configure environment variables on Railway
+- [ ] Update frontend `.env.production` with Railway URL
+- [ ] Push to main branch to trigger deployments
+- [ ] Test the application end-to-end
+- [ ] (Optional) Set up custom domain on Railway
+- [ ] (Optional) Set up custom domain on GitHub Pages
 
-2. Check application logs:
-   ```bash
-   sudo -u <username> pm2 logs nilo-chat
-   ```
+---
 
-3. Verify Nginx configuration:
-   ```bash
-   sudo nginx -t
-   ``` 
+## Need Help?
+
+- Railway Docs: https://docs.railway.app
+- Railway Discord: https://discord.gg/railway
+- GitHub Pages Docs: https://docs.github.com/pages
