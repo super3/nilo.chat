@@ -28,14 +28,47 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Test database connection
-pool.query('SELECT NOW()', (err, res) => {
-  if (err) {
-    console.error('Database connection error:', err);
-  } else {
+// Test database connection and run migrations
+async function initializeDatabase() {
+  try {
+    // Test connection
+    await pool.query('SELECT NOW()');
     console.log('Database connected successfully');
+
+    // Run migrations automatically
+    console.log('Running database migrations...');
+
+    // Create messages table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        username VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        channel VARCHAR(50) NOT NULL DEFAULT 'general',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // Create indexes if they don't exist
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC)
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_messages_channel_timestamp ON messages(channel, timestamp DESC)
+    `);
+
+    console.log('Database migrations completed successfully');
+  } catch (error) {
+    console.error('Database initialization error:', error);
   }
-});
+}
+
+// Initialize database on startup
+initializeDatabase();
 
 // Debug current environment
 console.log(`Current NODE_ENV: "${process.env.NODE_ENV}"`);
