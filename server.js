@@ -170,15 +170,21 @@ function setupSocketHandlers(io) {
         );
 
         // Build conversation history (reverse to chronological order)
-        const conversationHistory = contextResult.rows.reverse().map(row => ({
-          role: row.username === 'Austin' ? 'assistant' : 'user',
-          content: row.username === 'Austin' ? row.message : `${row.username}: ${row.message}`
-        }));
+        const conversationHistory = [
+          {
+            role: 'system',
+            content: 'You are Austin. Respond to messages naturally and concisely. Keep answers brief (1-2 sentences) unless more detail is needed. Be friendly and helpful. You\'re part of a group chat where you can see usernames and conversation history.'
+          },
+          ...contextResult.rows.reverse().map(row => ({
+            role: row.username === 'Austin' ? 'assistant' : 'user',
+            content: row.username === 'Austin' ? row.message : `${row.username}: ${row.message}`
+          }))
+        ];
 
         // Generate AI response using Groq with context
         const chatCompletion = await groq.chat.completions.create({
           messages: conversationHistory,
-          model: "gpt-oss-20b",
+          model: "openai/gpt-oss-20b",
           temperature: 1,
           max_completion_tokens: 1024,
           top_p: 1,
