@@ -163,9 +163,21 @@ function setupSocketHandlers(io) {
         // This way everyone can see notifications even if they're not in the channel
         io.emit('chat_message', messageObject);
 
-        // Generate AI response using Groq
+        // Fetch last 8 messages from the channel for context
+        const contextResult = await pool.query(
+          'SELECT username, message FROM messages WHERE channel = $1 ORDER BY timestamp DESC LIMIT 8',
+          [channel]
+        );
+
+        // Build conversation history (reverse to chronological order)
+        const conversationHistory = contextResult.rows.reverse().map(row => ({
+          role: row.username === 'AI Assistant' ? 'assistant' : 'user',
+          content: row.username === 'AI Assistant' ? row.message : `${row.username}: ${row.message}`
+        }));
+
+        // Generate AI response using Groq with context
         const chatCompletion = await groq.chat.completions.create({
-          messages: [{ role: "user", content: data.message }],
+          messages: conversationHistory,
           model: "llama-3.1-8b-instant",
           temperature: 1,
           max_completion_tokens: 1024,
