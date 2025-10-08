@@ -163,9 +163,9 @@ function setupSocketHandlers(io) {
         // This way everyone can see notifications even if they're not in the channel
         io.emit('chat_message', messageObject);
 
-        // Fetch last 8 messages from the channel for context
+        // Fetch last 25 messages from the channel for context
         const contextResult = await pool.query(
-          'SELECT username, message FROM messages WHERE channel = $1 ORDER BY timestamp DESC LIMIT 8',
+          'SELECT username, message FROM messages WHERE channel = $1 ORDER BY timestamp DESC LIMIT 25',
           [channel]
         );
 
