@@ -178,7 +178,7 @@ function setupSocketHandlers(io) {
         // Generate AI response using Groq with context
         const chatCompletion = await groq.chat.completions.create({
           messages: conversationHistory,
-          model: "llama-3.1-8b-instant",
+          model: "gpt-oss-20b",
           temperature: 1,
           max_completion_tokens: 1024,
           top_p: 1,
