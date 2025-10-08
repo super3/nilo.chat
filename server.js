@@ -32,42 +32,13 @@ const pool = new Pool({
 // Initialize Groq AI client
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// Test database connection and run migrations
+// Test database connection
 async function initializeDatabase() {
   try {
-    // Test connection
     await pool.query('SELECT NOW()');
     console.log('Database connected successfully');
-
-    // Run migrations automatically
-    console.log('Running database migrations...');
-
-    // Create messages table if it doesn't exist
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS messages (
-        id SERIAL PRIMARY KEY,
-        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        username VARCHAR(255) NOT NULL,
-        message TEXT NOT NULL,
-        channel VARCHAR(50) NOT NULL DEFAULT 'general',
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `);
-
-    // Create indexes if they don't exist
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel)
-    `);
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC)
-    `);
-    await pool.query(`
-      CREATE INDEX IF NOT EXISTS idx_messages_channel_timestamp ON messages(channel, timestamp DESC)
-    `);
-
-    console.log('Database migrations completed successfully');
   } catch (error) {
-    console.error('Database initialization error:', error);
+    console.error('Database connection error:', error);
   }
 }
 
