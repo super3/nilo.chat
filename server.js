@@ -171,8 +171,8 @@ function setupSocketHandlers(io) {
 
         // Build conversation history (reverse to chronological order)
         const conversationHistory = contextResult.rows.reverse().map(row => ({
-          role: row.username === 'AI Assistant' ? 'assistant' : 'user',
-          content: row.username === 'AI Assistant' ? row.message : `${row.username}: ${row.message}`
+          role: row.username === 'Austin' ? 'assistant' : 'user',
+          content: row.username === 'Austin' ? row.message : `${row.username}: ${row.message}`
         }));
 
         // Generate AI response using Groq with context
@@ -193,13 +193,13 @@ function setupSocketHandlers(io) {
           // Save AI response to database
           await pool.query(
             'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
-            [aiTimestamp, 'AI Assistant', aiResponse, channel]
+            [aiTimestamp, 'Austin', aiResponse, channel]
           );
 
           // Broadcast AI response to all clients
           io.emit('chat_message', {
             timestamp: aiTimestamp,
-            username: 'AI Assistant',
+            username: 'Austin',
             message: aiResponse,
             channel: channel
           });
