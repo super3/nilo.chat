@@ -3,6 +3,7 @@ const http = require('http');
 const path = require('path');
 const socketIo = require('socket.io');
 const { Pool } = require('pg');
+const { Groq } = require('groq-sdk');
 
 // Create Express app and HTTP server
 const app = express();
@@ -27,6 +28,9 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
+
+// Initialize Groq AI client
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // Test database connection and run migrations
 async function initializeDatabase() {
@@ -187,6 +191,36 @@ function setupSocketHandlers(io) {
         // Broadcast to ALL clients, not just those in the channel
         // This way everyone can see notifications even if they're not in the channel
         io.emit('chat_message', messageObject);
+
+        // Generate AI response using Groq
+        const chatCompletion = await groq.chat.completions.create({
+          messages: [{ role: "user", content: data.message }],
+          model: "llama-3.1-8b-instant",
+          temperature: 1,
+          max_completion_tokens: 1024,
+          top_p: 1,
+          stream: false
+        });
+
+        const aiResponse = chatCompletion.choices[0]?.message?.content;
+
+        if (aiResponse) {
+          const aiTimestamp = new Date().toISOString();
+
+          // Save AI response to database
+          await pool.query(
+            'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
+            [aiTimestamp, 'AI Assistant', aiResponse, channel]
+          );
+
+          // Broadcast AI response to all clients
+          io.emit('chat_message', {
+            timestamp: aiTimestamp,
+            username: 'AI Assistant',
+            message: aiResponse,
+            channel: channel
+          });
+        }
       } catch (error) {
         console.error('Error saving message to database:', error);
         socket.emit('error', { message: 'Failed to save message' });
