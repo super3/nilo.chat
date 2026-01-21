@@ -7,8 +7,8 @@
 
 <div align="center">
 
-[![Frontend Build Status](https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/deploy-front.yml?label=frontend)](https://github.com/super3/nilo.chat/actions/workflows/deploy-front.yml)
-[![API Build Status](https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/deploy-api.yml?label=api)](https://github.com/super3/nilo.chat/actions/workflows/deploy-api.yml)
+[![Frontend Status](https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/deploy-front.yml?branch=main&label=frontend)](https://github.com/super3/nilo.chat/actions/workflows/deploy-front.yml)
+[![Test Status](https://img.shields.io/github/actions/workflow/status/super3/nilo.chat/tests.yml?branch=main&label=tests)](https://github.com/super3/nilo.chat/actions/workflows/tests.yml)
 [![Coverage Status](https://coveralls.io/repos/github/super3/nilo.chat/badge.svg?branch=main)](https://coveralls.io/github/super3/nilo.chat?branch=main)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?label=license)](https://github.com/super3/nilo.chat/blob/main/LICENSE)
 
