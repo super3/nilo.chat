@@ -2,18 +2,31 @@ const express = require('express');
 const http = require('http');
 const io = require('socket.io-client');
 
+// Flag to control AI response behavior (must be prefixed with 'mock' for Jest)
+let mockShouldReturnEmptyAiResponse = false;
+
 // Mock Groq SDK
 jest.mock('groq-sdk', () => ({
   Groq: jest.fn().mockImplementation(() => ({
     chat: {
       completions: {
-        create: jest.fn().mockResolvedValue({
-          choices: [{ message: { content: 'Mock AI response' } }]
+        create: jest.fn().mockImplementation(() => {
+          if (mockShouldReturnEmptyAiResponse) {
+            return Promise.resolve({
+              choices: [{ message: { content: null } }]
+            });
+          }
+          return Promise.resolve({
+            choices: [{ message: { content: 'Mock AI response' } }]
+          });
         })
       }
     }
   }))
 }));
+
+// Track if we should fail the database connection test
+let shouldFailDbConnection = false;
 
 // Mock database pool
 const mockPool = {
@@ -23,6 +36,11 @@ const mockPool = {
       // Callback style - used for connection test
       callback(null, { rows: [{ now: new Date() }] });
       return;
+    }
+
+    // Check if we should fail the connection test
+    if (shouldFailDbConnection && sql === 'SELECT NOW()') {
+      return Promise.reject(new Error('Database connection failed'));
     }
 
     // Promise style - used for actual queries
@@ -79,6 +97,52 @@ jest.mock('express', () => {
 });
 
 jest.mock('socket.io', () => mockSocketIo);
+
+describe('Server Module - Database Connection Error', () => {
+  let originalCreateServer;
+  let mockServer;
+
+  beforeEach(() => {
+    mockServer = {
+      listen: jest.fn((port, host, callback) => {
+        const cb = typeof host === 'function' ? host : callback;
+        if (cb) cb();
+        return mockServer;
+      })
+    };
+    originalCreateServer = http.createServer;
+    http.createServer = jest.fn(() => mockServer);
+  });
+
+  afterEach(() => {
+    http.createServer = originalCreateServer;
+  });
+
+  test('handles database connection error in initializeDatabase', async () => {
+    // Set flag to fail database connection
+    shouldFailDbConnection = true;
+
+    // Spy on console.error
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+    // Load the server module - this will trigger initializeDatabase which should fail
+    jest.isolateModules(() => {
+      require('../server');
+    });
+
+    // Wait for async initializeDatabase to complete
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Verify error was logged
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Database connection error:', expect.any(Error));
+
+    // Reset flag
+    shouldFailDbConnection = false;
+    consoleErrorSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+  });
+});
 
 describe('Server Module - Comprehensive', () => {
   let mockSocket;
@@ -504,6 +568,379 @@ describe('Server Module - Comprehensive', () => {
     // Make sure we only had one call to emit (the message_history)
     expect(socket.emit).toHaveBeenCalledTimes(1);
   });
-});
 
-// Database-based message operations are tested in the socket handler tests above 
+  test('formats message history correctly when database returns rows', async () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis()
+    };
+
+    const io = {
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn()
+    };
+
+    // Mock pool.query to return actual message rows
+    const mockTimestamp = new Date('2024-01-15T10:30:00Z');
+    mockPool.query.mockImplementation((sql) => {
+      if (sql.includes('SELECT') && sql.includes('messages')) {
+        return Promise.resolve({
+          rows: [
+            { timestamp: mockTimestamp, username: 'User1', message: 'Hello' },
+            { timestamp: mockTimestamp, username: 'User2', message: 'Hi there' }
+          ]
+        });
+      }
+      return Promise.resolve({ rows: [], rowCount: 1 });
+    });
+
+    // Get the socket handler function
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+
+    // Register handlers
+    socketHandler(socket);
+
+    // Get handlers
+    const userConnectedHandler = socket.on.mock.calls.find(call => call[0] === 'user_connected')[1];
+    const joinChannelHandler = socket.on.mock.calls.find(call => call[0] === 'join_channel')[1];
+
+    // Test user_connected with message history
+    await userConnectedHandler({ username: 'TestUser', channel: 'general' });
+
+    // Verify formatted history was emitted
+    expect(socket.emit).toHaveBeenCalledWith('message_history', expect.arrayContaining([
+      expect.stringContaining('|User1|Hello'),
+      expect.stringContaining('|User2|Hi there')
+    ]));
+
+    socket.emit.mockClear();
+
+    // Test join_channel with message history
+    await joinChannelHandler({ channel: 'feedback' });
+
+    // Verify formatted history was emitted
+    expect(socket.emit).toHaveBeenCalledWith('message_history', expect.arrayContaining([
+      expect.stringContaining('|User1|Hello'),
+      expect.stringContaining('|User2|Hi there')
+    ]));
+
+    // Reset mock
+    mockPool.query.mockReset();
+  });
+
+  test('handles database error when loading message history in user_connected', async () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis()
+    };
+
+    const io = {
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn()
+    };
+
+    // Mock pool.query to throw error on SELECT
+    mockPool.query.mockImplementation((sql) => {
+      if (sql.includes('SELECT')) {
+        return Promise.reject(new Error('Database error'));
+      }
+      return Promise.resolve({ rows: [], rowCount: 1 });
+    });
+
+    // Get the socket handler function
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+
+    // Register handlers
+    socketHandler(socket);
+
+    // Get user_connected handler
+    const userConnectedHandler = socket.on.mock.calls.find(call => call[0] === 'user_connected')[1];
+
+    // Spy on console.error
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    // Test user_connected with database error
+    await userConnectedHandler({ username: 'TestUser', channel: 'general' });
+
+    // Verify error was logged and empty history was emitted
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error loading message history:', expect.any(Error));
+    expect(socket.emit).toHaveBeenCalledWith('message_history', []);
+
+    consoleErrorSpy.mockRestore();
+    mockPool.query.mockReset();
+  });
+
+  test('handles database error when loading message history in join_channel', async () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis()
+    };
+
+    const io = {
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn()
+    };
+
+    // Mock pool.query to throw error on SELECT
+    mockPool.query.mockImplementation((sql) => {
+      if (sql.includes('SELECT')) {
+        return Promise.reject(new Error('Database error'));
+      }
+      return Promise.resolve({ rows: [], rowCount: 1 });
+    });
+
+    // Get the socket handler function
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+
+    // Register handlers
+    socketHandler(socket);
+
+    // Get join_channel handler
+    const joinChannelHandler = socket.on.mock.calls.find(call => call[0] === 'join_channel')[1];
+
+    // Spy on console.error
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    // Test join_channel with database error
+    await joinChannelHandler({ channel: 'feedback' });
+
+    // Verify error was logged and empty history was emitted
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error loading message history:', expect.any(Error));
+    expect(socket.emit).toHaveBeenCalledWith('message_history', []);
+
+    consoleErrorSpy.mockRestore();
+    mockPool.query.mockReset();
+  });
+
+  test('handles database error when saving chat message', async () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis()
+    };
+
+    const io = {
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn()
+    };
+
+    // Mock pool.query to throw error on INSERT
+    mockPool.query.mockImplementation((sql) => {
+      if (sql.includes('INSERT')) {
+        return Promise.reject(new Error('Database write error'));
+      }
+      return Promise.resolve({ rows: [] });
+    });
+
+    // Get the socket handler function
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+
+    // Register handlers
+    socketHandler(socket);
+
+    // Get chat_message handler
+    const chatMessageHandler = socket.on.mock.calls.find(call => call[0] === 'chat_message')[1];
+
+    // Spy on console.error
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    // Test chat_message with database error
+    await chatMessageHandler({ username: 'TestUser', message: 'Hello', channel: 'general' });
+
+    // Verify error was logged and error was emitted to socket
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error saving message to database:', expect.any(Error));
+    expect(socket.emit).toHaveBeenCalledWith('error', { message: 'Failed to save message' });
+
+    consoleErrorSpy.mockRestore();
+    mockPool.query.mockReset();
+  });
+
+  test('handles database error when saving username change', async () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis()
+    };
+
+    const io = {
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn()
+    };
+
+    // Mock pool.query to throw error on INSERT
+    mockPool.query.mockImplementation((sql) => {
+      if (sql.includes('INSERT')) {
+        return Promise.reject(new Error('Database write error'));
+      }
+      return Promise.resolve({ rows: [] });
+    });
+
+    // Get the socket handler function
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+
+    // Register handlers
+    socketHandler(socket);
+
+    // Get username_change handler
+    const usernameChangeHandler = socket.on.mock.calls.find(call => call[0] === 'username_change')[1];
+
+    // Spy on console.error
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    // Test username_change with database error
+    await usernameChangeHandler({ oldUsername: 'OldName', newUsername: 'NewName', channel: 'general' });
+
+    // Verify error was logged
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error saving username change to database:', expect.any(Error));
+
+    consoleErrorSpy.mockRestore();
+    mockPool.query.mockReset();
+  });
+
+  test('builds conversation context correctly for AI response', async () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis()
+    };
+
+    const io = {
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn()
+    };
+
+    let insertCount = 0;
+    let selectCount = 0;
+
+    // Mock pool.query to return context messages
+    mockPool.query.mockImplementation((sql) => {
+      if (sql.includes('INSERT')) {
+        insertCount++;
+        return Promise.resolve({ rows: [], rowCount: 1 });
+      }
+      if (sql.includes('SELECT') && sql.includes('LIMIT 25')) {
+        selectCount++;
+        // Return conversation history for context
+        return Promise.resolve({
+          rows: [
+            { username: 'User1', message: 'Hello Austin' },
+            { username: 'Austin', message: 'Hi there!' },
+            { username: 'User1', message: 'How are you?' }
+          ]
+        });
+      }
+      return Promise.resolve({ rows: [] });
+    });
+
+    // Get the socket handler function
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+
+    // Register handlers
+    socketHandler(socket);
+
+    // Get chat_message handler
+    const chatMessageHandler = socket.on.mock.calls.find(call => call[0] === 'chat_message')[1];
+
+    // Test chat_message - this will trigger the conversation context building
+    await chatMessageHandler({ username: 'TestUser', message: 'Hello', channel: 'general' });
+
+    // Verify SELECT for context was called
+    expect(selectCount).toBeGreaterThan(0);
+
+    // Verify AI response was broadcast (two chat_message emits: user message + AI response)
+    expect(io.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+      username: 'Austin'
+    }));
+
+    mockPool.query.mockReset();
+  });
+
+  test('handles case when AI returns no response', async () => {
+    // Mock socket for testing
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis()
+    };
+
+    const io = {
+      on: jest.fn(),
+      to: jest.fn().mockReturnThis(),
+      emit: jest.fn()
+    };
+
+    // Mock pool.query to return success
+    mockPool.query.mockImplementation((sql) => {
+      if (sql.includes('INSERT')) {
+        return Promise.resolve({ rows: [], rowCount: 1 });
+      }
+      if (sql.includes('SELECT') && sql.includes('LIMIT 25')) {
+        return Promise.resolve({ rows: [] });
+      }
+      return Promise.resolve({ rows: [] });
+    });
+
+    // Set flag to return empty AI response
+    mockShouldReturnEmptyAiResponse = true;
+
+    // Get the socket handler function
+    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+
+    // Register handlers
+    socketHandler(socket);
+
+    // Get chat_message handler
+    const chatMessageHandler = socket.on.mock.calls.find(call => call[0] === 'chat_message')[1];
+
+    // Clear previous emit calls
+    io.emit.mockClear();
+
+    // Test chat_message - AI should not respond since content is null
+    await chatMessageHandler({ username: 'TestUser', message: 'Hello', channel: 'general' });
+
+    // Verify only one emit (user message), not two (no AI response)
+    const chatMessageEmits = io.emit.mock.calls.filter(call => call[0] === 'chat_message');
+    expect(chatMessageEmits.length).toBe(1);
+    expect(chatMessageEmits[0][1].username).toBe('TestUser');
+
+    // Reset flag
+    mockShouldReturnEmptyAiResponse = false;
+    mockPool.query.mockReset();
+  });
+});
