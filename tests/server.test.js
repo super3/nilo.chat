@@ -2,6 +2,19 @@ const express = require('express');
 const http = require('http');
 const io = require('socket.io-client');
 
+// Mock Groq SDK
+jest.mock('groq-sdk', () => ({
+  Groq: jest.fn().mockImplementation(() => ({
+    chat: {
+      completions: {
+        create: jest.fn().mockResolvedValue({
+          choices: [{ message: { content: 'Mock AI response' } }]
+        })
+      }
+    }
+  }))
+}));
+
 // Mock database pool
 const mockPool = {
   query: jest.fn((sql, params, callback) => {
