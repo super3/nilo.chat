@@ -72,36 +72,37 @@ if (process.env.NODE_ENV !== 'production') {
   console.log('Running in production mode - not serving frontend files');
 }
 
+// Helper function to fetch and send message history for a channel
+async function sendMessageHistory(socket, channel) {
+  try {
+    const result = await pool.query(
+      'SELECT timestamp, username, message FROM messages WHERE channel = $1 ORDER BY timestamp ASC',
+      [channel]
+    );
+
+    const history = result.rows.map(row =>
+      `${row.timestamp.toISOString()}|${row.username}|${row.message}`
+    );
+
+    socket.emit('message_history', history);
+  } catch (error) {
+    console.error('Error loading message history:', error);
+    socket.emit('message_history', []);
+  }
+}
+
 // Socket.IO event handling
 function setupSocketHandlers(io) {
   return (socket) => {
     let username = 'Unknown User';
-    
+
     // Handle user joining
     socket.on('user_connected', async (data) => {
       username = data.username;
       const channel = data.channel || 'general';
 
-      // Join the room for this channel
       socket.join(channel);
-
-      // Send message history to the newly connected client from database
-      try {
-        const result = await pool.query(
-          'SELECT timestamp, username, message FROM messages WHERE channel = $1 ORDER BY timestamp ASC',
-          [channel]
-        );
-
-        // Format messages in the same format as before: timestamp|username|message
-        const history = result.rows.map(row =>
-          `${row.timestamp.toISOString()}|${row.username}|${row.message}`
-        );
-
-        socket.emit('message_history', history);
-      } catch (error) {
-        console.error('Error loading message history:', error);
-        socket.emit('message_history', []);
-      }
+      await sendMessageHistory(socket, channel);
     });
 
     // Handle channel change
@@ -113,26 +114,8 @@ function setupSocketHandlers(io) {
         socket.leave(channel);
       });
 
-      // Join the new channel
       socket.join(newChannel);
-
-      // Send message history for the new channel from database
-      try {
-        const result = await pool.query(
-          'SELECT timestamp, username, message FROM messages WHERE channel = $1 ORDER BY timestamp ASC',
-          [newChannel]
-        );
-
-        // Format messages in the same format as before: timestamp|username|message
-        const history = result.rows.map(row =>
-          `${row.timestamp.toISOString()}|${row.username}|${row.message}`
-        );
-
-        socket.emit('message_history', history);
-      } catch (error) {
-        console.error('Error loading message history:', error);
-        socket.emit('message_history', []);
-      }
+      await sendMessageHistory(socket, newChannel);
     });
 
     // Handle new messages

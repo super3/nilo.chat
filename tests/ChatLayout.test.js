@@ -129,25 +129,6 @@ describe('ChatLayout.vue', () => {
     expect(chatContent.exists()).toBe(true);
   });
   
-  test('updateConnectionStatus method updates isConnected', () => {
-    // Create wrapper with non-first-time user to avoid greeting logic
-    localStorageMock.getItem.mockImplementation(key => {
-      if (key === 'nilo_first_join') return 'true';
-      return null;
-    });
-    
-    const wrapper = shallowMount(ChatLayout);
-    
-    // Initial state
-    expect(wrapper.vm.isConnected).toBe(false);
-    
-    // Call the method
-    wrapper.vm.updateConnectionStatus(true);
-    
-    // Check if the state was updated
-    expect(wrapper.vm.isConnected).toBe(true);
-  });
-  
   test('responds to connection-change event from ChatContent', async () => {
     // Create wrapper with non-first-time user to avoid greeting logic
     localStorageMock.getItem.mockImplementation(key => {
@@ -169,22 +150,6 @@ describe('ChatLayout.vue', () => {
     
     // Check if the state was updated
     expect(wrapper.vm.isConnected).toBe(true);
-  });
-  
-  test('changeUsername method updates username and saves to localStorage', () => {
-    const wrapper = shallowMount(ChatLayout);
-    
-    // Initial username (with mocked Math.random)
-    expect(wrapper.vm.username).toBe('User_500');
-    
-    // Call the method
-    wrapper.vm.changeUsername('NewUsername');
-    
-    // Check if the username was updated
-    expect(wrapper.vm.username).toBe('NewUsername');
-    
-    // Check if username was saved to localStorage
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_username', 'NewUsername');
   });
   
   test('responds to username-change event from ChatContent', async () => {

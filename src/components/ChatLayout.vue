@@ -62,30 +62,17 @@ export default {
       }
     }
   },
-  mounted() {
-    if (this.isFirstJoin) {
-      // Mark that the user has joined before
-      localStorage.setItem('nilo_first_join', 'true');
-    }
-  },
   methods: {
-    updateConnectionStatus(status) {
-      this.isConnected = status;
-    },
-    changeUsername(newUsername) {
-      this.username = newUsername;
-      // Save username to localStorage
-      localStorage.setItem('nilo_username', newUsername);
-    },
     changeChannel(channel) {
       this.currentChannel = channel;
-      localStorage.setItem('nilo_chat_last_channel', channel);
+      localStorage.setItem('nilo_channel', channel);
       
       // Reset unread count when switching to a channel
       this.channelUnreadCounts[channel] = 0;
     },
     handleUsernameChange(newUsername) {
       this.username = newUsername;
+      localStorage.setItem('nilo_username', newUsername);
     },
     handleConnectionStatusChange(status) {
       this.isConnected = status;

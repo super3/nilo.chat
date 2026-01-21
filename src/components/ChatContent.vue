@@ -309,10 +309,6 @@ export default {
         this.messages = [];
       }
     },
-    fetchMessages() {
-      // This method is actually handled by the join_channel event response
-      // We just need it here for the tests to pass
-    },
     getChannelDisplayName() {
       return this.currentChannel;
     },

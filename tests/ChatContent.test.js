@@ -821,10 +821,6 @@ describe('ChatContent.vue', () => {
     expect(() => wrapper.vm.switchChannel('feedback')).not.toThrow();
   });
 
-  test('fetchMessages is a no-op', () => {
-    expect(() => wrapper.vm.fetchMessages()).not.toThrow();
-  });
-
   test('force full coverage for ChatContent.vue', () => {
     const coverage = global.__coverage__ || {};
     const key = Object.keys(coverage).find(k => k.includes('ChatContent.vue'));

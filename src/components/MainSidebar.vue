@@ -28,66 +28,21 @@
           </svg>
         </div>
       </div>
-      <!-- Show all channels when showChannels is true -->
-      <div v-if="showChannels">
-        <div 
-          @click="switchChannel('general')"
-          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
-          data-testid="channel-general"
-          :class="{ 'bg-teal-dark': currentChannel === 'general' }"
-        >
-          <div class="w-4 mr-2 text-center">#</div>
-          <span>general</span>
-          <div v-if="getUnreadCount('general') > 0" class="ml-auto">
-            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
-              {{ getUnreadCount('general') }}
-            </span>
-          </div>
-        </div>
-        <div 
-          @click="switchChannel('feedback')"
-          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
-          data-testid="channel-feedback"
-          :class="{ 'bg-teal-dark': currentChannel === 'feedback' }"
-        >
-          <div class="w-4 mr-2 text-center">#</div>
-          <span>feedback</span>
-          <div v-if="getUnreadCount('feedback') > 0" class="ml-auto">
-            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
-              {{ getUnreadCount('feedback') }}
-            </span>
-          </div>
-        </div>
-      </div>
-      <!-- Show only selected channel when showChannels is false -->
-      <div v-else>
-        <div
-          v-if="currentChannel === 'general'"
-          @click="switchChannel('general')"
-          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
-          data-testid="channel-general"
-        >
-          <div class="w-4 mr-2 text-center">#</div>
-          <span>general</span>
-          <div v-if="getUnreadCount('general') > 0" class="ml-auto">
-            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
-              {{ getUnreadCount('general') }}
-            </span>
-          </div>
-        </div>
-        <div
-          v-if="currentChannel === 'feedback'"
-          @click="switchChannel('feedback')"
-          class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker bg-teal-dark"
-          data-testid="channel-feedback"
-        >
-          <div class="w-4 mr-2 text-center">#</div>
-          <span>feedback</span>
-          <div v-if="getUnreadCount('feedback') > 0" class="ml-auto">
-            <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
-              {{ getUnreadCount('feedback') }}
-            </span>
-          </div>
+      <!-- Channel list -->
+      <div
+        v-for="channel in visibleChannels"
+        :key="channel"
+        @click="switchChannel(channel)"
+        class="px-4 py-1 text-white flex items-center cursor-pointer hover:bg-teal-darker"
+        :data-testid="'channel-' + channel"
+        :class="{ 'bg-teal-dark': currentChannel === channel }"
+      >
+        <div class="w-4 mr-2 text-center">#</div>
+        <span>{{ channel }}</span>
+        <div v-if="getUnreadCount(channel) > 0" class="ml-auto">
+          <span class="bg-red-600 text-white text-xs rounded-full py-1 px-2 font-bold">
+            {{ getUnreadCount(channel) }}
+          </span>
         </div>
       </div>
     </div>
@@ -121,7 +76,13 @@ export default {
   },
   data() {
     return {
-      showChannels: true
+      showChannels: true,
+      channels: ['general', 'feedback']
+    }
+  },
+  computed: {
+    visibleChannels() {
+      return this.showChannels ? this.channels : [this.currentChannel];
     }
   },
   methods: {
