@@ -88,6 +88,7 @@ export default {
     channelDescription() {
       const descriptions = {
         general: 'Main discussion area for our self-improving chat application.',
+        eval: 'Evaluation and testing channel for AI model experiments.',
         feedback: 'Share your thoughts and suggestions about the app here.'
       };
       return descriptions[this.currentChannel] || 'Channel description';

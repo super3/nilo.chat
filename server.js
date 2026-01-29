@@ -21,7 +21,7 @@ const io = socketIo(server, {
 });
 
 // Define available channels
-const CHANNELS = ['general', 'feedback'];
+const CHANNELS = ['general', 'eval', 'feedback'];
 
 // Database connection pool
 const pool = new Pool({
