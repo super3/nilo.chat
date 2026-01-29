@@ -158,7 +158,10 @@ export default {
     // Listen for message history when connecting
     this.socket.on('message_history', (history) => {
       this.messages = history.map(msg => {
-        const [timestamp, username, message] = msg.split('|');
+        const parts = msg.split('|');
+        const timestamp = parts[0];
+        const username = parts[1];
+        const message = parts.slice(2).join('|');
         return { timestamp, username, message };
       });
       
