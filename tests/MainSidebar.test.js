@@ -131,6 +131,7 @@ describe('MainSidebar.vue', () => {
     });
     expect(wrapper.vm.channelUnreadCounts).toEqual({
       general: 0,
+      eval: 0,
       feedback: 0
     });
   });
