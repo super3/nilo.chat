@@ -405,7 +405,47 @@ describe('ChatContent.vue', () => {
     // Verify input was cleared
     expect(wrapper.vm.newMessage).toBe('');
   });
-  
+
+  test('sendMessage handles @eval command in eval channel', () => {
+    wrapper.setData({
+      isConnected: true,
+      newMessage: '@eval',
+      localChannel: 'eval'
+    });
+
+    wrapper.vm.sendMessage();
+
+    // Verify eval_command was emitted to socket
+    expect(mockSocketEmit).toHaveBeenCalledWith('eval_command', {
+      username: 'testuser',
+      channel: 'eval'
+    });
+
+    // Verify input was cleared
+    expect(wrapper.vm.newMessage).toBe('');
+  });
+
+  test('sendMessage rejects @eval command outside eval channel', () => {
+    wrapper.setData({
+      isConnected: true,
+      newMessage: '@eval',
+      localChannel: 'general'
+    });
+
+    wrapper.vm.sendMessage();
+
+    // Verify eval_command was NOT emitted to socket
+    expect(mockSocketEmit).not.toHaveBeenCalledWith('eval_command', expect.anything());
+
+    // Verify system message was added locally
+    expect(wrapper.vm.messages).toHaveLength(1);
+    expect(wrapper.vm.messages[0].username).toBe('System');
+    expect(wrapper.vm.messages[0].message).toBe('The @eval command can only be used in the #eval channel.');
+
+    // Verify input was cleared
+    expect(wrapper.vm.newMessage).toBe('');
+  });
+
   test('formatTimestamp converts timestamps correctly', () => {
     // Test a valid timestamp
     const timestamp = '2023-01-01T14:30:00Z';

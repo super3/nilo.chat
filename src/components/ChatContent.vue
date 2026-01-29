@@ -230,7 +230,25 @@ export default {
         // Optionally, you could add a notification here that the message can't be sent
         return;
       }
-      
+
+      // Check for @eval command
+      if (this.newMessage.trim() === '@eval') {
+        if (this.localChannel !== 'eval') {
+          this.messages.push({
+            timestamp: new Date().toISOString(),
+            username: 'System',
+            message: 'The @eval command can only be used in the #eval channel.'
+          });
+        } else {
+          this.socket.emit('eval_command', {
+            username: this.localUsername,
+            channel: this.localChannel
+          });
+        }
+        this.newMessage = '';
+        return;
+      }
+
       // Check if this is a /nick command
       if (this.newMessage.startsWith('/nick ')) {
         const newUsername = this.newMessage.slice(6).trim();

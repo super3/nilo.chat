@@ -23,6 +23,20 @@ const io = socketIo(server, {
 // Define available channels
 const CHANNELS = ['general', 'eval', 'feedback'];
 
+// Eval questions for LLM evaluation
+const EVAL_QUESTIONS = [
+  { q: "What is the capital of Australia?", a: "Canberra" },
+  { q: "What is 17 × 23?", a: "391" },
+  { q: "Complete the sequence: 2, 6, 12, 20, 30, ?", a: "42" },
+  { q: "What does HTML stand for?", a: "HyperText Markup Language" },
+  { q: "If all roses are flowers and some flowers fade quickly, can we conclude that some roses fade quickly?", a: "No" },
+  { q: "What is the output of: [1,2,3].map(x => x * 2).filter(x => x > 2)", a: "[4, 6]" },
+  { q: "A bat and ball cost $1.10 total. The bat costs $1 more than the ball. How much does the ball cost?", a: "$0.05" },
+  { q: "How many days are in a leap year?", a: "366" },
+  { q: "How many r's are in the word strawberry?", a: "3" },
+  { q: "Is this valid JSON? {\"name\": \"test\", \"count\": 5,}", a: "No" }
+];
+
 // Database connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -225,6 +239,74 @@ function setupSocketHandlers(io) {
         });
       } catch (error) {
         console.error('Error saving username change to database:', error);
+      }
+    });
+
+    // Handle @eval command
+    socket.on('eval_command', async (data) => {
+      const { username: evalUser, channel } = data;
+
+      // Only allow in #eval channel
+      if (channel !== 'eval') {
+        socket.emit('chat_message', {
+          timestamp: new Date().toISOString(),
+          username: 'System',
+          message: 'The @eval command can only be used in the #eval channel.',
+          channel: channel
+        });
+        return;
+      }
+
+      // Announce eval start
+      io.emit('chat_message', {
+        timestamp: new Date().toISOString(),
+        username: 'System',
+        message: `${evalUser} started an LLM evaluation...`,
+        channel: 'eval'
+      });
+
+      let passed = 0;
+      const results = [];
+
+      try {
+        for (const { q, a } of EVAL_QUESTIONS) {
+          const completion = await groq.chat.completions.create({
+            messages: [
+              { role: 'system', content: 'Answer concisely in as few words as possible. Just give the answer, no explanation.' },
+              { role: 'user', content: q }
+            ],
+            model: "openai/gpt-oss-20b",
+            temperature: 0,
+            max_completion_tokens: 100
+          });
+
+          const aiAnswer = completion.choices[0]?.message?.content?.trim() || '';
+          const isCorrect = aiAnswer.toLowerCase().includes(a.toLowerCase());
+
+          if (isCorrect) passed++;
+          results.push({ q, expected: a, got: aiAnswer, pass: isCorrect });
+        }
+
+        // Format and send results
+        const resultLines = results.map((r, i) =>
+          `${r.pass ? 'PASS' : 'FAIL'} Q${i + 1}: ${r.q}\n   Expected: ${r.expected} | Got: ${r.got}`
+        );
+        const resultMessage = resultLines.join('\n\n') + `\n\nScore: ${passed}/10`;
+
+        io.emit('chat_message', {
+          timestamp: new Date().toISOString(),
+          username: 'System',
+          message: resultMessage,
+          channel: 'eval'
+        });
+      } catch (error) {
+        console.error('Error running eval:', error);
+        io.emit('chat_message', {
+          timestamp: new Date().toISOString(),
+          username: 'System',
+          message: 'Error running evaluation. Please try again.',
+          channel: 'eval'
+        });
       }
     });
 

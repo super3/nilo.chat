@@ -4,6 +4,8 @@ const io = require('socket.io-client');
 
 // Flag to control AI response behavior (must be prefixed with 'mock' for Jest)
 let mockShouldReturnEmptyAiResponse = false;
+let mockShouldThrowError = false;
+let mockEvalCorrectAnswer = null;
 
 // Mock Groq SDK
 jest.mock('groq-sdk', () => ({
@@ -11,9 +13,17 @@ jest.mock('groq-sdk', () => ({
     chat: {
       completions: {
         create: jest.fn().mockImplementation(() => {
+          if (mockShouldThrowError) {
+            return Promise.reject(new Error('Mock AI error'));
+          }
           if (mockShouldReturnEmptyAiResponse) {
             return Promise.resolve({
               choices: [{ message: { content: null } }]
+            });
+          }
+          if (mockEvalCorrectAnswer) {
+            return Promise.resolve({
+              choices: [{ message: { content: mockEvalCorrectAnswer } }]
             });
           }
           return Promise.resolve({
@@ -168,6 +178,8 @@ describe('Server Module - Comprehensive', () => {
           mockSocket.usernameChangeCallback = callback;
         } else if (event === 'join_channel') {
           mockSocket.joinChannelCallback = callback;
+        } else if (event === 'eval_command') {
+          mockSocket.evalCommandCallback = callback;
         }
         return mockSocket;
       }),
@@ -942,5 +954,180 @@ describe('Server Module - Comprehensive', () => {
     // Reset flag
     mockShouldReturnEmptyAiResponse = false;
     mockPool.query.mockReset();
+  });
+});
+
+describe('Server Module - Eval Command', () => {
+  let mockSocket;
+  let mockServer;
+  let originalCreateServer;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockSocket = {
+      on: jest.fn((event, callback) => {
+        if (event === 'eval_command') {
+          mockSocket.evalCommandCallback = callback;
+        }
+        return mockSocket;
+      }),
+      emit: jest.fn(),
+      join: jest.fn(),
+      leave: jest.fn(),
+      to: jest.fn(() => ({
+        emit: jest.fn()
+      }))
+    };
+
+    mockServer = {
+      listen: jest.fn((port, host, callback) => {
+        const cb = typeof host === 'function' ? host : callback;
+        if (cb) cb();
+        return mockServer;
+      })
+    };
+
+    originalCreateServer = http.createServer;
+    http.createServer = jest.fn(() => mockServer);
+
+    jest.isolateModules(() => {
+      require('../server');
+    });
+
+    if (global.socketConnectionCallback) {
+      global.socketConnectionCallback(mockSocket);
+    }
+  });
+
+  afterEach(() => {
+    http.createServer = originalCreateServer;
+    delete global.socketConnectionCallback;
+    mockPool.query.mockClear();
+  });
+
+  test('sets up eval_command event handler', () => {
+    expect(mockSocket.on).toHaveBeenCalledWith('eval_command', expect.any(Function));
+  });
+
+  test('eval_command rejects non-eval channel', async () => {
+    await mockSocket.evalCommandCallback({
+      username: 'TestUser',
+      channel: 'general'
+    });
+
+    expect(mockSocket.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+      username: 'System',
+      message: 'The @eval command can only be used in the #eval channel.',
+      channel: 'general'
+    }));
+  });
+
+  test('eval_command broadcasts start message in eval channel', async () => {
+    await mockSocket.evalCommandCallback({
+      username: 'TestUser',
+      channel: 'eval'
+    });
+
+    expect(mockIO.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+      username: 'System',
+      message: 'TestUser started an LLM evaluation...',
+      channel: 'eval'
+    }));
+  });
+
+  test('eval_command broadcasts results after completion', async () => {
+    await mockSocket.evalCommandCallback({
+      username: 'TestUser',
+      channel: 'eval'
+    });
+
+    // Should have at least 2 emits: start message and results
+    const emitCalls = mockIO.emit.mock.calls.filter(call => call[0] === 'chat_message');
+    expect(emitCalls.length).toBeGreaterThanOrEqual(2);
+
+    // Last emit should contain the score
+    const lastEmit = emitCalls[emitCalls.length - 1];
+    expect(lastEmit[1].message).toContain('Score:');
+    expect(lastEmit[1].message).toContain('/10');
+  });
+
+  test('eval_command runs all 10 questions', async () => {
+    await mockSocket.evalCommandCallback({
+      username: 'TestUser',
+      channel: 'eval'
+    });
+
+    // Check results contain all 10 questions
+    const emitCalls = mockIO.emit.mock.calls.filter(call => call[0] === 'chat_message');
+    const resultsEmit = emitCalls[emitCalls.length - 1];
+
+    expect(resultsEmit[1].message).toContain('Q1:');
+    expect(resultsEmit[1].message).toContain('Q10:');
+    expect(resultsEmit[1].message).toContain('capital of Australia');
+    expect(resultsEmit[1].message).toContain('strawberry');
+  });
+
+  test('eval_command handles AI errors gracefully', async () => {
+    mockShouldThrowError = true;
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    await mockSocket.evalCommandCallback({
+      username: 'TestUser',
+      channel: 'eval'
+    });
+
+    // Should emit error message
+    expect(mockIO.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+      username: 'System',
+      message: 'Error running evaluation. Please try again.',
+      channel: 'eval'
+    }));
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Error running eval:', expect.any(Error));
+
+    mockShouldThrowError = false;
+    consoleErrorSpy.mockRestore();
+  });
+
+  test('eval_command increments score for correct answers', async () => {
+    // Make the mock return "Canberra" which matches Q1's expected answer
+    mockEvalCorrectAnswer = 'Canberra';
+
+    await mockSocket.evalCommandCallback({
+      username: 'TestUser',
+      channel: 'eval'
+    });
+
+    const emitCalls = mockIO.emit.mock.calls.filter(call => call[0] === 'chat_message');
+    const resultsEmit = emitCalls[emitCalls.length - 1];
+
+    // Should have PASS for Q1 (capital of Australia = Canberra)
+    expect(resultsEmit[1].message).toContain('PASS Q1:');
+    // Score should be 10/10 since all answers contain "Canberra"
+    // (but only Q1 expects it, so actually it should show some passes)
+    expect(resultsEmit[1].message).toMatch(/Score: \d+\/10/);
+
+    mockEvalCorrectAnswer = null;
+  });
+
+  test('eval_command handles empty AI responses', async () => {
+    // Make the mock return empty content
+    mockShouldReturnEmptyAiResponse = true;
+
+    await mockSocket.evalCommandCallback({
+      username: 'TestUser',
+      channel: 'eval'
+    });
+
+    const emitCalls = mockIO.emit.mock.calls.filter(call => call[0] === 'chat_message');
+    const resultsEmit = emitCalls[emitCalls.length - 1];
+
+    // All answers should be empty, so all should fail
+    expect(resultsEmit[1].message).toContain('FAIL Q1:');
+    expect(resultsEmit[1].message).toContain('Got: ');
+    expect(resultsEmit[1].message).toContain('Score: 0/10');
+
+    mockShouldReturnEmptyAiResponse = false;
   });
 });
