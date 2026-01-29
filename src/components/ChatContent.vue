@@ -10,6 +10,7 @@
           {{ channelDescription }}
         </div>
       </div>
+      <!-- Search box disabled - not currently functional
       <div class="ml-auto hidden lg:block">
         <div class="relative">
           <input type="search" placeholder="Search" class="appearance-none border border-gray-300 rounded-lg pl-8 pr-4 py-2 w-64">
@@ -20,6 +21,7 @@
           </div>
         </div>
       </div>
+      -->
     </div>
     <!-- Chat messages -->
     <div class="px-6 py-4 flex-1 overflow-y-auto" @scroll="checkScrollPosition">
