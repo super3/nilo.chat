@@ -258,10 +258,18 @@ function setupSocketHandlers(io) {
       }
 
       // Announce eval start
+      const startTimestamp = new Date().toISOString();
+      const startMessage = `${evalUser} started an LLM evaluation...`;
+
+      await pool.query(
+        'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
+        [startTimestamp, 'System', startMessage, 'eval']
+      );
+
       io.emit('chat_message', {
-        timestamp: new Date().toISOString(),
+        timestamp: startTimestamp,
         username: 'System',
-        message: `${evalUser} started an LLM evaluation...`,
+        message: startMessage,
         channel: 'eval'
       });
 
@@ -292,19 +300,33 @@ function setupSocketHandlers(io) {
           `${r.pass ? 'PASS' : 'FAIL'} Q${i + 1}: ${r.q}\n   Expected: ${r.expected} | Got: ${r.got}`
         );
         const resultMessage = resultLines.join('\n\n') + `\n\nScore: ${passed}/10`;
+        const resultTimestamp = new Date().toISOString();
+
+        await pool.query(
+          'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
+          [resultTimestamp, 'System', resultMessage, 'eval']
+        );
 
         io.emit('chat_message', {
-          timestamp: new Date().toISOString(),
+          timestamp: resultTimestamp,
           username: 'System',
           message: resultMessage,
           channel: 'eval'
         });
       } catch (error) {
         console.error('Error running eval:', error);
+        const errorTimestamp = new Date().toISOString();
+        const errorMessage = 'Error running evaluation. Please try again.';
+
+        await pool.query(
+          'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
+          [errorTimestamp, 'System', errorMessage, 'eval']
+        );
+
         io.emit('chat_message', {
-          timestamp: new Date().toISOString(),
+          timestamp: errorTimestamp,
           username: 'System',
-          message: 'Error running evaluation. Please try again.',
+          message: errorMessage,
           channel: 'eval'
         });
       }
