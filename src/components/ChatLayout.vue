@@ -62,7 +62,6 @@ export default {
       isFirstJoin: isFirstJoin,
       channelUnreadCounts: {
         general: 0,
-        eval: 0,
         feedback: 0
       }
     }

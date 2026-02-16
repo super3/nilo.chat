@@ -88,7 +88,6 @@ export default {
     channelDescription() {
       const descriptions = {
         general: 'Main discussion area for our self-improving chat application.',
-        eval: 'Evaluation and testing channel for AI model experiments.',
         feedback: 'Share your thoughts and suggestions about the app here.'
       };
       return descriptions[this.currentChannel] || 'Channel description';
@@ -231,24 +230,6 @@ export default {
       
       if (!this.isConnected) {
         // Optionally, you could add a notification here that the message can't be sent
-        return;
-      }
-
-      // Check for @eval command
-      if (this.newMessage.trim() === '@eval') {
-        if (this.localChannel !== 'eval') {
-          this.messages.push({
-            timestamp: new Date().toISOString(),
-            username: 'System',
-            message: 'The @eval command can only be used in the #eval channel.'
-          });
-        } else {
-          this.socket.emit('eval_command', {
-            username: this.localUsername,
-            channel: this.localChannel
-          });
-        }
-        this.newMessage = '';
         return;
       }
 
