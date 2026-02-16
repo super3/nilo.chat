@@ -70,7 +70,6 @@ export default {
       type: Object,
       default: () => ({
         general: 0,
-        eval: 0,
         feedback: 0
       })
     }
@@ -78,7 +77,7 @@ export default {
   data() {
     return {
       showChannels: true,
-      channels: ['general', 'eval', 'feedback']
+      channels: ['general', 'feedback']
     }
   },
   computed: {
