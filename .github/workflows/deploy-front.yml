@@ -17,8 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Build job
-  build:
+  # Test job - must pass before building
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -33,10 +33,25 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
 
-      # Run tests with coverage before building
       - name: Run tests with coverage
         run: npm run test:coverage
 
+  # Build job - only runs after tests pass
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
 
       # Generate a unique build ID based on timestamp and commit hash
       - name: Generate build ID
@@ -47,10 +62,10 @@ jobs:
         run: |
           # Pass build ID to the build process
           VITE_BUILD_ID=${{ env.BUILD_ID }} npm run build
-          
+
           # Add build ID to index.html for cache busting
           sed -i "s|</head>|<meta name=\"build-id\" content=\"${{ env.BUILD_ID }}\">\n</head>|g" dist/index.html
-          
+
           # Add timestamp comments to all HTML files
           find dist -name "*.html" -exec sh -c "echo '<!-- Build: ${{ env.BUILD_ID }} - $(date) -->' >> {}" \;
 
@@ -63,7 +78,7 @@ jobs:
             Header set Pragma "no-cache"
             Header set Expires "0"
           </FilesMatch>
-          
+
           <FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|woff2)$">
             Header set Cache-Control "public, max-age=31536000, immutable"
           </FilesMatch>
@@ -83,20 +98,20 @@ jobs:
           ls -la dist/css
           echo "Contents of JS directory:"
           ls -la dist/js
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
 
-  # Deploy job
+  # Deploy job - only runs after build succeeds (which requires tests to pass)
   deploy:
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-      
+
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
