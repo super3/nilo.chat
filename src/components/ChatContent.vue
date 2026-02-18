@@ -88,7 +88,7 @@ export default {
     channelDescription() {
       const descriptions = {
         general: 'Announcements, updates, and agent activity.',
-        feedback: 'Share your thoughts and suggestions about the app here.'
+        feedback: 'Share your thoughts and suggestions here.'
       };
       return descriptions[this.currentChannel] || 'Channel description';
     }
