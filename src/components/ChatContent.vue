@@ -87,7 +87,7 @@ export default {
   computed: {
     channelDescription() {
       const descriptions = {
-        general: 'Main discussion area for our self-improving chat application.',
+        general: 'Announcements, updates, and agent activity.',
         feedback: 'Share your thoughts and suggestions about the app here.'
       };
       return descriptions[this.currentChannel] || 'Channel description';
