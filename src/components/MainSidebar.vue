@@ -69,7 +69,9 @@ export default {
     channelUnreadCounts: {
       type: Object,
       default: () => ({
+        welcome: 0,
         general: 0,
+        growth: 0,
         feedback: 0
       })
     }
@@ -77,7 +79,7 @@ export default {
   data() {
     return {
       showChannels: true,
-      channels: ['general', 'feedback']
+      channels: ['welcome', 'general', 'growth', 'feedback']
     }
   },
   computed: {

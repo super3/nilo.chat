@@ -19,7 +19,7 @@ const io = socketIo(server, {
 });
 
 // Define available channels
-const CHANNELS = ['general', 'feedback'];
+const CHANNELS = ['welcome', 'general', 'growth', 'feedback'];
 
 // Database connection pool
 const pool = new Pool({

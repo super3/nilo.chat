@@ -61,7 +61,9 @@ export default {
       currentChannel: savedChannel,
       isFirstJoin: isFirstJoin,
       channelUnreadCounts: {
+        welcome: 0,
         general: 0,
+        growth: 0,
         feedback: 0
       }
     }

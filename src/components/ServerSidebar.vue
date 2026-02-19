@@ -33,7 +33,9 @@ export default {
     channelUnreadCounts: {
       type: Object,
       default: () => ({
+        welcome: 0,
         general: 0,
+        growth: 0,
         feedback: 0
       })
     }

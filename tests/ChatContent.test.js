@@ -781,7 +781,7 @@ describe('ChatContent.vue', () => {
       }
     });
     
-    expect(wrapper.vm.channelDescription).toContain('Announcements, updates, and agent activity.');
+    expect(wrapper.vm.channelDescription).toContain('Announcements and workspace updates.');
   });
   
 
