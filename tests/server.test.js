@@ -755,6 +755,56 @@ describe('Server Module - Comprehensive', () => {
     mockPool.query.mockReset();
   });
 
+  test('rejects chat_message with empty message', async () => {
+    await mockSocket.chatMessageCallback({ username: 'TestUser', message: '' });
+    expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Message cannot be empty' });
+    expect(mockPool.query).not.toHaveBeenCalledWith(
+      expect.stringContaining('INSERT'),
+      expect.anything()
+    );
+  });
+
+  test('rejects chat_message with missing message', async () => {
+    await mockSocket.chatMessageCallback({ username: 'TestUser' });
+    expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Message cannot be empty' });
+  });
+
+  test('rejects chat_message exceeding max length', async () => {
+    const longMessage = 'a'.repeat(2001);
+    await mockSocket.chatMessageCallback({ username: 'TestUser', message: longMessage });
+    expect(mockSocket.emit).toHaveBeenCalledWith('error', {
+      message: 'Message exceeds maximum length of 2000 characters'
+    });
+  });
+
+  test('rejects chat_message with empty username', async () => {
+    await mockSocket.chatMessageCallback({ username: '', message: 'Hello' });
+    expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username is required' });
+  });
+
+  test('rejects chat_message with missing username', async () => {
+    await mockSocket.chatMessageCallback({ message: 'Hello' });
+    expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username is required' });
+  });
+
+  test('rejects username_change with empty new username', async () => {
+    await mockSocket.usernameChangeCallback({ oldUsername: 'Old', newUsername: '' });
+    expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username cannot be empty' });
+  });
+
+  test('rejects username_change with missing new username', async () => {
+    await mockSocket.usernameChangeCallback({ oldUsername: 'Old' });
+    expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username cannot be empty' });
+  });
+
+  test('rejects username_change exceeding max length', async () => {
+    const longUsername = 'a'.repeat(31);
+    await mockSocket.usernameChangeCallback({ oldUsername: 'Old', newUsername: longUsername });
+    expect(mockSocket.emit).toHaveBeenCalledWith('error', {
+      message: 'Username exceeds maximum length of 30 characters'
+    });
+  });
+
   test('handles database error when saving username change', async () => {
     // Mock socket for testing
     const socket = {
