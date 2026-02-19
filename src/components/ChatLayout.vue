@@ -1,26 +1,30 @@
 <template>
   <div class="font-sans antialiased h-screen flex w-full">
     <!-- Sidebar / channel list -->
-    <ServerSidebar 
+    <ServerSidebar
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
       @channel-change="changeChannel"
     />
-    <MainSidebar 
-      :username="username" 
+    <MainSidebar
+      :username="username"
       :is-connected="isConnected"
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
+      :is-signed-in="isSignedIn"
       @channel-change="changeChannel"
+      @sign-in="handleSignIn"
     />
     <!-- Chat content -->
-    <ChatContent 
-      :username="username" 
+    <ChatContent
+      :username="username"
       :current-channel="currentChannel"
+      :is-signed-in="isSignedIn"
       @connection-change="handleConnectionStatusChange"
-      @username-change="handleUsernameChange" 
+      @username-change="handleUsernameChange"
       @channel-change="changeChannel"
       @message-received="handleMessageReceived"
+      @sign-in="handleSignIn"
       ref="chatContent"
     />
   </div>
@@ -75,6 +79,7 @@ export default {
       isConnected: false,
       currentChannel: savedChannel,
       isFirstJoin: isFirstJoin,
+      isSignedIn: false,
       channelUnreadCounts: {
         welcome: 0,
         general: 0,
@@ -83,7 +88,55 @@ export default {
       }
     }
   },
+  mounted() {
+    this.initClerk();
+  },
   methods: {
+    async initClerk() {
+      try {
+        if (!window.Clerk) {
+          return;
+        }
+        await window.Clerk.load();
+
+        if (window.Clerk.user) {
+          this.isSignedIn = true;
+          const clerkName = window.Clerk.user.username ||
+            window.Clerk.user.firstName ||
+            window.Clerk.user.emailAddresses[0]?.emailAddress;
+          if (clerkName) {
+            this.handleUsernameChange(clerkName);
+          }
+        }
+      } catch (e) {
+        // Clerk failed to load, continue as anonymous
+      }
+    },
+    async handleSignIn() {
+      try {
+        if (!window.Clerk) {
+          return;
+        }
+        if (!window.Clerk.loaded) {
+          await window.Clerk.load();
+        }
+        await window.Clerk.openSignIn({
+          fallbackRedirectUrl: window.location.href
+        });
+
+        if (window.Clerk.user) {
+          this.isSignedIn = true;
+          const clerkName = window.Clerk.user.username ||
+            window.Clerk.user.firstName ||
+            window.Clerk.user.emailAddresses[0]?.emailAddress;
+          if (clerkName) {
+            this.handleUsernameChange(clerkName);
+          }
+        }
+      } catch (e) {
+        // Sign-in failed or was cancelled
+      }
+    },
     changeChannel(channel) {
       this.currentChannel = channel;
       try { localStorage.setItem('nilo_channel', channel); } catch (e) { /* storage unavailable */ }

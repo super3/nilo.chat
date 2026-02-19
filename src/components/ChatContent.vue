@@ -25,8 +25,8 @@
     </div>
     <!-- Chat messages -->
     <div ref="messageContainer" class="px-6 py-4 flex-1 overflow-y-auto" @scroll="checkScrollPosition">
-      <ChatMessage 
-        v-for="(message, index) in messages" 
+      <ChatMessage
+        v-for="(message, index) in messages"
         :key="index"
         :username="message.username"
         :timestamp="formatTimestamp(message.timestamp)"
@@ -42,10 +42,18 @@
             <path d="M16 10c0 .553-.048 1-.601 1H11v4.399c0 .552-.447.601-1 .601-.553 0-1-.049-1-.601V11H4.601C4.049 11 4 10.553 4 10c0-.553.049-1 .601-1H9V4.601C9 4.048 9.447 4 10 4c.553 0 1 .048 1 .601V9h4.399c.553 0 .601.447.601 1z"/>
           </svg>
         </span>
-        <input 
-          type="text" 
-          class="w-full px-4" 
-          :placeholder="getInputPlaceholder()" 
+        <button
+          v-if="!isSignedIn"
+          @click="$emit('sign-in')"
+          class="bg-teal-dark hover:bg-teal-600 text-white text-sm font-semibold px-3 border-r-2 border-gray-300 transition-colors whitespace-nowrap"
+          data-testid="chat-sign-in-button"
+        >
+          Sign in
+        </button>
+        <input
+          type="text"
+          class="w-full px-4"
+          :placeholder="getInputPlaceholder()"
           v-model="newMessage"
           @keyup.enter="sendMessage"
         />
@@ -74,6 +82,10 @@ export default {
     currentChannel: {
       type: String,
       default: 'general'
+    },
+    isSignedIn: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -134,18 +146,18 @@ export default {
     } else {
       socketUrl = window.location.origin;
     }
-    
+
     this.socket = io(socketUrl);
-    
+
     // Handle connection events
     this.socket.on('connect', () => {
       this.isConnected = true;
       this.$emit('connection-change', true);
-      
+
       // Check if this is a returning user
       let isReturningUser = false;
       try { isReturningUser = localStorage.getItem('nilo_first_join') === 'true'; } catch (e) { /* storage unavailable */ }
-      
+
       // Emit the username when connecting and join the current channel
       this.socket.emit('user_connected', {
         username: this.localUsername,
@@ -153,22 +165,22 @@ export default {
         isReturningUser: isReturningUser
       });
     });
-    
+
     // Also scroll to bottom when component is initially mounted
     this.$nextTick(() => {
       this.scrollToBottom();
     });
-    
+
     this.socket.on('disconnect', () => {
       this.isConnected = false;
       this.$emit('connection-change', false);
     });
-    
+
     this.socket.on('connect_error', () => {
       this.isConnected = false;
       this.$emit('connection-change', false);
     });
-    
+
     // Listen for message history when connecting
     this.socket.on('message_history', (history) => {
       this.messages = history.map(msg => {
@@ -178,13 +190,13 @@ export default {
         const message = parts.slice(2).join('|');
         return { timestamp, username, message };
       });
-      
+
       // Scroll to bottom after message history is loaded
       this.$nextTick(() => {
         this.scrollToBottom();
       });
     });
-    
+
     // Listen for new messages
     this.socket.on('chat_message', ({ timestamp, username, message, channel }) => {
       // Handle messages based on channel
@@ -259,7 +271,7 @@ export default {
         if (newUsername) {
           // Emit an event to the parent component to change the username
           this.$emit('username-change', newUsername);
-          
+
           // Notify the server about the username change
           if (this.socket) {
             this.socket.emit('username_change', {
@@ -268,7 +280,7 @@ export default {
               channel: this.localChannel
             });
           }
-          
+
           // Add a system message about the username change
           this.messages.push({
             timestamp: new Date().toISOString(),
@@ -284,7 +296,7 @@ export default {
           channel: this.localChannel
         });
       }
-      
+
       this.newMessage = '';
     },
     formatTimestamp(timestamp) {
@@ -324,12 +336,12 @@ export default {
       if (this.socket && channel !== this.localChannel) {
         // Use emit instead of directly modifying prop
         this.$emit('channel-change', channel);
-        
-        this.socket.emit('join_channel', { 
+
+        this.socket.emit('join_channel', {
           username: this.localUsername,
-          channel: channel 
+          channel: channel
         });
-        
+
         // Update messages for the new channel
         this.messages = [];
       }
@@ -342,4 +354,4 @@ export default {
     }
   }
 }
-</script> 
+</script>

@@ -823,6 +823,59 @@ describe('ChatContent.vue', () => {
     expect(() => wrapper.vm.switchChannel('feedback')).not.toThrow();
   });
 
+  test('shows sign-in button when not signed in', () => {
+    const wrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'general',
+        isSignedIn: false
+      }
+    });
+
+    const signInButton = wrapper.find('[data-testid="chat-sign-in-button"]');
+    expect(signInButton.exists()).toBe(true);
+    expect(signInButton.text()).toBe('Sign in');
+  });
+
+  test('hides sign-in button when signed in', () => {
+    const wrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'general',
+        isSignedIn: true
+      }
+    });
+
+    const signInButton = wrapper.find('[data-testid="chat-sign-in-button"]');
+    expect(signInButton.exists()).toBe(false);
+  });
+
+  test('sign-in button emits sign-in event when clicked', async () => {
+    const wrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'general',
+        isSignedIn: false
+      }
+    });
+
+    await wrapper.find('[data-testid="chat-sign-in-button"]').trigger('click');
+    expect(wrapper.emitted('sign-in')).toBeTruthy();
+    expect(wrapper.emitted('sign-in')).toHaveLength(1);
+  });
+
+  test('isSignedIn defaults to false', () => {
+    const wrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'general'
+      }
+    });
+
+    expect(wrapper.vm.isSignedIn).toBe(false);
+    expect(wrapper.find('[data-testid="chat-sign-in-button"]').exists()).toBe(true);
+  });
+
   test('force full coverage for ChatContent.vue', () => {
     const coverage = global.__coverage__ || {};
     const key = Object.keys(coverage).find(k => k.includes('ChatContent.vue'));
