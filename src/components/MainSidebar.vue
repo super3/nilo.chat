@@ -11,7 +11,7 @@
     </div>
 
     <!-- Channels section -->
-    <div class="mb-8 flex-1">
+    <div class="mb-8 flex-1 overflow-y-auto">
       <div class="px-4 mb-1 text-white flex items-center">
         <div @click="toggleChannels" class="cursor-pointer w-4 mr-2 flex justify-center" data-testid="toggle-channels">
           <svg v-if="showChannels" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -46,6 +46,17 @@
         </div>
       </div>
     </div>
+
+    <!-- Join / Sign In button at bottom -->
+    <div v-if="!isSignedIn" class="flex-none px-4 pb-4">
+      <button
+        @click="$emit('sign-in')"
+        class="w-full py-2 rounded-lg bg-teal-dark hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
+        data-testid="main-join-button"
+      >
+        Join / Sign In
+      </button>
+    </div>
   </div>
 </template>
 
@@ -61,6 +72,10 @@ export default {
       required: true
     },
     isConnected: {
+      type: Boolean,
+      default: false
+    },
+    isSignedIn: {
       type: Boolean,
       default: false
     },

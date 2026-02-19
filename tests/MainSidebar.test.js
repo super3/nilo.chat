@@ -161,6 +161,48 @@ describe('MainSidebar.vue', () => {
     expect(wrapper.emitted()['channel-change'].length).toBeGreaterThan(0);
   });
 
+  test('shows join button when not signed in', () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general',
+        isSignedIn: false
+      }
+    });
+
+    expect(wrapper.find('[data-testid="main-join-button"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="main-join-button"]').text()).toBe('Join / Sign In');
+  });
+
+  test('hides join button when signed in', () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general',
+        isSignedIn: true
+      }
+    });
+
+    expect(wrapper.find('[data-testid="main-join-button"]').exists()).toBe(false);
+  });
+
+  test('join button emits sign-in event when clicked', async () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general',
+        isSignedIn: false
+      }
+    });
+
+    await wrapper.find('[data-testid="main-join-button"]').trigger('click');
+    expect(wrapper.emitted('sign-in')).toBeTruthy();
+    expect(wrapper.emitted('sign-in')).toHaveLength(1);
+  });
+
   test('collapsed view without unread counts does not show badges', async () => {
     const wrapper = shallowMount(MainSidebar, {
       propsData: {

@@ -13,9 +13,11 @@
     <MainSidebar
       :username="username"
       :is-connected="isConnected"
+      :is-signed-in="isSignedIn"
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
       @channel-change="changeChannel"
+      @sign-in="handleSignIn"
     />
     <!-- Chat content -->
     <ChatContent
