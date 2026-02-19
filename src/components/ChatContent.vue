@@ -314,7 +314,7 @@ export default {
     },
     getInputPlaceholder() {
       if (!this.isSignedIn && this.currentChannel !== 'welcome') {
-        return 'Sign in to post in this channel';
+        return 'Sign in to post in this channel.';
       }
       return `Message #${this.currentChannel}`;
     }

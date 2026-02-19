@@ -73,7 +73,7 @@ describe('ChatContent.vue', () => {
     expect(channelHeader.text()).toBe('#general');
 
     // Check if the input for new messages is present (non-signed-in user sees sign-in placeholder and is disabled)
-    const messageInput = wrapper.find('input[placeholder="Sign in to post in this channel"]');
+    const messageInput = wrapper.find('input[placeholder="Sign in to post in this channel."]');
     expect(messageInput.exists()).toBe(true);
     expect(messageInput.attributes('disabled')).toBeDefined();
   });
@@ -814,7 +814,7 @@ describe('ChatContent.vue', () => {
       }
     });
 
-    expect(anonWrapper.vm.getInputPlaceholder()).toBe('Sign in to post in this channel');
+    expect(anonWrapper.vm.getInputPlaceholder()).toBe('Sign in to post in this channel.');
   });
 
   test('getInputPlaceholder shows normal placeholder for non-signed-in users on #welcome', () => {
