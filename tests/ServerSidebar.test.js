@@ -90,8 +90,8 @@ describe('ServerSidebar.vue', () => {
       propsData: { isSignedIn: false }
     });
 
-    expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(true);
-    expect(wrapper.find('[data-testid="profile-button"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="join-button"]').isVisible()).toBe(true);
+    expect(wrapper.find('[data-testid="profile-button"]').isVisible()).toBe(false);
   });
 
   test('shows profile area when signed in', () => {
@@ -99,8 +99,8 @@ describe('ServerSidebar.vue', () => {
       propsData: { isSignedIn: true, username: 'testuser' }
     });
 
-    expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(false);
-    expect(wrapper.find('[data-testid="profile-button"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="join-button"]').isVisible()).toBe(false);
+    expect(wrapper.find('[data-testid="profile-button"]').isVisible()).toBe(true);
   });
 
   test('join button emits sign-in event when clicked', async () => {

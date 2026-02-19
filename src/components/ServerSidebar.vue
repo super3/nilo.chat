@@ -23,9 +23,9 @@
     </div>
 
     <!-- Profile icon at bottom -->
-    <div class="flex-none">
+    <div class="flex-none h-12 w-12">
       <button
-        v-if="!isSignedIn"
+        v-show="!isSignedIn"
         @click="$emit('sign-in')"
         class="h-12 w-12 rounded-lg bg-teal-dark hover:bg-teal-600 flex items-center justify-center transition-colors"
         data-testid="join-button"
@@ -36,7 +36,7 @@
         </svg>
       </button>
       <div
-        v-else
+        v-show="isSignedIn"
         ref="clerkUserButton"
         class="h-12 w-12 flex items-center justify-center overflow-hidden"
         data-testid="profile-button"
