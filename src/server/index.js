@@ -30,11 +30,12 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Test database connection
+// Test database connection and ensure schema is up to date
 async function initializeDatabase() {
   try {
     await pool.query('SELECT NOW()');
     console.log('Database connected successfully');
+    await pool.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS profile_image_url TEXT DEFAULT NULL');
   } catch (error) {
     console.error('Database connection error:', error);
   }
