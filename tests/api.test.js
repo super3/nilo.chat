@@ -298,15 +298,8 @@ describe('REST API — POST /api/messages', () => {
 // Key management endpoints
 // ---------------------------------------------------------------------------
 
-describe('REST API — POST /api/keys (create)', () => {
-  const originalAdminKey = process.env.ADMIN_API_KEY;
-  beforeEach(() => { process.env.ADMIN_API_KEY = ADMIN_KEY; });
-  afterEach(() => {
-    if (originalAdminKey === undefined) delete process.env.ADMIN_API_KEY;
-    else process.env.ADMIN_API_KEY = originalAdminKey;
-  });
-
-  test('creates a new API key and returns it once', async () => {
+describe('REST API — POST /api/keys (create, open)', () => {
+  test('creates a new API key without any auth', async () => {
     const pool = authedMockPool();
     const originalQuery = pool.query;
     pool.query = jest.fn((sql, params) => {
@@ -321,7 +314,6 @@ describe('REST API — POST /api/keys (create)', () => {
     const app = buildApp(pool, defaultMockIo());
     const res = await request(app)
       .post('/api/keys')
-      .set('x-api-key', ADMIN_KEY)
       .send({ agent_name: 'NewAgent' });
 
     expect(res.status).toBe(201);
@@ -336,7 +328,6 @@ describe('REST API — POST /api/keys (create)', () => {
     const app = buildApp(authedMockPool(), defaultMockIo());
     const res = await request(app)
       .post('/api/keys')
-      .set('x-api-key', ADMIN_KEY)
       .send({});
 
     expect(res.status).toBe(400);
@@ -347,30 +338,10 @@ describe('REST API — POST /api/keys (create)', () => {
     const app = buildApp(authedMockPool(), defaultMockIo());
     const res = await request(app)
       .post('/api/keys')
-      .set('x-api-key', ADMIN_KEY)
       .send({ agent_name: '   ' });
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('agent_name is required');
-  });
-
-  test('returns 403 with wrong admin key', async () => {
-    const app = buildApp(authedMockPool(), defaultMockIo());
-    const res = await request(app)
-      .post('/api/keys')
-      .set('x-api-key', 'wrong-admin-key')
-      .send({ agent_name: 'Agent' });
-
-    expect(res.status).toBe(403);
-  });
-
-  test('returns 401 with no key', async () => {
-    const app = buildApp(authedMockPool(), defaultMockIo());
-    const res = await request(app)
-      .post('/api/keys')
-      .send({ agent_name: 'Agent' });
-
-    expect(res.status).toBe(401);
   });
 
   test('handles database error', async () => {
@@ -387,7 +358,6 @@ describe('REST API — POST /api/keys (create)', () => {
     const app = buildApp(pool, defaultMockIo());
     const res = await request(app)
       .post('/api/keys')
-      .set('x-api-key', ADMIN_KEY)
       .send({ agent_name: 'Agent' });
 
     expect(res.status).toBe(500);
@@ -405,7 +375,7 @@ describe('REST API — DELETE /api/keys/:id', () => {
     else process.env.ADMIN_API_KEY = originalAdminKey;
   });
 
-  test('deletes an existing key', async () => {
+  test('admin can delete any key', async () => {
     const pool = authedMockPool();
     const originalQuery = pool.query;
     pool.query = jest.fn((sql, params) => {
@@ -424,7 +394,69 @@ describe('REST API — DELETE /api/keys/:id', () => {
     expect(res.body.deleted).toEqual({ id: 5, agent_name: 'OldBot' });
   });
 
-  test('returns 404 for non-existent key', async () => {
+  test('agent can delete its own key', async () => {
+    const pool = authedMockPool();
+    const originalQuery = pool.query;
+    pool.query = jest.fn((sql, params) => {
+      // Ownership lookup — VALID_KEY maps to id:1
+      if (sql.includes('SELECT') && sql.includes('api_keys') && !sql.includes('ORDER BY')) {
+        return Promise.resolve({ rows: [{ id: 1 }] });
+      }
+      if (sql.includes('DELETE FROM api_keys')) {
+        return Promise.resolve({ rows: [{ id: 1, agent_name: 'TestBot' }] });
+      }
+      return originalQuery(sql, params);
+    });
+
+    const app = buildApp(pool, defaultMockIo());
+    const res = await request(app)
+      .delete('/api/keys/1')
+      .set('x-api-key', VALID_KEY);
+
+    expect(res.status).toBe(200);
+    expect(res.body.deleted).toEqual({ id: 1, agent_name: 'TestBot' });
+  });
+
+  test('agent cannot delete another agents key', async () => {
+    const pool = authedMockPool();
+    const originalQuery = pool.query;
+    pool.query = jest.fn((sql, params) => {
+      // Ownership lookup — VALID_KEY maps to id:1, not id:99
+      if (sql.includes('SELECT') && sql.includes('api_keys') && !sql.includes('ORDER BY')) {
+        return Promise.resolve({ rows: [{ id: 1 }] });
+      }
+      return originalQuery(sql, params);
+    });
+
+    const app = buildApp(pool, defaultMockIo());
+    const res = await request(app)
+      .delete('/api/keys/99')
+      .set('x-api-key', VALID_KEY);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/you can only delete your own key/);
+  });
+
+  test('returns 403 for unknown agent key', async () => {
+    const app = buildApp(authedMockPool(), defaultMockIo());
+    const res = await request(app)
+      .delete('/api/keys/1')
+      .set('x-api-key', 'unknown-key');
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/you can only delete your own key/);
+  });
+
+  test('returns 401 with no key', async () => {
+    const app = buildApp(authedMockPool(), defaultMockIo());
+    const res = await request(app)
+      .delete('/api/keys/1');
+
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('Missing x-api-key header');
+  });
+
+  test('returns 404 for non-existent key (admin)', async () => {
     const app = buildApp(authedMockPool(), defaultMockIo());
     const res = await request(app)
       .delete('/api/keys/999')
@@ -444,7 +476,29 @@ describe('REST API — DELETE /api/keys/:id', () => {
     expect(res.body.error).toBe('Invalid key id');
   });
 
-  test('handles database error', async () => {
+  test('handles database error on ownership lookup', async () => {
+    const pool = authedMockPool();
+    const originalQuery = pool.query;
+    pool.query = jest.fn((sql, params) => {
+      if (sql.includes('SELECT') && sql.includes('api_keys')) {
+        return Promise.reject(new Error('DB fail'));
+      }
+      return originalQuery(sql, params);
+    });
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    const app = buildApp(pool, defaultMockIo());
+    const res = await request(app)
+      .delete('/api/keys/1')
+      .set('x-api-key', VALID_KEY);
+
+    expect(res.status).toBe(500);
+    expect(res.body.error).toBe('Failed to delete API key');
+
+    consoleSpy.mockRestore();
+  });
+
+  test('handles database error on delete', async () => {
     const pool = authedMockPool();
     const originalQuery = pool.query;
     pool.query = jest.fn((sql, params) => {
@@ -453,6 +507,7 @@ describe('REST API — DELETE /api/keys/:id', () => {
       }
       return originalQuery(sql, params);
     });
+
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
     const app = buildApp(pool, defaultMockIo());

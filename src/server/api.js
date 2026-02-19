@@ -25,11 +25,11 @@ function createApiRouter(pool, io) {
   const auth = requireApiKey(pool);
 
   // =========================================================================
-  // Key management (admin-only)
+  // Key management
   // =========================================================================
 
-  // --- POST /api/keys — create a new API key -------------------------------
-  router.post('/keys', requireAdmin, async (req, res) => {
+  // --- POST /api/keys — self-register a new API key (open) -----------------
+  router.post('/keys', async (req, res) => {
     const { agent_name } = req.body;
 
     if (!agent_name || typeof agent_name !== 'string' || agent_name.trim() === '') {
@@ -61,10 +61,36 @@ function createApiRouter(pool, io) {
   });
 
   // --- DELETE /api/keys/:id — revoke an API key ----------------------------
-  router.delete('/keys/:id', requireAdmin, async (req, res) => {
+  // Agent can delete its own key; admin can delete any key.
+  router.delete('/keys/:id', async (req, res) => {
     const id = parseInt(req.params.id, 10);
     if (Number.isNaN(id)) {
       return res.status(400).json({ error: 'Invalid key id' });
+    }
+
+    const raw = req.headers['x-api-key'];
+    if (!raw) {
+      return res.status(401).json({ error: 'Missing x-api-key header' });
+    }
+
+    // Check if caller is admin
+    const isAdmin = process.env.ADMIN_API_KEY && raw === process.env.ADMIN_API_KEY;
+
+    if (!isAdmin) {
+      // Caller must be the agent that owns this key
+      const keyHash = hashKey(raw);
+      try {
+        const lookup = await pool.query(
+          'SELECT id FROM api_keys WHERE key_hash = $1',
+          [keyHash]
+        );
+        if (lookup.rows.length === 0 || lookup.rows[0].id !== id) {
+          return res.status(403).json({ error: 'Forbidden: you can only delete your own key' });
+        }
+      } catch (err) {
+        console.error('API: Error validating key ownership:', err);
+        return res.status(500).json({ error: 'Failed to delete API key' });
+      }
     }
 
     try {
@@ -84,7 +110,7 @@ function createApiRouter(pool, io) {
     }
   });
 
-  // --- GET /api/keys — list all API keys (no secrets exposed) --------------
+  // --- GET /api/keys — list all API keys (admin-only, no secrets) ----------
   router.get('/keys', requireAdmin, async (_req, res) => {
     try {
       const result = await pool.query(
