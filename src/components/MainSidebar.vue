@@ -51,6 +51,9 @@
 </template>
 
 <script>
+// Channel list — keep in sync with CHANNELS in server.js
+const CHANNELS = ['welcome', 'general', 'growth', 'feedback'];
+
 export default {
   name: 'MainSidebar',
   props: {
@@ -79,7 +82,7 @@ export default {
   data() {
     return {
       showChannels: true,
-      channels: ['welcome', 'general', 'growth', 'feedback']
+      channels: CHANNELS
     }
   },
   computed: {
@@ -97,9 +100,7 @@ export default {
       }
     },
     getUnreadCount(channel) {
-      const count = this.channelUnreadCounts[channel] || 0;
-      console.log(`Getting unread count for ${channel}: ${count}`);
-      return count;
+      return this.channelUnreadCounts[channel] || 0;
     }
   }
 }

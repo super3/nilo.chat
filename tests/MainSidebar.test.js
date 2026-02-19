@@ -116,8 +116,6 @@ describe('MainSidebar.vue', () => {
 
     expect(wrapper.vm.getUnreadCount('general')).toBe(2);
     expect(wrapper.vm.getUnreadCount('missing')).toBe(0);
-    expect(logSpy).toHaveBeenCalledWith('Getting unread count for general: 2');
-    expect(logSpy).toHaveBeenCalledWith('Getting unread count for missing: 0');
     logSpy.mockRestore();
   });
 

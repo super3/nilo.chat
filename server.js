@@ -18,8 +18,12 @@ const io = socketIo(server, {
   }
 });
 
-// Define available channels
+// Define available channels — keep in sync with CHANNELS in MainSidebar.vue
 const CHANNELS = ['welcome', 'general', 'growth', 'feedback'];
+
+// Validation constants
+const MAX_MESSAGE_LENGTH = 2000;
+const MAX_USERNAME_LENGTH = 30;
 
 // Database connection pool
 const pool = new Pool({
@@ -115,10 +119,22 @@ function setupSocketHandlers(io) {
 
     // Handle new messages
     socket.on('chat_message', async (data) => {
+      // Validate message input
+      if (!data.message || typeof data.message !== 'string' || data.message.trim() === '') {
+        socket.emit('error', { message: 'Message cannot be empty' });
+        return;
+      }
+      if (data.message.length > MAX_MESSAGE_LENGTH) {
+        socket.emit('error', { message: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters` });
+        return;
+      }
+      if (!data.username || typeof data.username !== 'string' || data.username.trim() === '') {
+        socket.emit('error', { message: 'Username is required' });
+        return;
+      }
+
       const timestamp = new Date().toISOString();
       const channel = data.channel || 'general';
-
-      console.log(`New message from ${data.username} in channel ${channel}: ${data.message}`);
 
       // Save message to database
       try {
@@ -135,8 +151,6 @@ function setupSocketHandlers(io) {
           channel: channel
         };
 
-        console.log(`Broadcasting message to all clients with channel ${channel}:`, messageObject);
-
         // Broadcast to ALL clients, not just those in the channel
         // This way everyone can see notifications even if they're not in the channel
         io.emit('chat_message', messageObject);
@@ -148,6 +162,16 @@ function setupSocketHandlers(io) {
 
     // Handle username changes
     socket.on('username_change', async (data) => {
+      // Validate new username
+      if (!data.newUsername || typeof data.newUsername !== 'string' || data.newUsername.trim() === '') {
+        socket.emit('error', { message: 'Username cannot be empty' });
+        return;
+      }
+      if (data.newUsername.length > MAX_USERNAME_LENGTH) {
+        socket.emit('error', { message: `Username exceeds maximum length of ${MAX_USERNAME_LENGTH} characters` });
+        return;
+      }
+
       // Update the username for this socket
       username = data.newUsername;
 
@@ -176,7 +200,7 @@ function setupSocketHandlers(io) {
     });
 
     socket.on('disconnect', () => {
-      console.log(`User disconnected: ${username}`);
+      // Connection closed
     });
   };
 }
