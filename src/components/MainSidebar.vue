@@ -48,10 +48,11 @@
     </div>
 
     <!-- Join / Sign In button at bottom -->
-    <div v-if="!isSignedIn" class="flex-none px-4 pb-4">
+    <div v-if="!isSignedIn" class="flex-none pb-6 px-4" data-testid="join-section">
       <button
         @click="$emit('sign-in')"
-        class="w-full py-2 rounded-lg bg-teal-dark hover:bg-teal-600 text-white text-sm font-semibold transition-colors"
+        class="w-full bg-teal-dark hover:bg-teal-600 text-white font-semibold rounded-lg border-2 border-teal-dark transition-colors"
+        style="padding: 9px 16px;"
         data-testid="main-join-button"
       >
         Join / Sign In
