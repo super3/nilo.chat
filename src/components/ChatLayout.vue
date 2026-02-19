@@ -144,7 +144,13 @@ export default {
           return;
         }
         window.Clerk.mountUserButton(el, {
-          afterSignOutUrl: window.location.href
+          afterSignOutUrl: window.location.href,
+          appearance: {
+            elements: {
+              userButtonAvatarBox: 'w-12 h-12 rounded-lg',
+              avatarBox: 'w-12 h-12 rounded-lg'
+            }
+          }
         });
       } catch (e) {
         // Clerk UserButton mount failed

@@ -521,7 +521,13 @@ describe('ChatLayout.vue', () => {
     wrapper.vm.mountClerkUserButton(el);
 
     expect(window.Clerk.mountUserButton).toHaveBeenCalledWith(el, {
-      afterSignOutUrl: window.location.href
+      afterSignOutUrl: window.location.href,
+      appearance: {
+        elements: {
+          userButtonAvatarBox: 'w-12 h-12 rounded-lg',
+          avatarBox: 'w-12 h-12 rounded-lg'
+        }
+      }
     });
   });
 
