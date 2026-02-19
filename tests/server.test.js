@@ -321,14 +321,11 @@ describe('Server Module - Comprehensive', () => {
     expect(mockExpressApp.use).toHaveBeenCalled();
   });
   
-  test('configures express with catch-all route', () => {
+  test('configures express with health check and catch-all route', () => {
     // Verify health check route was configured
     expect(mockExpressApp.get).toHaveBeenCalledWith('/health', expect.any(Function));
 
-    // Verify root route was configured
-    expect(mockExpressApp.get).toHaveBeenCalledWith('/', expect.any(Function));
-
-    // Verify catch-all route was configured in development mode
+    // Verify catch-all route was configured
     expect(mockExpressApp.get).toHaveBeenCalledWith('*', expect.any(Function));
 
     // Test health check endpoint
@@ -341,17 +338,6 @@ describe('Server Module - Comprehensive', () => {
     healthHandler(healthReq, healthRes);
     expect(healthRes.status).toHaveBeenCalledWith(200);
     expect(healthRes.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'ok' }));
-
-    // Test root endpoint
-    const rootHandler = mockExpressApp.get.mock.calls.find(call => call[0] === '/')[1];
-    const rootReq = {};
-    const rootRes = {
-      status: jest.fn().mockReturnThis(),
-      send: jest.fn()
-    };
-    rootHandler(rootReq, rootRes);
-    expect(rootRes.status).toHaveBeenCalledWith(200);
-    expect(rootRes.send).toHaveBeenCalled();
 
     // Get the catch-all route handler (should be the one with '*')
     const handler = mockExpressApp.get.mock.calls.find(call => call[0] === '*')[1];
@@ -368,7 +354,7 @@ describe('Server Module - Comprehensive', () => {
     expect(res.sendFile.mock.calls[0][0]).toContain('index.html');
   });
   
-  test('handles production mode routes correctly', () => {
+  test('serves static files and SPA catch-all in production mode', () => {
     // Save original NODE_ENV
     const originalNodeEnv = process.env.NODE_ENV;
 
@@ -387,39 +373,25 @@ describe('Server Module - Comprehensive', () => {
       // Verify health check route was configured
       expect(mockExpressApp.get).toHaveBeenCalledWith('/health', expect.any(Function));
 
-      // Verify root route was configured
-      expect(mockExpressApp.get).toHaveBeenCalledWith('/', expect.any(Function));
-
-      // In production mode, there should NOT be a wildcard route
-      const wildcardCalls = mockExpressApp.get.mock.calls.filter(call => call[0] === '*');
-      expect(wildcardCalls.length).toBe(0);
+      // Verify static files and catch-all are served in production too
+      expect(mockExpressApp.use).toHaveBeenCalled();
+      expect(mockExpressApp.get).toHaveBeenCalledWith('*', expect.any(Function));
 
       // Test health check endpoint
       const healthHandler = mockExpressApp.get.mock.calls.find(call => call[0] === '/health')[1];
-      const healthReq = {};
       const healthRes = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn()
       };
-      healthHandler(healthReq, healthRes);
+      healthHandler({}, healthRes);
       expect(healthRes.status).toHaveBeenCalledWith(200);
 
-      // Test root endpoint
-      const rootHandler = mockExpressApp.get.mock.calls.find(call => call[0] === '/')[1];
-
-      // Create mock request and response
-      const req = {};
-      const res = {
-        status: jest.fn().mockReturnThis(),
-        send: jest.fn()
-      };
-
-      // Call the handler
-      rootHandler(req, res);
-
-      // Verify response status and message
-      expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.send).toHaveBeenCalledWith('Nilo.chat API Server - OK');
+      // Test catch-all serves index.html
+      const catchAllHandler = mockExpressApp.get.mock.calls.find(call => call[0] === '*')[1];
+      const res = { sendFile: jest.fn() };
+      catchAllHandler({}, res);
+      expect(res.sendFile).toHaveBeenCalled();
+      expect(res.sendFile.mock.calls[0][0]).toContain('index.html');
     } finally {
       // Restore original NODE_ENV
       process.env.NODE_ENV = originalNodeEnv;

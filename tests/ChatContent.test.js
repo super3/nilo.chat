@@ -96,23 +96,44 @@ describe('ChatContent.vue', () => {
     expect(mockSocketOn).toHaveBeenCalledWith('chat_message', expect.any(Function));
   });
   
-  test('connects to production socket when not on localhost', () => {
-    // Change location to non-localhost
+  test('connects to production socket when on GitHub Pages', () => {
+    // Change location to GitHub Pages domain
     Object.defineProperty(window, 'location', {
       value: {
-        hostname: 'example.com'
+        hostname: 'nilo.chat',
+        origin: 'https://nilo.chat'
       },
       writable: true
     });
-    
+
     // Remount the component
-    const nonLocalWrapper = shallowMount(ChatContent, {
+    shallowMount(ChatContent, {
       propsData: defaultProps
     });
-    
+
     // Check that socket.io-client was called with production URL from environment variable
     const socketioClient = require('socket.io-client');
     expect(socketioClient).toHaveBeenCalledWith(process.env.VUE_APP_SOCKET_URL);
+  });
+
+  test('connects to same origin on Railway PR previews', () => {
+    // Change location to a Railway preview URL
+    Object.defineProperty(window, 'location', {
+      value: {
+        hostname: 'nilochat-pr-42.up.railway.app',
+        origin: 'https://nilochat-pr-42.up.railway.app'
+      },
+      writable: true
+    });
+
+    // Remount the component
+    shallowMount(ChatContent, {
+      propsData: defaultProps
+    });
+
+    // Check that socket.io-client was called with same origin
+    const socketioClient = require('socket.io-client');
+    expect(socketioClient).toHaveBeenCalledWith('https://nilochat-pr-42.up.railway.app');
   });
   
   test('handles connect event from socket', () => {

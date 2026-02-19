@@ -52,24 +52,13 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Root endpoint for Railway health checks
-app.get('/', (req, res) => {
-  res.status(200).send('Nilo.chat API Server - OK');
+// Serve static files from the 'dist' folder (production build)
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Return the main index.html for all other routes (SPA)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
-
-// Serve static files and frontend routes only in development mode
-if (process.env.NODE_ENV !== 'production') {
-  console.log('Running in development mode - serving frontend files');
-  // Serve static files from the 'dist' folder (production build)
-  app.use(express.static(path.join(__dirname, 'dist')));
-
-  // Return the main index.html for all routes (SPA)
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
-} else {
-  console.log('Running in production mode - not serving frontend files');
-}
 
 // Helper function to fetch and send message history for a channel
 async function sendMessageHistory(socket, channel) {

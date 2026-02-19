@@ -117,13 +117,23 @@ export default {
   },
   mounted() {
     // Check if we're running locally (on localhost) or in production
-    const isLocalhost = window.location.hostname === 'localhost' || 
+    const isLocalhost = window.location.hostname === 'localhost' ||
                         window.location.hostname === '127.0.0.1';
-    
+    const isGitHubPages = window.location.hostname === 'nilo.chat' ||
+                          window.location.hostname === 'super3.github.io';
+
     // Connect to the WebSocket server
-    const socketUrl = isLocalhost
-      ? 'http://localhost:3000'
-      : process.env.VUE_APP_SOCKET_URL;
+    // - localhost: connect to local dev server
+    // - GitHub Pages: connect to production Railway backend
+    // - Railway (PR previews): connect to same origin
+    let socketUrl;
+    if (isLocalhost) {
+      socketUrl = 'http://localhost:3000';
+    } else if (isGitHubPages) {
+      socketUrl = process.env.VUE_APP_SOCKET_URL;
+    } else {
+      socketUrl = window.location.origin;
+    }
     
     this.socket = io(socketUrl);
     
