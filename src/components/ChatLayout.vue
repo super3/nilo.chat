@@ -223,6 +223,8 @@ export default {
         if (!window.Clerk || !el) {
           return;
         }
+        // Clear placeholder image before Clerk mounts its button
+        el.innerHTML = '';
         window.Clerk.mountUserButton(el, {
           afterSignOutUrl: window.location.href,
           appearance: {

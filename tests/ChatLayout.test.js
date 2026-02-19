@@ -761,6 +761,20 @@ describe('ChatLayout.vue', () => {
     expect(window.Clerk.mountUserButton).not.toHaveBeenCalled();
   });
 
+  test('mountClerkUserButton clears placeholder before mounting', () => {
+    window.Clerk = {
+      mountUserButton: jest.fn()
+    };
+    const wrapper = shallowMount(ChatLayout);
+    const el = document.createElement('div');
+    el.innerHTML = '<img src="https://example.com/avatar.jpg" />';
+
+    wrapper.vm.mountClerkUserButton(el);
+
+    expect(el.innerHTML).not.toContain('img');
+    expect(window.Clerk.mountUserButton).toHaveBeenCalled();
+  });
+
   test('mountClerkUserButton mounts Clerk UserButton on element', () => {
     window.Clerk = {
       mountUserButton: jest.fn()
