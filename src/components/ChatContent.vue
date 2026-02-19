@@ -37,7 +37,7 @@
     </div>
     <div class="pb-6 px-4 flex-none">
       <div class="flex rounded-lg border-2 border-gray-300 overflow-hidden">
-        <span class="text-3xl text-gray-500 border-r-2 border-gray-300 p-2">
+        <span class="text-3xl text-gray-500 border-r-2 border-gray-300 p-2" :class="{ 'bg-gray-100 text-gray-300 cursor-not-allowed': isInputDisabled }">
           <svg class="fill-current h-6 w-6 block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M16 10c0 .553-.048 1-.601 1H11v4.399c0 .552-.447.601-1 .601-.553 0-1-.049-1-.601V11H4.601C4.049 11 4 10.553 4 10c0-.553.049-1 .601-1H9V4.601C9 4.048 9.447 4 10 4c.553 0 1 .048 1 .601V9h4.399c.553 0 .601.447.601 1z"/>
           </svg>
@@ -45,7 +45,9 @@
         <input
           type="text"
           class="w-full px-4"
+          :class="{ 'bg-gray-100 text-gray-400 cursor-not-allowed': isInputDisabled }"
           :placeholder="getInputPlaceholder()"
+          :disabled="isInputDisabled"
           v-model="newMessage"
           @keyup.enter="sendMessage"
         />
@@ -59,7 +61,6 @@ import ChatMessage from './ChatMessage.vue'
 import io from 'socket.io-client'
 
 const MAX_MESSAGE_LENGTH = 2000
-const MAX_USERNAME_LENGTH = 30
 
 export default {
   name: 'ChatContent',
@@ -74,6 +75,10 @@ export default {
     currentChannel: {
       type: String,
       default: 'general'
+    },
+    isSignedIn: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -88,6 +93,9 @@ export default {
     }
   },
   computed: {
+    isInputDisabled() {
+      return !this.isSignedIn && this.currentChannel !== 'welcome';
+    },
     channelDescription() {
       const descriptions = {
         welcome: 'Say hi — no account needed.',
@@ -207,13 +215,6 @@ export default {
       });
     });
 
-    // Handle username changes
-    this.socket.on('username_change', (data) => {
-      if (data.newUsername) {
-        this.$emit('username-change', data.newUsername);
-      }
-    });
-
     // Handle channel change
     this.socket.on('join_channel', () => {
       // Server acknowledgment after joining a channel
@@ -233,6 +234,16 @@ export default {
         return;
       }
 
+      if (!this.isSignedIn && this.localChannel !== 'welcome') {
+        this.messages.push({
+          timestamp: new Date().toISOString(),
+          username: 'System',
+          message: 'You must sign in to post in this channel. You can post in #welcome without an account.'
+        });
+        this.newMessage = '';
+        return;
+      }
+
       if (this.newMessage.length > MAX_MESSAGE_LENGTH) {
         this.messages.push({
           timestamp: new Date().toISOString(),
@@ -242,48 +253,12 @@ export default {
         return;
       }
 
-      // Check if this is a /nick command
-      if (this.newMessage.startsWith('/nick ')) {
-        const newUsername = this.newMessage.slice(6).trim();
-
-        if (newUsername && newUsername.length > MAX_USERNAME_LENGTH) {
-          this.messages.push({
-            timestamp: new Date().toISOString(),
-            username: 'System',
-            message: `Username exceeds maximum length of ${MAX_USERNAME_LENGTH} characters.`
-          });
-          this.newMessage = '';
-          return;
-        }
-
-        if (newUsername) {
-          // Emit an event to the parent component to change the username
-          this.$emit('username-change', newUsername);
-
-          // Notify the server about the username change
-          if (this.socket) {
-            this.socket.emit('username_change', {
-              oldUsername: this.localUsername,
-              newUsername: newUsername,
-              channel: this.localChannel
-            });
-          }
-
-          // Add a system message about the username change
-          this.messages.push({
-            timestamp: new Date().toISOString(),
-            username: 'System',
-            message: `${this.localUsername} changed their username to ${newUsername}`
-          });
-        }
-      } else {
-        // Send regular message to server
-        this.socket.emit('chat_message', {
-          username: this.localUsername,
-          message: this.newMessage,
-          channel: this.localChannel
-        });
-      }
+      // Send regular message to server
+      this.socket.emit('chat_message', {
+        username: this.localUsername,
+        message: this.newMessage,
+        channel: this.localChannel
+      });
 
       this.newMessage = '';
     },
@@ -338,6 +313,9 @@ export default {
       return this.currentChannel;
     },
     getInputPlaceholder() {
+      if (!this.isSignedIn && this.currentChannel !== 'welcome') {
+        return 'Sign in to post in this channel.';
+      }
       return `Message #${this.currentChannel}`;
     }
   }

@@ -23,7 +23,6 @@ const CHANNELS = ['welcome', 'general', 'growth', 'feedback'];
 
 // Validation constants
 const MAX_MESSAGE_LENGTH = 2000;
-const MAX_USERNAME_LENGTH = 30;
 
 // Database connection pool
 const pool = new Pool({
@@ -146,45 +145,6 @@ function setupSocketHandlers(io) {
       } catch (error) {
         console.error('Error saving message to database:', error);
         socket.emit('error', { message: 'Failed to save message' });
-      }
-    });
-
-    // Handle username changes
-    socket.on('username_change', async (data) => {
-      // Validate new username
-      if (!data.newUsername || typeof data.newUsername !== 'string' || data.newUsername.trim() === '') {
-        socket.emit('error', { message: 'Username cannot be empty' });
-        return;
-      }
-      if (data.newUsername.length > MAX_USERNAME_LENGTH) {
-        socket.emit('error', { message: `Username exceeds maximum length of ${MAX_USERNAME_LENGTH} characters` });
-        return;
-      }
-
-      // Update the username for this socket
-      username = data.newUsername;
-
-      // Log the username change as a system message to the specified channel
-      const timestamp = new Date().toISOString();
-      const channel = data.channel || 'general';
-      const systemMessage = `${data.oldUsername} changed their username to ${data.newUsername}`;
-
-      // Save system message to database
-      try {
-        await pool.query(
-          'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
-          [timestamp, 'System', systemMessage, channel]
-        );
-
-        // Broadcast to all clients in the channel except the sender
-        socket.to(channel).emit('chat_message', {
-          timestamp,
-          username: 'System',
-          message: systemMessage,
-          channel: channel
-        });
-      } catch (error) {
-        console.error('Error saving username change to database:', error);
       }
     });
 
