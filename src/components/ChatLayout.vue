@@ -23,6 +23,7 @@
     <ChatContent
       :username="username"
       :current-channel="currentChannel"
+      :is-signed-in="isSignedIn"
       @connection-change="handleConnectionStatusChange"
       @username-change="handleUsernameChange"
       @channel-change="changeChannel"

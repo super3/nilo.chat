@@ -141,8 +141,6 @@ describe('Server Module - Comprehensive', () => {
           mockSocket.chatMessageCallback = callback;
         } else if (event === 'disconnect') {
           mockSocket.disconnectCallback = callback;
-        } else if (event === 'username_change') {
-          mockSocket.usernameChangeCallback = callback;
         } else if (event === 'join_channel') {
           mockSocket.joinChannelCallback = callback;
         }
@@ -263,47 +261,6 @@ describe('Server Module - Comprehensive', () => {
     }
     
     // No specific behavior to test here, just covering the code path
-  });
-  
-  test('handles username_change event and broadcasts notification', async () => {
-    // Verify socket.on was called for username_change event
-    expect(mockSocket.on).toHaveBeenCalledWith('username_change', expect.any(Function));
-
-    // Store the username_change callback for testing
-    const usernameChangeCallback = mockSocket.on.mock.calls.find(
-      call => call[0] === 'username_change'
-    )[1];
-
-    // Setup mock socket.to emitter
-    const mockToEmitter = jest.fn();
-    mockSocket.to.mockReturnValue({ emit: mockToEmitter });
-
-    // Prepare test data
-    const changeData = {
-      oldUsername: 'OldUserName',
-      newUsername: 'NewUserName'
-    };
-
-    // Call the handler (it's async now)
-    await usernameChangeCallback(changeData);
-
-    // Verify username was updated and broadcast to the room
-    expect(mockSocket.to).toHaveBeenCalledWith('general');
-    expect(mockToEmitter).toHaveBeenCalledWith('chat_message', expect.objectContaining({
-      username: 'System',
-      message: `${changeData.oldUsername} changed their username to ${changeData.newUsername}`
-    }));
-
-    // Verify database INSERT was called
-    expect(mockPool.query).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO messages'),
-      expect.arrayContaining([
-        expect.any(String), // timestamp
-        'System',
-        `${changeData.oldUsername} changed their username to ${changeData.newUsername}`,
-        'general' // default channel
-      ])
-    );
   });
   
   test('configures express with static file middleware', () => {
@@ -458,9 +415,6 @@ describe('Server Module - Comprehensive', () => {
 
     // Test chat_message with no channel specified
     await handlers.chat_message({ username: 'testuser', message: 'hello' });
-
-    // Test username_change with no channel specified
-    await handlers.username_change({ oldUsername: 'old', newUsername: 'new' });
   });
 
   // File-based tests removed - replaced with database storage
@@ -759,70 +713,6 @@ describe('Server Module - Comprehensive', () => {
     expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username is required' });
   });
 
-  test('rejects username_change with empty new username', async () => {
-    await mockSocket.usernameChangeCallback({ oldUsername: 'Old', newUsername: '' });
-    expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username cannot be empty' });
-  });
-
-  test('rejects username_change with missing new username', async () => {
-    await mockSocket.usernameChangeCallback({ oldUsername: 'Old' });
-    expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username cannot be empty' });
-  });
-
-  test('rejects username_change exceeding max length', async () => {
-    const longUsername = 'a'.repeat(31);
-    await mockSocket.usernameChangeCallback({ oldUsername: 'Old', newUsername: longUsername });
-    expect(mockSocket.emit).toHaveBeenCalledWith('error', {
-      message: 'Username exceeds maximum length of 30 characters'
-    });
-  });
-
-  test('handles database error when saving username change', async () => {
-    // Mock socket for testing
-    const socket = {
-      join: jest.fn(),
-      leave: jest.fn(),
-      emit: jest.fn(),
-      on: jest.fn(),
-      to: jest.fn().mockReturnThis()
-    };
-
-    const io = {
-      on: jest.fn(),
-      to: jest.fn().mockReturnThis(),
-      emit: jest.fn()
-    };
-
-    // Mock pool.query to throw error on INSERT
-    mockPool.query.mockImplementation((sql) => {
-      if (sql.includes('INSERT')) {
-        return Promise.reject(new Error('Database write error'));
-      }
-      return Promise.resolve({ rows: [] });
-    });
-
-    // Get the socket handler function
-    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
-    const socketHandler = setupSocketHandlers(io);
-
-    // Register handlers
-    socketHandler(socket);
-
-    // Get username_change handler
-    const usernameChangeHandler = socket.on.mock.calls.find(call => call[0] === 'username_change')[1];
-
-    // Spy on console.error
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-
-    // Test username_change with database error
-    await usernameChangeHandler({ oldUsername: 'OldName', newUsername: 'NewName', channel: 'general' });
-
-    // Verify error was logged
-    expect(consoleErrorSpy).toHaveBeenCalledWith('Error saving username change to database:', expect.any(Error));
-
-    consoleErrorSpy.mockRestore();
-    mockPool.query.mockReset();
-  });
 
 });
 
