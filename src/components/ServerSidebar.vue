@@ -38,7 +38,7 @@
       <div
         v-else
         ref="clerkUserButton"
-        class="h-12 w-12 flex items-center justify-center"
+        class="h-12 w-12 flex items-center justify-center overflow-hidden"
         data-testid="profile-button"
       />
     </div>

@@ -147,6 +147,8 @@ export default {
           afterSignOutUrl: window.location.href,
           appearance: {
             elements: {
+              userButtonBox: 'w-12 h-12',
+              userButtonTrigger: 'w-12 h-12',
               userButtonAvatarBox: 'w-12 h-12 rounded-lg',
               avatarBox: 'w-12 h-12 rounded-lg'
             }
