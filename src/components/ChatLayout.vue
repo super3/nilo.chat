@@ -78,13 +78,21 @@ export default {
       try { localStorage.setItem('nilo_first_join', 'true'); } catch (e) { /* storage unavailable */ }
     }
 
+    // Read cached auth state to prevent UI flash on refresh
+    let cachedSignedIn = false;
+    let cachedProfileImage = '';
+    try {
+      cachedSignedIn = localStorage.getItem('nilo_signed_in') === 'true';
+      cachedProfileImage = localStorage.getItem('nilo_profile_image') || '';
+    } catch (e) { /* storage unavailable */ }
+
     return {
       username: username,
       isConnected: false,
       currentChannel: savedChannel,
       isFirstJoin: isFirstJoin,
-      isSignedIn: false,
-      profileImageUrl: '',
+      isSignedIn: cachedSignedIn,
+      profileImageUrl: cachedProfileImage,
       channelUnreadCounts: {
         welcome: 0,
         general: 0,
@@ -133,18 +141,42 @@ export default {
         if (clerk.user) {
           this.isSignedIn = true;
           this.profileImageUrl = clerk.user.imageUrl || '';
+          try {
+            localStorage.setItem('nilo_signed_in', 'true');
+            localStorage.setItem('nilo_profile_image', clerk.user.imageUrl || '');
+          } catch (e) { /* storage unavailable */ }
           const clerkName = clerk.user.username ||
             clerk.user.firstName ||
             clerk.user.emailAddresses[0]?.emailAddress;
           if (clerkName) {
             this.handleUsernameChange(clerkName);
           }
+          // Re-mount Clerk user button now that Clerk is loaded
+          // (needed when isSignedIn was cached — the early mount attempt
+          // from ServerSidebar's mounted() hook fails before Clerk loads)
+          if (this._clerkButtonEl) {
+            this.mountClerkUserButton(this._clerkButtonEl);
+          }
+        } else if (this.isSignedIn) {
+          // Cached state said signed in, but Clerk says not — reset
+          this.isSignedIn = false;
+          this.profileImageUrl = '';
+          try {
+            localStorage.setItem('nilo_signed_in', 'false');
+            localStorage.setItem('nilo_profile_image', '');
+          } catch (e) { /* storage unavailable */ }
+          const anonName = 'User_' + Math.floor(Math.random() * 1000);
+          this.handleUsernameChange(anonName);
         }
 
         this._clerkPoll = setInterval(() => {
           if (!window.Clerk.user && this.isSignedIn) {
             this.isSignedIn = false;
             this.profileImageUrl = '';
+            try {
+              localStorage.setItem('nilo_signed_in', 'false');
+              localStorage.setItem('nilo_profile_image', '');
+            } catch (e) { /* storage unavailable */ }
             const anonName = 'User_' + Math.floor(Math.random() * 1000);
             this.handleUsernameChange(anonName);
           }
@@ -169,6 +201,10 @@ export default {
         if (clerk.user) {
           this.isSignedIn = true;
           this.profileImageUrl = clerk.user.imageUrl || '';
+          try {
+            localStorage.setItem('nilo_signed_in', 'true');
+            localStorage.setItem('nilo_profile_image', clerk.user.imageUrl || '');
+          } catch (e) { /* storage unavailable */ }
           const clerkName = clerk.user.username ||
             clerk.user.firstName ||
             clerk.user.emailAddresses[0]?.emailAddress;
@@ -181,6 +217,7 @@ export default {
       }
     },
     mountClerkUserButton(el) {
+      this._clerkButtonEl = el;
       try {
         if (!window.Clerk || !el) {
           return;

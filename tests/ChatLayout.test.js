@@ -185,6 +185,171 @@ describe('ChatLayout.vue', () => {
     expect(wrapper.vm.isSignedIn).toBe(false);
   });
 
+  // Cached auth state tests
+  test('initializes isSignedIn from localStorage cache', () => {
+    const spy = jest.spyOn(window.localStorage, 'getItem').mockImplementation((key) => {
+      if (key === 'nilo_signed_in') return 'true';
+      if (key === 'nilo_profile_image') return 'https://example.com/avatar.jpg';
+      if (key === 'nilo_first_join') return 'true';
+      return null;
+    });
+
+    const wrapper = shallowMount(ChatLayout);
+
+    expect(wrapper.vm.isSignedIn).toBe(true);
+    expect(wrapper.vm.profileImageUrl).toBe('https://example.com/avatar.jpg');
+    spy.mockRestore();
+  });
+
+  test('initializes isSignedIn as false when cache is not set', () => {
+    const wrapper = shallowMount(ChatLayout);
+
+    expect(wrapper.vm.isSignedIn).toBe(false);
+    expect(wrapper.vm.profileImageUrl).toBe('');
+  });
+
+  test('initClerk caches auth state to localStorage on sign-in', async () => {
+    jest.useFakeTimers();
+    window.Clerk = {
+      load: jest.fn().mockResolvedValue(undefined),
+      user: {
+        imageUrl: 'https://example.com/photo.jpg',
+        username: 'clerkuser',
+        firstName: 'Test',
+        emailAddresses: [{ emailAddress: 'test@example.com' }]
+      }
+    };
+
+    const wrapper = shallowMount(ChatLayout);
+    await wrapper.vm.initClerk();
+
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_signed_in', 'true');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_profile_image', 'https://example.com/photo.jpg');
+    jest.useRealTimers();
+  });
+
+  test('initClerk re-mounts Clerk user button when element was saved', async () => {
+    jest.useFakeTimers();
+    window.Clerk = {
+      load: jest.fn().mockResolvedValue(undefined),
+      mountUserButton: jest.fn(),
+      user: {
+        imageUrl: 'https://example.com/photo.jpg',
+        username: 'clerkuser',
+        firstName: 'Test',
+        emailAddresses: [{ emailAddress: 'test@example.com' }]
+      }
+    };
+
+    const wrapper = shallowMount(ChatLayout);
+    // Simulate ServerSidebar's mounted() having provided the element early
+    const el = document.createElement('div');
+    wrapper.vm._clerkButtonEl = el;
+
+    // Clear any prior calls from mounted() initClerk
+    window.Clerk.mountUserButton.mockClear();
+
+    await wrapper.vm.initClerk();
+
+    // initClerk should re-mount with the saved element
+    expect(window.Clerk.mountUserButton).toHaveBeenCalled();
+    expect(window.Clerk.mountUserButton.mock.calls[0][0]).toBe(el);
+    jest.useRealTimers();
+  });
+
+  test('mountClerkUserButton saves element reference', () => {
+    const wrapper = shallowMount(ChatLayout);
+    const el = document.createElement('div');
+
+    wrapper.vm.mountClerkUserButton(el);
+
+    expect(wrapper.vm._clerkButtonEl).toBe(el);
+  });
+
+  test('initClerk resets cached state when Clerk says not signed in', async () => {
+    jest.useFakeTimers();
+    // Simulate cached signed-in state
+    const spy = jest.spyOn(window.localStorage, 'getItem').mockImplementation((key) => {
+      if (key === 'nilo_signed_in') return 'true';
+      if (key === 'nilo_profile_image') return 'https://example.com/old.jpg';
+      if (key === 'nilo_first_join') return 'true';
+      return null;
+    });
+
+    window.Clerk = {
+      load: jest.fn().mockResolvedValue(undefined),
+      user: null
+    };
+
+    const wrapper = shallowMount(ChatLayout);
+    spy.mockRestore();
+    // Verify cached state was loaded
+    expect(wrapper.vm.isSignedIn).toBe(true);
+
+    await wrapper.vm.initClerk();
+
+    // Should be reset after Clerk confirms not signed in
+    expect(wrapper.vm.isSignedIn).toBe(false);
+    expect(wrapper.vm.profileImageUrl).toBe('');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_signed_in', 'false');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_profile_image', '');
+    // Should have a guest username
+    expect(wrapper.vm.username).toMatch(/^User_\d+$/);
+    jest.useRealTimers();
+  });
+
+  test('polling clears localStorage cache on sign-out', async () => {
+    jest.useFakeTimers();
+    window.Clerk = {
+      load: jest.fn().mockResolvedValue(undefined),
+      user: {
+        imageUrl: 'https://example.com/photo.jpg',
+        username: 'clerkuser',
+        firstName: 'Test',
+        emailAddresses: [{ emailAddress: 'test@example.com' }]
+      }
+    };
+
+    const wrapper = shallowMount(ChatLayout);
+    await wrapper.vm.initClerk();
+
+    // Clear mock call history to isolate polling behavior
+    localStorageMock.setItem.mockClear();
+
+    // Simulate Clerk sign-out
+    window.Clerk.user = null;
+    jest.advanceTimersByTime(1000);
+
+    expect(wrapper.vm.isSignedIn).toBe(false);
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_signed_in', 'false');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_profile_image', '');
+    // Should have a guest username
+    expect(wrapper.vm.username).toMatch(/^User_\d+$/);
+    jest.useRealTimers();
+  });
+
+  test('handleSignIn caches auth state to localStorage', async () => {
+    window.Clerk = {
+      loaded: true,
+      load: jest.fn().mockResolvedValue(undefined),
+      openSignIn: jest.fn().mockImplementation(async () => {
+        window.Clerk.user = {
+          imageUrl: 'https://example.com/new.jpg',
+          username: 'newuser',
+          firstName: 'New',
+          emailAddresses: [{ emailAddress: 'new@example.com' }]
+        };
+      }),
+      user: null
+    };
+
+    const wrapper = shallowMount(ChatLayout);
+    await wrapper.vm.handleSignIn();
+
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_signed_in', 'true');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_profile_image', 'https://example.com/new.jpg');
+  });
+
   test('initializes with isFirstJoin as true for first-time users', () => {
     // Mock localStorage for first-time user
     jest.spyOn(window.localStorage, 'getItem').mockImplementation((key) => {

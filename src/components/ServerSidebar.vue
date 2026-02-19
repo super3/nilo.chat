@@ -71,6 +71,13 @@ export default {
       default: ''
     }
   },
+  mounted() {
+    if (this.isSignedIn) {
+      this.$nextTick(() => {
+        this.$emit('mount-user-button', this.$refs.clerkUserButton);
+      });
+    }
+  },
   watch: {
     isSignedIn(val) {
       if (val) {
