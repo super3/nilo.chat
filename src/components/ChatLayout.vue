@@ -5,6 +5,8 @@
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
       :is-signed-in="isSignedIn"
+      :clerk-ready="clerkReady"
+      :profile-image-url="profileImageUrl"
       :username="username"
       @channel-change="changeChannel"
       @sign-in="handleSignIn"
@@ -92,6 +94,7 @@ export default {
       currentChannel: savedChannel,
       isFirstJoin: isFirstJoin,
       isSignedIn: cachedSignedIn,
+      clerkReady: false,
       profileImageUrl: cachedProfileImage,
       channelUnreadCounts: {
         welcome: 0,
@@ -160,6 +163,7 @@ export default {
         } else if (this.isSignedIn) {
           // Cached state said signed in, but Clerk says not — reset
           this.isSignedIn = false;
+          this.clerkReady = false;
           this.profileImageUrl = '';
           try {
             localStorage.setItem('nilo_signed_in', 'false');
@@ -172,6 +176,7 @@ export default {
         this._clerkPoll = setInterval(() => {
           if (!window.Clerk.user && this.isSignedIn) {
             this.isSignedIn = false;
+            this.clerkReady = false;
             this.profileImageUrl = '';
             try {
               localStorage.setItem('nilo_signed_in', 'false');
@@ -236,6 +241,7 @@ export default {
             }
           }
         });
+        this.clerkReady = true;
       } catch (e) {
         // Clerk UserButton mount failed
       }

@@ -35,8 +35,16 @@
           <path d="M5 5a5 5 0 0 1 10 0v2A5 5 0 0 1 5 7V5zM0 16.68A19.9 19.9 0 0 1 10 14c3.64 0 7.06.97 10 2.68V20H0v-3.32z"/>
         </svg>
       </button>
+      <img
+        v-if="profileImageUrl"
+        v-show="isSignedIn && !clerkReady"
+        :src="profileImageUrl"
+        class="h-12 w-12 rounded-lg object-cover"
+        alt="Profile"
+        data-testid="profile-placeholder"
+      />
       <div
-        v-show="isSignedIn"
+        v-show="isSignedIn && clerkReady"
         ref="clerkUserButton"
         class="h-12 w-12 flex items-center justify-center overflow-hidden"
         data-testid="profile-button"
@@ -65,6 +73,14 @@ export default {
     isSignedIn: {
       type: Boolean,
       default: false
+    },
+    clerkReady: {
+      type: Boolean,
+      default: false
+    },
+    profileImageUrl: {
+      type: String,
+      default: ''
     },
     username: {
       type: String,
