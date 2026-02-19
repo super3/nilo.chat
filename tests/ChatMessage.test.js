@@ -74,6 +74,30 @@ describe('ChatMessage.vue', () => {
     expect(wrapper.vm.hasCode).toBe(true);
   });
   
+  test('uses profileImageUrl for avatar when provided', () => {
+    const wrapper = shallowMount(ChatMessage, {
+      propsData: {
+        ...defaultProps,
+        profileImageUrl: 'https://img.clerk.com/user123.jpg'
+      }
+    });
+
+    const avatar = wrapper.find('img');
+    expect(avatar.attributes('src')).toBe('https://img.clerk.com/user123.jpg');
+  });
+
+  test('falls back to generated avatar when profileImageUrl is empty', () => {
+    const wrapper = shallowMount(ChatMessage, {
+      propsData: {
+        ...defaultProps,
+        profileImageUrl: ''
+      }
+    });
+
+    const avatar = wrapper.find('img');
+    expect(avatar.attributes('src')).toBe('https://ui-avatars.com/api/?name=testuser&background=4F46E5&color=fff');
+  });
+
   test('encodes username in avatar URL', () => {
     const wrapper = shallowMount(ChatMessage, {
       propsData: {

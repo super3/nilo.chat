@@ -63,12 +63,12 @@ app.get('*', (req, res) => {
 async function sendMessageHistory(socket, channel) {
   try {
     const result = await pool.query(
-      'SELECT timestamp, username, message FROM messages WHERE channel = $1 ORDER BY timestamp ASC',
+      'SELECT timestamp, username, message, profile_image_url FROM messages WHERE channel = $1 ORDER BY timestamp ASC',
       [channel]
     );
 
     const history = result.rows.map(row =>
-      `${row.timestamp.toISOString()}|${row.username}|${row.message}`
+      `${row.timestamp.toISOString()}|${row.username}|${row.profile_image_url || ''}|${row.message}`
     );
 
     socket.emit('message_history', history);
@@ -123,12 +123,13 @@ function setupSocketHandlers(io) {
 
       const timestamp = new Date().toISOString();
       const channel = data.channel || 'general';
+      const profileImageUrl = data.profileImageUrl || null;
 
       // Save message to database
       try {
         await pool.query(
-          'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
-          [timestamp, data.username, data.message, channel]
+          'INSERT INTO messages (timestamp, username, message, channel, profile_image_url) VALUES ($1, $2, $3, $4, $5)',
+          [timestamp, data.username, data.message, channel, profileImageUrl]
         );
 
         // Create message object with channel explicitly included
@@ -136,7 +137,8 @@ function setupSocketHandlers(io) {
           timestamp,
           username: data.username,
           message: data.message,
-          channel: channel
+          channel: channel,
+          profileImageUrl: profileImageUrl || ''
         };
 
         // Broadcast to ALL clients, not just those in the channel

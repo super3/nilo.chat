@@ -24,6 +24,7 @@
       :username="username"
       :current-channel="currentChannel"
       :is-signed-in="isSignedIn"
+      :profile-image-url="profileImageUrl"
       @connection-change="handleConnectionStatusChange"
       @username-change="handleUsernameChange"
       @channel-change="changeChannel"
@@ -83,6 +84,7 @@ export default {
       currentChannel: savedChannel,
       isFirstJoin: isFirstJoin,
       isSignedIn: false,
+      profileImageUrl: '',
       channelUnreadCounts: {
         welcome: 0,
         general: 0,
@@ -130,6 +132,7 @@ export default {
 
         if (clerk.user) {
           this.isSignedIn = true;
+          this.profileImageUrl = clerk.user.imageUrl || '';
           const clerkName = clerk.user.username ||
             clerk.user.firstName ||
             clerk.user.emailAddresses[0]?.emailAddress;
@@ -141,6 +144,7 @@ export default {
         this._clerkPoll = setInterval(() => {
           if (!window.Clerk.user && this.isSignedIn) {
             this.isSignedIn = false;
+            this.profileImageUrl = '';
             const anonName = 'User_' + Math.floor(Math.random() * 1000);
             this.handleUsernameChange(anonName);
           }
@@ -164,6 +168,7 @@ export default {
 
         if (clerk.user) {
           this.isSignedIn = true;
+          this.profileImageUrl = clerk.user.imageUrl || '';
           const clerkName = clerk.user.username ||
             clerk.user.firstName ||
             clerk.user.emailAddresses[0]?.emailAddress;

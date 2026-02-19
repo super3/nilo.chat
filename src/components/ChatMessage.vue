@@ -38,6 +38,10 @@ export default {
     avatarColor: {
       type: String,
       default: '4F46E5'
+    },
+    profileImageUrl: {
+      type: String,
+      default: ''
     }
   },
   computed: {
@@ -45,6 +49,9 @@ export default {
       return this.code !== '';
     },
     avatarUrl() {
+      if (this.profileImageUrl) {
+        return this.profileImageUrl;
+      }
       return `https://ui-avatars.com/api/?name=${encodeURIComponent(this.username)}&background=${this.avatarColor}&color=fff`;
     }
   }
