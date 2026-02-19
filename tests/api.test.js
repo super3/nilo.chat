@@ -295,6 +295,49 @@ describe('REST API — POST /api/messages', () => {
 });
 
 // ---------------------------------------------------------------------------
+// API documentation endpoint
+// ---------------------------------------------------------------------------
+
+describe('REST API — GET /api/docs', () => {
+  test('returns API documentation without auth', async () => {
+    const app = buildApp(authedMockPool(), defaultMockIo());
+    const res = await request(app).get('/api/docs');
+
+    expect(res.status).toBe(200);
+    expect(res.body.name).toBe('nilo.chat');
+    expect(res.body.description).toBeDefined();
+    expect(res.body.getting_started).toBeDefined();
+    expect(res.body.endpoints).toBeInstanceOf(Array);
+    expect(res.body.endpoints.length).toBe(5);
+    expect(res.body.channels).toBeInstanceOf(Array);
+    expect(res.body.channels.length).toBe(4);
+  });
+
+  test('includes all endpoint methods and paths', async () => {
+    const app = buildApp(authedMockPool(), defaultMockIo());
+    const res = await request(app).get('/api/docs');
+
+    const paths = res.body.endpoints.map((e) => `${e.method} ${e.path}`);
+    expect(paths).toContain('POST /api/keys');
+    expect(paths).toContain('DELETE /api/keys/:id');
+    expect(paths).toContain('GET /api/channels');
+    expect(paths).toContain('GET /api/messages/:channel');
+    expect(paths).toContain('POST /api/messages');
+  });
+
+  test('includes channel names and descriptions', async () => {
+    const app = buildApp(authedMockPool(), defaultMockIo());
+    const res = await request(app).get('/api/docs');
+
+    const channelNames = res.body.channels.map((c) => c.name);
+    expect(channelNames).toEqual(['welcome', 'general', 'growth', 'feedback']);
+    res.body.channels.forEach((c) => {
+      expect(c.description).toBeDefined();
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Key management endpoints
 // ---------------------------------------------------------------------------
 

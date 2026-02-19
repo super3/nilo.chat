@@ -213,4 +213,13 @@ describe('ServerSidebar.vue', () => {
     const wrapper = shallowMount(ServerSidebar);
     expect(wrapper.vm.clerkReady).toBe(false);
   });
+
+  test('renders API docs link', () => {
+    const wrapper = shallowMount(ServerSidebar);
+
+    const docsLink = wrapper.find('[data-testid="api-docs-link"]');
+    expect(docsLink.exists()).toBe(true);
+    expect(docsLink.attributes('href')).toBe('/api/docs');
+    expect(docsLink.attributes('target')).toBe('_blank');
+  });
 });
