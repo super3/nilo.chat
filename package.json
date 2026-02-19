@@ -50,7 +50,11 @@
   },
   "jest": {
     "testEnvironment": "jsdom",
-    "moduleFileExtensions": ["js", "json", "vue"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "vue"
+    ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1",
       "\\.(css|less|scss|sass)$": "<rootDir>/tests/mocks/styleMock.js"
@@ -59,11 +63,20 @@
       "^.+\\.js$": "babel-jest",
       "^.+\\.vue$": "@vue/vue3-jest"
     },
-    "testMatch": ["**/tests/**/*.test.js"],
-    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
-    "transformIgnorePatterns": ["/node_modules/"],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.js"
+    ],
+    "transformIgnorePatterns": [
+      "/node_modules/"
+    ],
     "testEnvironmentOptions": {
-      "customExportConditions": ["node", "node-addons"]
+      "customExportConditions": [
+        "node",
+        "node-addons"
+      ]
     },
     "collectCoverage": true,
     "collectCoverageFrom": [
@@ -73,7 +86,11 @@
       "!src/tailwind.config.js",
       "!src/server/db/**"
     ],
-    "coverageReporters": ["text", "lcov", "html"]
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ]
   },
   "postcss": {
     "plugins": {
@@ -98,8 +115,16 @@
     "rules": {
       "no-var": "error",
       "prefer-const": "warn",
-      "eqeqeq": ["error", "always"],
-      "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
+      "eqeqeq": [
+        "error",
+        "always"
+      ],
+      "no-unused-vars": [
+        "warn",
+        {
+          "argsIgnorePattern": "^_"
+        }
+      ]
     }
   },
   "browserslist": [
