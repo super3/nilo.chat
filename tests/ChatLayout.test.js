@@ -16,8 +16,8 @@ jest.mock('../src/components/MainSidebar.vue', () => ({
 jest.mock('../src/components/ChatContent.vue', () => ({
   name: 'ChatContent',
   template: '<div>Chat Content</div>',
-  props: ['username', 'isSignedIn'],
-  emits: ['connection-change', 'username-change', 'sign-in'],
+  props: ['username'],
+  emits: ['connection-change', 'username-change'],
   methods: {
     receiveGreetingFromSteve: jest.fn()
   }

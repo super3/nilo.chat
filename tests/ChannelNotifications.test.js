@@ -17,7 +17,7 @@ jest.mock('../src/components/MainSidebar.vue', () => ({
 jest.mock('../src/components/ChatContent.vue', () => ({
   name: 'ChatContent',
   template: '<div class="chat-content" data-testid="chat-content"><slot></slot></div>',
-  props: ['username', 'currentChannel', 'isSignedIn'],
+  props: ['username', 'currentChannel'],
   methods: {
     switchChannel: jest.fn(),
   },

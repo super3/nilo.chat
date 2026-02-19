@@ -55,7 +55,7 @@
         class="w-full bg-teal-dark hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
         data-testid="join-button"
       >
-        Join
+        Join / Sign In
       </button>
       <div v-else class="flex items-center text-white text-sm" data-testid="user-signed-in">
         <span class="rounded-full bg-green-500 block w-2 h-2 mr-2"></span>

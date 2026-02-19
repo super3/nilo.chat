@@ -193,7 +193,7 @@ describe('MainSidebar.vue', () => {
 
     const joinButton = wrapper.find('[data-testid="join-button"]');
     expect(joinButton.exists()).toBe(true);
-    expect(joinButton.text()).toBe('Join');
+    expect(joinButton.text()).toBe('Join / Sign In');
     expect(wrapper.find('[data-testid="user-signed-in"]').exists()).toBe(false);
   });
 

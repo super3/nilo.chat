@@ -19,12 +19,10 @@
     <ChatContent
       :username="username"
       :current-channel="currentChannel"
-      :is-signed-in="isSignedIn"
       @connection-change="handleConnectionStatusChange"
       @username-change="handleUsernameChange"
       @channel-change="changeChannel"
       @message-received="handleMessageReceived"
-      @sign-in="handleSignIn"
       ref="chatContent"
     />
   </div>
