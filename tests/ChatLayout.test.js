@@ -183,6 +183,7 @@ describe('ChatLayout.vue', () => {
     expect(wrapper.vm.currentChannel).toBeTruthy();
     expect(wrapper.vm.channelUnreadCounts).toBeDefined();
     expect(wrapper.vm.isSignedIn).toBe(false);
+    expect(wrapper.vm.clerkReady).toBe(false);
   });
 
   // Cached auth state tests
@@ -290,6 +291,7 @@ describe('ChatLayout.vue', () => {
 
     // Should be reset after Clerk confirms not signed in
     expect(wrapper.vm.isSignedIn).toBe(false);
+    expect(wrapper.vm.clerkReady).toBe(false);
     expect(wrapper.vm.profileImageUrl).toBe('');
     expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_signed_in', 'false');
     expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_profile_image', '');
@@ -321,6 +323,7 @@ describe('ChatLayout.vue', () => {
     jest.advanceTimersByTime(1000);
 
     expect(wrapper.vm.isSignedIn).toBe(false);
+    expect(wrapper.vm.clerkReady).toBe(false);
     expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_signed_in', 'false');
     expect(localStorageMock.setItem).toHaveBeenCalledWith('nilo_profile_image', '');
     // Should have a guest username
@@ -761,17 +764,17 @@ describe('ChatLayout.vue', () => {
     expect(window.Clerk.mountUserButton).not.toHaveBeenCalled();
   });
 
-  test('mountClerkUserButton clears placeholder before mounting', () => {
+  test('mountClerkUserButton sets clerkReady to true after mounting', () => {
     window.Clerk = {
       mountUserButton: jest.fn()
     };
     const wrapper = shallowMount(ChatLayout);
     const el = document.createElement('div');
-    el.innerHTML = '<img src="https://example.com/avatar.jpg" />';
 
+    expect(wrapper.vm.clerkReady).toBe(false);
     wrapper.vm.mountClerkUserButton(el);
 
-    expect(el.innerHTML).not.toContain('img');
+    expect(wrapper.vm.clerkReady).toBe(true);
     expect(window.Clerk.mountUserButton).toHaveBeenCalled();
   });
 

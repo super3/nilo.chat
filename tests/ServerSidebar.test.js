@@ -94,9 +94,9 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.find('[data-testid="profile-button"]').isVisible()).toBe(false);
   });
 
-  test('shows profile area when signed in', () => {
+  test('shows profile area when signed in and clerk ready', () => {
     const wrapper = shallowMount(ServerSidebar, {
-      propsData: { isSignedIn: true, username: 'testuser' }
+      propsData: { isSignedIn: true, clerkReady: true, username: 'testuser' }
     });
 
     expect(wrapper.find('[data-testid="join-button"]').isVisible()).toBe(false);
@@ -166,19 +166,29 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.emitted('mount-user-button')).toBeFalsy();
   });
 
-  test('shows placeholder image when signed in with cached profile image', () => {
+  test('shows placeholder image when signed in with cached profile image and clerk not ready', () => {
     const wrapper = shallowMount(ServerSidebar, {
-      propsData: { isSignedIn: true, profileImageUrl: 'https://example.com/avatar.jpg' }
+      propsData: { isSignedIn: true, clerkReady: false, profileImageUrl: 'https://example.com/avatar.jpg' }
     });
 
     const placeholder = wrapper.find('[data-testid="profile-placeholder"]');
     expect(placeholder.exists()).toBe(true);
+    expect(placeholder.isVisible()).toBe(true);
     expect(placeholder.attributes('src')).toBe('https://example.com/avatar.jpg');
+  });
+
+  test('hides placeholder image when clerk is ready', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: true, clerkReady: true, profileImageUrl: 'https://example.com/avatar.jpg' }
+    });
+
+    const placeholder = wrapper.find('[data-testid="profile-placeholder"]');
+    expect(placeholder.isVisible()).toBe(false);
   });
 
   test('does not show placeholder image when profileImageUrl is empty', () => {
     const wrapper = shallowMount(ServerSidebar, {
-      propsData: { isSignedIn: true, profileImageUrl: '' }
+      propsData: { isSignedIn: true, clerkReady: false, profileImageUrl: '' }
     });
 
     const placeholder = wrapper.find('[data-testid="profile-placeholder"]');
@@ -197,5 +207,10 @@ describe('ServerSidebar.vue', () => {
   test('profileImageUrl defaults to empty string', () => {
     const wrapper = shallowMount(ServerSidebar);
     expect(wrapper.vm.profileImageUrl).toBe('');
+  });
+
+  test('clerkReady defaults to false', () => {
+    const wrapper = shallowMount(ServerSidebar);
+    expect(wrapper.vm.clerkReady).toBe(false);
   });
 });
