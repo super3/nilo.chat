@@ -72,9 +72,10 @@ describe('ChatContent.vue', () => {
     expect(channelHeader.exists()).toBe(true);
     expect(channelHeader.text()).toBe('#general');
 
-    // Check if the input for new messages is present (non-signed-in user sees sign-in placeholder)
+    // Check if the input for new messages is present (non-signed-in user sees sign-in placeholder and is disabled)
     const messageInput = wrapper.find('input[placeholder="Sign in to post in this channel"]');
     expect(messageInput.exists()).toBe(true);
+    expect(messageInput.attributes('disabled')).toBeDefined();
   });
   
   test('initializes with correct data', () => {
@@ -487,14 +488,23 @@ describe('ChatContent.vue', () => {
   });
   
   test('input triggers sendMessage on enter key', async () => {
+    // Use a signed-in wrapper so the input is not disabled
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'general',
+        isSignedIn: true
+      }
+    });
+
     // Spy on sendMessage method
-    const sendMessageSpy = jest.spyOn(wrapper.vm, 'sendMessage');
+    const sendMessageSpy = jest.spyOn(signedInWrapper.vm, 'sendMessage');
 
     // Set message
-    await wrapper.setData({ newMessage: 'test message' });
+    await signedInWrapper.setData({ newMessage: 'test message' });
 
-    // Trigger enter key on input (use the sign-in placeholder since default wrapper is not signed in)
-    await wrapper.find('input[placeholder="Sign in to post in this channel"]').trigger('keyup.enter');
+    // Trigger enter key on input
+    await signedInWrapper.find('input[placeholder="Message #general"]').trigger('keyup.enter');
 
     // Check that sendMessage was called
     expect(sendMessageSpy).toHaveBeenCalled();
@@ -818,8 +828,40 @@ describe('ChatContent.vue', () => {
 
     expect(anonWelcomeWrapper.vm.getInputPlaceholder()).toBe('Message #welcome');
   });
-  
-  
+
+  test('isInputDisabled is true for non-signed-in users on non-welcome channels', () => {
+    const anonWrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'general',
+        isSignedIn: false
+      }
+    });
+    expect(anonWrapper.vm.isInputDisabled).toBe(true);
+  });
+
+  test('isInputDisabled is false for non-signed-in users on #welcome', () => {
+    const anonWelcomeWrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'welcome',
+        isSignedIn: false
+      }
+    });
+    expect(anonWelcomeWrapper.vm.isInputDisabled).toBe(false);
+  });
+
+  test('isInputDisabled is false for signed-in users on any channel', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'general',
+        isSignedIn: true
+      }
+    });
+    expect(signedInWrapper.vm.isInputDisabled).toBe(false);
+  });
+
   test('channelDescription works for regular channels', () => {
     const wrapper = shallowMount(ChatContent, {
       propsData: {

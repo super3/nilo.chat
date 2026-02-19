@@ -45,7 +45,9 @@
         <input
           type="text"
           class="w-full px-4"
+          :class="{ 'bg-gray-100 text-gray-400 cursor-not-allowed': isInputDisabled }"
           :placeholder="getInputPlaceholder()"
+          :disabled="isInputDisabled"
           v-model="newMessage"
           @keyup.enter="sendMessage"
         />
@@ -91,6 +93,9 @@ export default {
     }
   },
   computed: {
+    isInputDisabled() {
+      return !this.isSignedIn && this.currentChannel !== 'welcome';
+    },
     channelDescription() {
       const descriptions = {
         welcome: 'Say hi — no account needed.',
