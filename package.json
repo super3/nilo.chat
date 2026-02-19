@@ -7,9 +7,9 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "deploy": "vue-cli-service build && cp dist/index.html dist/404.html && push-dir --dir=dist --branch=gh-pages --cleanup --allow-unclean",
-    "start": "node server.js",
+    "start": "node server/index.js",
     "dev": "npm run build && npm start",
-    "migrate": "node db/migrate.js",
+    "migrate": "node server/db/migrate.js",
     "test": "jest",
     "test:coverage": "jest --coverage"
   },
@@ -41,6 +41,46 @@
     "push-dir": "^0.4.1",
     "supertest": "^6.3.4",
     "tailwindcss": "^3.3.3"
+  },
+  "babel": {
+    "presets": [
+      "@vue/cli-plugin-babel/preset",
+      "@babel/preset-env"
+    ]
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "moduleFileExtensions": ["js", "json", "vue"],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "\\.(css|less|scss|sass)$": "<rootDir>/tests/mocks/styleMock.js"
+    },
+    "transform": {
+      "^.+\\.js$": "babel-jest",
+      "^.+\\.vue$": "@vue/vue3-jest"
+    },
+    "testMatch": ["**/tests/**/*.test.js"],
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+    "transformIgnorePatterns": ["/node_modules/"],
+    "testEnvironmentOptions": {
+      "customExportConditions": ["node", "node-addons"]
+    },
+    "collectCoverage": true,
+    "collectCoverageFrom": [
+      "src/**/*.{js,vue}",
+      "server/index.js",
+      "!**/node_modules/**",
+      "!**/tests/**"
+    ],
+    "coverageReporters": ["text", "lcov", "html"]
+  },
+  "postcss": {
+    "plugins": {
+      "tailwindcss": {
+        "config": "./src/tailwind.config.js"
+      },
+      "autoprefixer": {}
+    }
   },
   "eslintConfig": {
     "root": true,

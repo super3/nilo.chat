@@ -53,11 +53,11 @@ app.get('/health', (req, res) => {
 });
 
 // Serve static files from the 'dist' folder (production build)
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, '..', 'dist')));
 
 // Return the main index.html for all other routes (SPA)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'dist', 'index.html'));
 });
 
 // Helper function to fetch and send message history for a channel
