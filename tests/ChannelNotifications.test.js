@@ -11,7 +11,7 @@ jest.mock('../src/components/ServerSidebar.vue', () => ({
 jest.mock('../src/components/MainSidebar.vue', () => ({
   name: 'MainSidebar',
   template: '<div class="dm-sidebar" data-testid="dm-sidebar"><slot></slot></div>',
-  props: ['username', 'isConnected', 'currentChannel', 'steveUnreadCount', 'channelUnreadCounts'],
+  props: ['username', 'isConnected', 'currentChannel', 'steveUnreadCount', 'channelUnreadCounts', 'isSignedIn'],
 }));
 
 jest.mock('../src/components/ChatContent.vue', () => ({
@@ -45,7 +45,9 @@ describe('Channel Notifications', () => {
     });
     // Clear localStorage before each test
     localStorageMock.clear();
-    
+    // Clear any window.Clerk mock
+    delete window.Clerk;
+
     // Set up localStorage for a returning user
     localStorageMock.setItem('nilo_first_join', 'true');
     localStorageMock.setItem('nilo_username', 'testuser');

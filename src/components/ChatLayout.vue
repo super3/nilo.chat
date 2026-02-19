@@ -1,24 +1,30 @@
 <template>
   <div class="font-sans antialiased h-screen flex w-full">
     <!-- Sidebar / channel list -->
-    <ServerSidebar 
+    <ServerSidebar
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
+      :is-signed-in="isSignedIn"
+      :username="username"
       @channel-change="changeChannel"
+      @sign-in="handleSignIn"
+      @mount-user-button="mountClerkUserButton"
     />
-    <MainSidebar 
-      :username="username" 
+    <MainSidebar
+      :username="username"
       :is-connected="isConnected"
+      :is-signed-in="isSignedIn"
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
       @channel-change="changeChannel"
+      @sign-in="handleSignIn"
     />
     <!-- Chat content -->
-    <ChatContent 
-      :username="username" 
+    <ChatContent
+      :username="username"
       :current-channel="currentChannel"
       @connection-change="handleConnectionStatusChange"
-      @username-change="handleUsernameChange" 
+      @username-change="handleUsernameChange"
       @channel-change="changeChannel"
       @message-received="handleMessageReceived"
       ref="chatContent"
@@ -75,6 +81,7 @@ export default {
       isConnected: false,
       currentChannel: savedChannel,
       isFirstJoin: isFirstJoin,
+      isSignedIn: false,
       channelUnreadCounts: {
         welcome: 0,
         general: 0,
@@ -83,7 +90,91 @@ export default {
       }
     }
   },
+  mounted() {
+    this.initClerk();
+  },
+  beforeUnmount() {
+    if (this._clerkPoll) {
+      clearInterval(this._clerkPoll);
+    }
+  },
   methods: {
+    async initClerk() {
+      try {
+        if (!window.Clerk) {
+          return;
+        }
+        await window.Clerk.load();
+
+        if (window.Clerk.user) {
+          this.isSignedIn = true;
+          const clerkName = window.Clerk.user.username ||
+            window.Clerk.user.firstName ||
+            window.Clerk.user.emailAddresses[0]?.emailAddress;
+          if (clerkName) {
+            this.handleUsernameChange(clerkName);
+          }
+        }
+
+        this._clerkPoll = setInterval(() => {
+          if (!window.Clerk.user && this.isSignedIn) {
+            this.isSignedIn = false;
+            const anonName = 'User_' + Math.floor(Math.random() * 1000);
+            this.handleUsernameChange(anonName);
+          }
+        }, 1000);
+      } catch (e) {
+        // Clerk failed to load, continue as anonymous
+      }
+    },
+    async handleSignIn() {
+      try {
+        if (!window.Clerk) {
+          return;
+        }
+        if (!window.Clerk.loaded) {
+          await window.Clerk.load();
+        }
+        await window.Clerk.openSignIn({
+          fallbackRedirectUrl: window.location.href
+        });
+
+        if (window.Clerk.user) {
+          this.isSignedIn = true;
+          const clerkName = window.Clerk.user.username ||
+            window.Clerk.user.firstName ||
+            window.Clerk.user.emailAddresses[0]?.emailAddress;
+          if (clerkName) {
+            this.handleUsernameChange(clerkName);
+          }
+        }
+      } catch (e) {
+        // Sign-in failed or was cancelled
+      }
+    },
+    mountClerkUserButton(el) {
+      try {
+        if (!window.Clerk || !el) {
+          return;
+        }
+        window.Clerk.mountUserButton(el, {
+          afterSignOutUrl: window.location.href,
+          appearance: {
+            elements: {
+              rootBox: { width: '48px', height: '48px' },
+              userButtonBox: { width: '48px', height: '48px' },
+              userButtonTrigger: { width: '48px', height: '48px', borderRadius: '0.5rem' },
+              userButtonAvatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden' },
+              avatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden' },
+              avatarImage: { width: '100%', height: '100%', objectFit: 'cover' },
+              userButtonOuterIdentifier: { display: 'none' }
+            }
+          }
+        });
+      } catch (e) {
+        // Clerk UserButton mount failed
+      }
+    },
     changeChannel(channel) {
       this.currentChannel = channel;
       try { localStorage.setItem('nilo_channel', channel); } catch (e) { /* storage unavailable */ }

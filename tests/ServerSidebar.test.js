@@ -84,4 +84,61 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.vm.getUnreadCount('general')).toBe(1);
     expect(wrapper.vm.getUnreadCount('feedback')).toBe(0);
   });
+
+  test('shows join button when not signed in', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: false }
+    });
+
+    expect(wrapper.find('[data-testid="join-button"]').isVisible()).toBe(true);
+    expect(wrapper.find('[data-testid="profile-button"]').isVisible()).toBe(false);
+  });
+
+  test('shows profile area when signed in', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: true, username: 'testuser' }
+    });
+
+    expect(wrapper.find('[data-testid="join-button"]').isVisible()).toBe(false);
+    expect(wrapper.find('[data-testid="profile-button"]').isVisible()).toBe(true);
+  });
+
+  test('join button emits sign-in event when clicked', async () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: false }
+    });
+
+    await wrapper.find('[data-testid="join-button"]').trigger('click');
+    expect(wrapper.emitted('sign-in')).toBeTruthy();
+    expect(wrapper.emitted('sign-in')).toHaveLength(1);
+  });
+
+  test('emits mount-user-button when isSignedIn becomes true', async () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: false, username: 'testuser' }
+    });
+
+    await wrapper.setProps({ isSignedIn: true });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('mount-user-button')).toBeTruthy();
+    expect(wrapper.emitted('mount-user-button')).toHaveLength(1);
+  });
+
+  test('isSignedIn defaults to false', () => {
+    const wrapper = shallowMount(ServerSidebar);
+    expect(wrapper.vm.isSignedIn).toBe(false);
+    expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(true);
+  });
+
+  test('does not emit mount-user-button when isSignedIn becomes false', async () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: true, username: 'testuser' }
+    });
+
+    await wrapper.setProps({ isSignedIn: false });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('mount-user-button')).toBeFalsy();
+  });
 });

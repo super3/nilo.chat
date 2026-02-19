@@ -15,20 +15,20 @@ describe('MainSidebar.vue', () => {
         }
       }
     });
-    
+
     expect(wrapper.exists()).toBe(true);
-    
+
     // Check that the component's name matches
     expect(wrapper.vm.$options.name).toBe('MainSidebar');
-    
+
     // Check that the header displays the username
     expect(wrapper.find('.text-white\\/50').text()).toBe('testuser');
-    
+
     // Check that the channels section exists
     expect(wrapper.text()).toContain('Channels');
-    
+
   });
-  
+
   // Test connection status indicator
   test('shows correct connection status indicator', () => {
     // Test disconnected state
@@ -39,7 +39,7 @@ describe('MainSidebar.vue', () => {
         currentChannel: 'general'
       }
     });
-    
+
     // Test connected state
     const connectedWrapper = shallowMount(MainSidebar, {
       propsData: {
@@ -48,7 +48,7 @@ describe('MainSidebar.vue', () => {
         currentChannel: 'general'
       }
     });
-    
+
     // Check for different class states
     expect(disconnectedWrapper.find('.w-2.h-2.mr-2').classes()).toContain('border');
     expect(connectedWrapper.find('.w-2.h-2.mr-2').classes()).toContain('bg-green-500');
@@ -79,7 +79,7 @@ describe('MainSidebar.vue', () => {
     });
     wrapper.vm.showChannels = false;
     await wrapper.vm.$nextTick();
-    const channelItems = wrapper.findAll('.bg-teal-dark');
+    const channelItems = wrapper.findAll('[data-testid^="channel-"]');
     expect(channelItems).toHaveLength(1);
     expect(channelItems.at(0).text()).toContain('feedback');
   });
@@ -161,6 +161,48 @@ describe('MainSidebar.vue', () => {
     expect(wrapper.emitted()['channel-change'].length).toBeGreaterThan(0);
   });
 
+  test('shows join button when not signed in', () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general',
+        isSignedIn: false
+      }
+    });
+
+    expect(wrapper.find('[data-testid="main-join-button"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="main-join-button"]').text()).toBe('Join / Sign In');
+  });
+
+  test('hides join button when signed in', () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general',
+        isSignedIn: true
+      }
+    });
+
+    expect(wrapper.find('[data-testid="main-join-button"]').exists()).toBe(false);
+  });
+
+  test('join button emits sign-in event when clicked', async () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general',
+        isSignedIn: false
+      }
+    });
+
+    await wrapper.find('[data-testid="main-join-button"]').trigger('click');
+    expect(wrapper.emitted('sign-in')).toBeTruthy();
+    expect(wrapper.emitted('sign-in')).toHaveLength(1);
+  });
+
   test('collapsed view without unread counts does not show badges', async () => {
     const wrapper = shallowMount(MainSidebar, {
       propsData: {
@@ -180,5 +222,5 @@ describe('MainSidebar.vue', () => {
     expect(wrapper.find('[data-testid="channel-general"] .bg-red-600').exists()).toBe(false);
 
   });
-})
 
+})

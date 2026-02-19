@@ -22,7 +22,7 @@ jest.mock('../src/components/ServerSidebar.vue', () => ({
 jest.mock('../src/components/MainSidebar.vue', () => ({
   name: 'MainSidebar',
   template: '<div class="dm-sidebar"><slot></slot></div>',
-  props: ['username', 'isConnected', 'currentChannel', 'steveUnreadCount', 'channelUnreadCounts'],
+  props: ['username', 'isConnected', 'currentChannel', 'steveUnreadCount', 'channelUnreadCounts', 'isSignedIn'],
 }));
 
 jest.mock('../src/components/ChatContent.vue', () => ({
@@ -44,6 +44,8 @@ describe('Unread Notifications Feature', () => {
       },
       writable: true
     });
+    // Clear any window.Clerk mock
+    delete window.Clerk;
   });
   
   test('channel unread counts increment correctly', () => {

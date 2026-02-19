@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-indigo-darker text-purple-lighter flex-none w-64 pb-6 hidden md:block">
+  <div class="bg-indigo-darker text-purple-lighter flex-none w-64 hidden md:flex md:flex-col">
     <div class="text-white mb-2 mt-3 px-4 flex justify-between">
       <div class="flex-auto">
         <h1 class="font-semibold text-xl leading-tight mb-1 truncate">nilo.chat</h1>
@@ -9,9 +9,9 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Channels section -->
-    <div class="mb-8">
+    <div class="mb-8 flex-1 overflow-y-auto">
       <div class="px-4 mb-1 text-white flex items-center">
         <div @click="toggleChannels" class="cursor-pointer w-4 mr-2 flex justify-center" data-testid="toggle-channels">
           <svg v-if="showChannels" class="fill-current h-4 w-4 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -46,7 +46,18 @@
         </div>
       </div>
     </div>
-    
+
+    <!-- Join / Sign In button at bottom -->
+    <div v-if="!isSignedIn" class="flex-none pb-6 px-4" data-testid="join-section">
+      <button
+        @click="$emit('sign-in')"
+        class="w-full bg-teal-dark hover:bg-teal-600 text-white font-semibold rounded-lg border-2 border-teal-dark transition-colors"
+        style="padding: 9px 16px;"
+        data-testid="main-join-button"
+      >
+        Join / Sign In
+      </button>
+    </div>
   </div>
 </template>
 
@@ -62,6 +73,10 @@ export default {
       required: true
     },
     isConnected: {
+      type: Boolean,
+      default: false
+    },
+    isSignedIn: {
       type: Boolean,
       default: false
     },
@@ -104,4 +119,4 @@ export default {
     }
   }
 }
-</script> 
+</script>
