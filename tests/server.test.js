@@ -66,10 +66,16 @@ const mockSocketIo = jest.fn(() => {
   return mockIO;
 });
 
+// Mock the API router module
+jest.mock('../src/server/api', () => ({
+  createApiRouter: jest.fn(() => 'mock-api-router'),
+}));
+
 // Mock express and socket.io
 jest.mock('express', () => {
   const mockExpress = jest.fn(() => mockExpressApp);
   mockExpress.static = jest.fn(() => mockStaticMiddleware);
+  mockExpress.json = jest.fn(() => 'json-middleware');
   return mockExpress;
 });
 
