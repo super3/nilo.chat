@@ -275,6 +275,35 @@ describe('NiloBotClient', () => {
     });
   });
 
+  test('joinChannel throws when not connected', () => {
+    const bot = new NiloBotClient('http://localhost:3000', 'TestBot');
+    expect(() => bot.joinChannel('general')).toThrow('Not connected');
+  });
+
+  test('disconnect does nothing when socket is null', () => {
+    const bot = new NiloBotClient('http://localhost:3000', 'TestBot');
+    // socket is null before connect(); should not throw
+    expect(() => bot.disconnect()).not.toThrow();
+    expect(bot.connected).toBe(false);
+  });
+
+  test('connect_error after already connected does not reject', async () => {
+    const callbacks = {};
+    mockSocket.on.mockImplementation((event, fn) => {
+      callbacks[event] = fn;
+      return mockSocket;
+    });
+
+    const bot = new NiloBotClient('http://localhost:3000', 'TestBot');
+    const connectPromise = bot.connect();
+    callbacks.connect();
+    await connectPromise;
+
+    // Fire connect_error after already connected — should be silently ignored
+    expect(() => callbacks.connect_error(new Error('transient'))).not.toThrow();
+    expect(bot.connected).toBe(true);
+  });
+
   test('disconnect on socket sets connected to false', async () => {
     const callbacks = {};
     mockSocket.on.mockImplementation((event, fn) => {
