@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-indigo-darker text-purple-lighter flex-none w-64 pb-6 hidden md:flex md:flex-col">
+  <div class="bg-indigo-darker text-purple-lighter flex-none w-64 hidden md:flex md:flex-col">
     <div class="text-white mb-2 mt-3 px-4 flex justify-between">
       <div class="flex-auto">
         <h1 class="font-semibold text-xl leading-tight mb-1 truncate">nilo.chat</h1>
@@ -48,16 +48,17 @@
     </div>
 
     <!-- Join / User button at bottom -->
-    <div class="px-4" data-testid="join-section">
+    <div class="pb-6 px-4" data-testid="join-section">
       <button
         v-if="!isSignedIn"
         @click="$emit('sign-in')"
-        class="w-full bg-teal-dark hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+        class="w-full bg-teal-dark hover:bg-teal-600 text-white font-semibold rounded-lg border-2 border-teal-dark transition-colors"
+        style="padding: 9px 16px;"
         data-testid="join-button"
       >
         Join / Sign In
       </button>
-      <div v-else class="flex items-center text-white text-sm" data-testid="user-signed-in">
+      <div v-else class="flex items-center text-white text-sm rounded-lg border-2 border-green-500" style="padding: 9px 16px;" data-testid="user-signed-in">
         <span class="rounded-full bg-green-500 block w-2 h-2 mr-2"></span>
         <span class="truncate">Signed in</span>
       </div>
