@@ -70,7 +70,8 @@
       "src/**/*.{js,vue}",
       "server/index.js",
       "!**/node_modules/**",
-      "!**/tests/**"
+      "!**/tests/**",
+      "!src/tailwind.config.js"
     ],
     "coverageReporters": ["text", "lcov", "html"]
   },
