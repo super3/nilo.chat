@@ -298,6 +298,7 @@ describe('ChatLayout.vue', () => {
   test('initClerk sets isSignedIn and username when Clerk user exists', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
+      addListener: jest.fn(),
       user: {
         username: 'clerkuser',
         firstName: 'Test',
@@ -311,11 +312,13 @@ describe('ChatLayout.vue', () => {
     expect(window.Clerk.load).toHaveBeenCalled();
     expect(wrapper.vm.isSignedIn).toBe(true);
     expect(wrapper.vm.username).toBe('clerkuser');
+    expect(window.Clerk.addListener).toHaveBeenCalled();
   });
 
   test('initClerk uses firstName when username is not available', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
+      addListener: jest.fn(),
       user: {
         username: null,
         firstName: 'TestFirst',
@@ -333,6 +336,7 @@ describe('ChatLayout.vue', () => {
   test('initClerk uses email when username and firstName are not available', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
+      addListener: jest.fn(),
       user: {
         username: null,
         firstName: null,
@@ -350,6 +354,7 @@ describe('ChatLayout.vue', () => {
   test('initClerk does not change username when Clerk user has no name info', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
+      addListener: jest.fn(),
       user: {
         username: null,
         firstName: null,
@@ -368,6 +373,7 @@ describe('ChatLayout.vue', () => {
   test('initClerk handles Clerk not having a user (not signed in)', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
+      addListener: jest.fn(),
       user: null
     };
 
@@ -375,6 +381,52 @@ describe('ChatLayout.vue', () => {
     await wrapper.vm.initClerk();
 
     expect(wrapper.vm.isSignedIn).toBe(false);
+  });
+
+  test('Clerk listener resets state when user signs out', async () => {
+    let listenerCallback;
+    window.Clerk = {
+      load: jest.fn().mockResolvedValue(undefined),
+      addListener: jest.fn((cb) => { listenerCallback = cb; }),
+      user: {
+        username: 'clerkuser',
+        firstName: 'Test',
+        emailAddresses: [{ emailAddress: 'test@example.com' }]
+      }
+    };
+
+    const wrapper = shallowMount(ChatLayout);
+    await wrapper.vm.initClerk();
+
+    expect(wrapper.vm.isSignedIn).toBe(true);
+
+    // Simulate Clerk sign-out: user becomes null
+    window.Clerk.user = null;
+    listenerCallback();
+
+    expect(wrapper.vm.isSignedIn).toBe(false);
+  });
+
+  test('Clerk listener does not reset state when user is still signed in', async () => {
+    let listenerCallback;
+    window.Clerk = {
+      load: jest.fn().mockResolvedValue(undefined),
+      addListener: jest.fn((cb) => { listenerCallback = cb; }),
+      user: {
+        username: 'clerkuser',
+        firstName: 'Test',
+        emailAddresses: [{ emailAddress: 'test@example.com' }]
+      }
+    };
+
+    const wrapper = shallowMount(ChatLayout);
+    await wrapper.vm.initClerk();
+
+    // Listener fires but user still exists
+    listenerCallback();
+
+    expect(wrapper.vm.isSignedIn).toBe(true);
+    expect(wrapper.vm.username).toBe('clerkuser');
   });
 
   test('initClerk handles Clerk.load() rejection gracefully', async () => {

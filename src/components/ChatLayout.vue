@@ -109,6 +109,13 @@ export default {
           }
         }
 
+        window.Clerk.addListener(() => {
+          if (!window.Clerk.user && this.isSignedIn) {
+            this.isSignedIn = false;
+            const anonName = 'User_' + Math.floor(Math.random() * 1000);
+            this.handleUsernameChange(anonName);
+          }
+        });
       } catch (e) {
         // Clerk failed to load, continue as anonymous
       }
