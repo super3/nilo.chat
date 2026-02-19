@@ -17,7 +17,7 @@ describe('App.vue', () => {
     // Check if it has the expected div with correct styling
     const rootDiv = wrapper.find('div');
     expect(rootDiv.exists()).toBe(true);
-    expect(rootDiv.classes()).toContain('h-screen');
+    expect(rootDiv.classes()).toContain('h-screen-safe');
     expect(rootDiv.classes()).toContain('overflow-hidden');
     expect(rootDiv.attributes('style')).toBe('background: rgb(237, 242, 247);');
     
