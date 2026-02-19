@@ -33,6 +33,7 @@
         :message="message.message"
         :code="message.code || ''"
         :avatar-color="getAvatarColor(message.username)"
+        :profile-image-url="message.username === username ? profileImageUrl : ''"
       />
     </div>
     <div class="pb-6 px-4 flex-none">
@@ -79,6 +80,10 @@ export default {
     isSignedIn: {
       type: Boolean,
       default: false
+    },
+    profileImageUrl: {
+      type: String,
+      default: ''
     }
   },
   data() {
