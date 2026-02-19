@@ -5,6 +5,7 @@
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
       :is-signed-in="isSignedIn"
+      :profile-image-url="profileImageUrl"
       :username="username"
       @channel-change="changeChannel"
       @sign-in="handleSignIn"

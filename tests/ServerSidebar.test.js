@@ -165,4 +165,37 @@ describe('ServerSidebar.vue', () => {
 
     expect(wrapper.emitted('mount-user-button')).toBeFalsy();
   });
+
+  test('shows placeholder image when signed in with cached profile image', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: true, profileImageUrl: 'https://example.com/avatar.jpg' }
+    });
+
+    const placeholder = wrapper.find('[data-testid="profile-placeholder"]');
+    expect(placeholder.exists()).toBe(true);
+    expect(placeholder.attributes('src')).toBe('https://example.com/avatar.jpg');
+  });
+
+  test('does not show placeholder image when profileImageUrl is empty', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: true, profileImageUrl: '' }
+    });
+
+    const placeholder = wrapper.find('[data-testid="profile-placeholder"]');
+    expect(placeholder.exists()).toBe(false);
+  });
+
+  test('does not show placeholder image when not signed in', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: false, profileImageUrl: 'https://example.com/avatar.jpg' }
+    });
+
+    const placeholder = wrapper.find('[data-testid="profile-placeholder"]');
+    expect(placeholder.isVisible()).toBe(false);
+  });
+
+  test('profileImageUrl defaults to empty string', () => {
+    const wrapper = shallowMount(ServerSidebar);
+    expect(wrapper.vm.profileImageUrl).toBe('');
+  });
 });

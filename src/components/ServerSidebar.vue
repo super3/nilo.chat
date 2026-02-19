@@ -40,7 +40,15 @@
         ref="clerkUserButton"
         class="h-12 w-12 flex items-center justify-center overflow-hidden"
         data-testid="profile-button"
-      />
+      >
+        <img
+          v-if="profileImageUrl"
+          :src="profileImageUrl"
+          class="h-12 w-12 rounded-lg object-cover"
+          alt="Profile"
+          data-testid="profile-placeholder"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -65,6 +73,10 @@ export default {
     isSignedIn: {
       type: Boolean,
       default: false
+    },
+    profileImageUrl: {
+      type: String,
+      default: ''
     },
     username: {
       type: String,
