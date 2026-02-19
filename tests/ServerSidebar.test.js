@@ -115,14 +115,14 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.emitted('sign-in')).toHaveLength(1);
   });
 
-  test('profile button emits sign-out event when clicked', async () => {
+  test('profile button emits manage-account event when clicked', async () => {
     const wrapper = shallowMount(ServerSidebar, {
       propsData: { isSignedIn: true, username: 'testuser' }
     });
 
     await wrapper.find('[data-testid="profile-button"]').trigger('click');
-    expect(wrapper.emitted('sign-out')).toBeTruthy();
-    expect(wrapper.emitted('sign-out')).toHaveLength(1);
+    expect(wrapper.emitted('manage-account')).toBeTruthy();
+    expect(wrapper.emitted('manage-account')).toHaveLength(1);
   });
 
   test('isSignedIn defaults to false', () => {

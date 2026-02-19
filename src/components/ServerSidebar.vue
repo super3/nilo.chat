@@ -37,11 +37,11 @@
       </button>
       <button
         v-else
-        @click="$emit('sign-out')"
+        @click="$emit('manage-account')"
         class="h-12 w-12 rounded-lg flex items-center justify-center transition-colors overflow-hidden"
         :class="'bg-green-600 hover:bg-green-500'"
         data-testid="profile-button"
-        :title="'Signed in as ' + username + ' — Click to sign out'"
+        :title="'Signed in as ' + username + ' — Manage account'"
       >
         <span class="text-white text-lg font-semibold">{{ userInitial }}</span>
       </button>

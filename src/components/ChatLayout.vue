@@ -8,7 +8,7 @@
       :username="username"
       @channel-change="changeChannel"
       @sign-in="handleSignIn"
-      @sign-out="handleSignOut"
+      @manage-account="handleManageAccount"
     />
     <MainSidebar
       :username="username"
@@ -108,6 +108,14 @@ export default {
             this.handleUsernameChange(clerkName);
           }
         }
+
+        window.Clerk.addListener(({ user }) => {
+          if (!user) {
+            this.isSignedIn = false;
+            const anonName = 'User_' + Math.floor(Math.random() * 1000);
+            this.handleUsernameChange(anonName);
+          }
+        });
       } catch (e) {
         // Clerk failed to load, continue as anonymous
       }
@@ -137,19 +145,17 @@ export default {
         // Sign-in failed or was cancelled
       }
     },
-    async handleSignOut() {
+    async handleManageAccount() {
       try {
-        if (window.Clerk) {
-          if (!window.Clerk.loaded) {
-            await window.Clerk.load();
-          }
-          await window.Clerk.signOut();
+        if (!window.Clerk) {
+          return;
         }
-        this.isSignedIn = false;
-        const anonName = 'User_' + Math.floor(Math.random() * 1000);
-        this.handleUsernameChange(anonName);
+        if (!window.Clerk.loaded) {
+          await window.Clerk.load();
+        }
+        await window.Clerk.openUserProfile();
       } catch (e) {
-        // Sign-out failed
+        // Manage account failed or was cancelled
       }
     },
     changeChannel(channel) {
