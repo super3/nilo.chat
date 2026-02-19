@@ -54,7 +54,12 @@
     "parserOptions": {
       "ecmaVersion": 2020
     },
-    "rules": {}
+    "rules": {
+      "no-var": "error",
+      "prefer-const": "warn",
+      "eqeqeq": ["error", "always"],
+      "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
+    }
   },
   "browserslist": [
     "> 1%",

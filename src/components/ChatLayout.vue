@@ -40,19 +40,34 @@ export default {
   },
   data() {
     // Get username from localStorage or generate a random one
-    let username = localStorage.getItem('nilo_username');
+    let username;
+    try {
+      username = localStorage.getItem('nilo_username');
+    } catch (e) {
+      username = null;
+    }
     if (!username) {
       username = 'User_' + Math.floor(Math.random() * 1000);
-      localStorage.setItem('nilo_username', username);
+      try { localStorage.setItem('nilo_username', username); } catch (e) { /* storage unavailable */ }
     }
     // Get current channel from localStorage or default to general
-    const savedChannel = localStorage.getItem('nilo_channel') || 'general';
+    let savedChannel;
+    try {
+      savedChannel = localStorage.getItem('nilo_channel') || 'general';
+    } catch (e) {
+      savedChannel = 'general';
+    }
     // Check if this is the first time joining
-    const isFirstJoin = localStorage.getItem('nilo_first_join') !== 'true';
+    let isFirstJoin;
+    try {
+      isFirstJoin = localStorage.getItem('nilo_first_join') !== 'true';
+    } catch (e) {
+      isFirstJoin = true;
+    }
 
     // Set the flag for future sessions
     if (isFirstJoin) {
-      localStorage.setItem('nilo_first_join', 'true');
+      try { localStorage.setItem('nilo_first_join', 'true'); } catch (e) { /* storage unavailable */ }
     }
 
     return {
@@ -71,30 +86,21 @@ export default {
   methods: {
     changeChannel(channel) {
       this.currentChannel = channel;
-      localStorage.setItem('nilo_channel', channel);
-      
+      try { localStorage.setItem('nilo_channel', channel); } catch (e) { /* storage unavailable */ }
+
       // Reset unread count when switching to a channel
       this.channelUnreadCounts[channel] = 0;
     },
     handleUsernameChange(newUsername) {
       this.username = newUsername;
-      localStorage.setItem('nilo_username', newUsername);
+      try { localStorage.setItem('nilo_username', newUsername); } catch (e) { /* storage unavailable */ }
     },
     handleConnectionStatusChange(status) {
       this.isConnected = status;
     },
     handleMessageReceived(message) {
-      console.log(`ChatLayout received message:`, message);
-      
-      // If the message has an explicit channel property
-      if (message.channel) {
-        console.log(`Message has channel: ${message.channel}, current channel: ${this.currentChannel}`);
-        // Increment unread count if the message is for a channel that's not currently viewed
-        if (message.channel !== this.currentChannel) {
-          console.log(`Incrementing unread count for channel ${message.channel}`);
-          this.channelUnreadCounts[message.channel]++;
-          console.log(`New unread counts:`, this.channelUnreadCounts);
-        }
+      if (message.channel && message.channel !== this.currentChannel) {
+        this.channelUnreadCounts[message.channel]++;
       }
     }
   }

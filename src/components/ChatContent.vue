@@ -24,7 +24,7 @@
       -->
     </div>
     <!-- Chat messages -->
-    <div class="px-6 py-4 flex-1 overflow-y-auto" @scroll="checkScrollPosition">
+    <div ref="messageContainer" class="px-6 py-4 flex-1 overflow-y-auto" @scroll="checkScrollPosition">
       <ChatMessage 
         v-for="(message, index) in messages" 
         :key="index"
@@ -57,6 +57,9 @@
 <script>
 import ChatMessage from './ChatMessage.vue'
 import io from 'socket.io-client'
+
+const MAX_MESSAGE_LENGTH = 2000
+const MAX_USERNAME_LENGTH = 30
 
 export default {
   name: 'ChatContent',
@@ -114,15 +117,24 @@ export default {
   },
   mounted() {
     // Check if we're running locally (on localhost) or in production
-    const isLocalhost = window.location.hostname === 'localhost' || 
+    const isLocalhost = window.location.hostname === 'localhost' ||
                         window.location.hostname === '127.0.0.1';
-    
+    const isGitHubPages = window.location.hostname === 'nilo.chat' ||
+                          window.location.hostname === 'super3.github.io';
+
     // Connect to the WebSocket server
-    const socketUrl = isLocalhost
-      ? 'http://localhost:3000'
-      : process.env.VUE_APP_SOCKET_URL;
+    // - localhost: connect to local dev server
+    // - GitHub Pages: connect to production Railway backend
+    // - Railway (PR previews): connect to same origin
+    let socketUrl;
+    if (isLocalhost) {
+      socketUrl = 'http://localhost:3000';
+    } else if (isGitHubPages) {
+      socketUrl = process.env.VUE_APP_SOCKET_URL;
+    } else {
+      socketUrl = window.location.origin;
+    }
     
-    console.log(`Connecting to Socket.IO server at: ${socketUrl}`);
     this.socket = io(socketUrl);
     
     // Handle connection events
@@ -131,7 +143,8 @@ export default {
       this.$emit('connection-change', true);
       
       // Check if this is a returning user
-      const isReturningUser = localStorage.getItem('nilo_first_join') === 'true';
+      let isReturningUser = false;
+      try { isReturningUser = localStorage.getItem('nilo_first_join') === 'true'; } catch (e) { /* storage unavailable */ }
       
       // Emit the username when connecting and join the current channel
       this.socket.emit('user_connected', {
@@ -174,25 +187,16 @@ export default {
     
     // Listen for new messages
     this.socket.on('chat_message', ({ timestamp, username, message, channel }) => {
-      console.log(`Received message from ${username} in channel ${channel}: ${message}`);
-      console.log(`Current channel: ${this.currentChannel}`);
-      
       // Handle messages based on channel
       if (channel && channel !== this.currentChannel) {
-        console.log(`Message is for a different channel, emitting message-received event`);
-        // If the message is for a different channel, don't add it to the current channel's messages
-        // But still emit the message-received event for notification purposes
         this.$emit('message-received', { timestamp, username, message, channel });
         return;
       }
 
-      // Add message to the appropriate channel's messages
-      console.log(`Adding message to current channel`);
       const messageObj = { timestamp, username, message };
       this.messages.push(messageObj);
-      
+
       // Emit message received event (for notification handling)
-      console.log(`Emitting message-received event for current channel`);
       this.$emit('message-received', { ...messageObj, channel: this.currentChannel });
 
       // Scroll to bottom if user is at bottom
@@ -205,19 +209,14 @@ export default {
 
     // Handle username changes
     this.socket.on('username_change', (data) => {
-      console.log(`Username change: ${data.oldUsername} -> ${data.newUsername}`);
-      
-      // Update the username in the component state
       if (data.newUsername) {
-        // Emit the change to parent instead of modifying prop directly
         this.$emit('username-change', data.newUsername);
       }
     });
 
     // Handle channel change
-    this.socket.on('join_channel', (data) => {
-      // This is just to handle server responses after joining a channel
-      console.log(`Joined channel: ${data.channel}`);
+    this.socket.on('join_channel', () => {
+      // Server acknowledgment after joining a channel
     });
   },
   beforeUnmount() {
@@ -229,16 +228,34 @@ export default {
   methods: {
     sendMessage() {
       if (this.newMessage.trim() === '') return;
-      
+
       if (!this.isConnected) {
-        // Optionally, you could add a notification here that the message can't be sent
+        return;
+      }
+
+      if (this.newMessage.length > MAX_MESSAGE_LENGTH) {
+        this.messages.push({
+          timestamp: new Date().toISOString(),
+          username: 'System',
+          message: `Message exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters.`
+        });
         return;
       }
 
       // Check if this is a /nick command
       if (this.newMessage.startsWith('/nick ')) {
         const newUsername = this.newMessage.slice(6).trim();
-        
+
+        if (newUsername && newUsername.length > MAX_USERNAME_LENGTH) {
+          this.messages.push({
+            timestamp: new Date().toISOString(),
+            username: 'System',
+            message: `Username exceeds maximum length of ${MAX_USERNAME_LENGTH} characters.`
+          });
+          this.newMessage = '';
+          return;
+        }
+
         if (newUsername) {
           // Emit an event to the parent component to change the username
           this.$emit('username-change', newUsername);
@@ -278,16 +295,17 @@ export default {
         return timestamp;
       }
     },
+    getMessageContainer() {
+      return this.$refs.messageContainer;
+    },
     scrollToBottom() {
-      // Simple implementation that is easy to test
-      const container = document.querySelector('.overflow-y-auto');
+      const container = this.getMessageContainer();
       if (container) {
         container.scrollTop = container.scrollHeight;
       }
     },
     checkScrollPosition() {
-      // Simple implementation that is easy to test
-      const container = document.querySelector('.overflow-y-auto');
+      const container = this.getMessageContainer();
       if (container) {
         const scrollBottom = container.scrollTop + container.clientHeight;
         const threshold = 50; // pixels from bottom to consider "at bottom"
