@@ -105,7 +105,7 @@ describe('Server Module - Database Connection Error', () => {
 
     // Load the server module - this will trigger initializeDatabase which should fail
     jest.isolateModules(() => {
-      require('../server');
+      require('../src/server/index');
     });
 
     // Wait for async initializeDatabase to complete
@@ -175,7 +175,7 @@ describe('Server Module - Comprehensive', () => {
     
     // Load the server with our mocks in place
     jest.isolateModules(() => {
-      serverModule = require('../server');
+      serverModule = require('../src/server/index');
     });
     
     // Simulate socket connection if callback was stored
@@ -367,7 +367,7 @@ describe('Server Module - Comprehensive', () => {
 
       // Reload server module in production mode
       jest.isolateModules(() => {
-        require('../server');
+        require('../src/server/index');
       });
 
       // Verify health check route was configured
@@ -443,7 +443,7 @@ describe('Server Module - Comprehensive', () => {
     };
 
     // Simulate connection
-    onConnection = require('../server').setupSocketHandlers(mockIO);
+    onConnection = require('../src/server/index').setupSocketHandlers(mockIO);
     onConnection(socket);
 
     // Test join_channel with no channel specified
@@ -479,7 +479,7 @@ describe('Server Module - Comprehensive', () => {
     };
 
     // Get the socket handler function
-    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
 
     // Register handlers
@@ -549,7 +549,7 @@ describe('Server Module - Comprehensive', () => {
     });
 
     // Get the socket handler function
-    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
 
     // Register handlers
@@ -608,7 +608,7 @@ describe('Server Module - Comprehensive', () => {
     });
 
     // Get the socket handler function
-    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
 
     // Register handlers
@@ -656,7 +656,7 @@ describe('Server Module - Comprehensive', () => {
     });
 
     // Get the socket handler function
-    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
 
     // Register handlers
@@ -704,7 +704,7 @@ describe('Server Module - Comprehensive', () => {
     });
 
     // Get the socket handler function
-    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
 
     // Register handlers
@@ -802,7 +802,7 @@ describe('Server Module - Comprehensive', () => {
     });
 
     // Get the socket handler function
-    const setupSocketHandlers = require('../server').setupSocketHandlers;
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
     const socketHandler = setupSocketHandlers(io);
 
     // Register handlers
