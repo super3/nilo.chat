@@ -7,9 +7,9 @@
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
     "deploy": "vue-cli-service build && cp dist/index.html dist/404.html && push-dir --dir=dist --branch=gh-pages --cleanup --allow-unclean",
-    "start": "node server/index.js",
+    "start": "node src/server/index.js",
     "dev": "npm run build && npm start",
-    "migrate": "node server/db/migrate.js",
+    "migrate": "node src/server/db/migrate.js",
     "test": "jest",
     "test:coverage": "jest --coverage"
   },
@@ -68,10 +68,10 @@
     "collectCoverage": true,
     "collectCoverageFrom": [
       "src/**/*.{js,vue}",
-      "server/index.js",
       "!**/node_modules/**",
       "!**/tests/**",
-      "!src/tailwind.config.js"
+      "!src/tailwind.config.js",
+      "!src/server/db/**"
     ],
     "coverageReporters": ["text", "lcov", "html"]
   },
