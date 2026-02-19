@@ -601,10 +601,13 @@ describe('ChatLayout.vue', () => {
       afterSignOutUrl: window.location.href,
       appearance: {
         elements: {
+          rootBox: { width: '48px', height: '48px' },
           userButtonBox: { width: '48px', height: '48px' },
-          userButtonTrigger: { width: '48px', height: '48px' },
-          userButtonAvatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem' },
-          avatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem' }
+          userButtonTrigger: { width: '48px', height: '48px', borderRadius: '0.5rem' },
+          userButtonAvatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden' },
+          avatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem', overflow: 'hidden' },
+          avatarImage: { width: '100%', height: '100%', objectFit: 'cover' },
+          userButtonOuterIdentifier: { display: 'none' }
         }
       }
     });
