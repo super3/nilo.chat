@@ -154,17 +154,16 @@ describe('ChatLayout.vue', () => {
     expect(wrapper.vm.isConnected).toBe(true);
   });
 
-  test('responds to username-change event from ChatContent', async () => {
+  test('handleUsernameChange updates username and saves to localStorage', async () => {
     const wrapper = shallowMount(ChatLayout);
 
     // Initial username (with mocked Math.random)
     expect(wrapper.vm.username).toBe('User_500');
 
-    // Find ChatContent and trigger the event
-    const chatContent = wrapper.findComponent({ name: 'ChatContent' });
-    chatContent.vm.$emit('username-change', 'NewUsername');
+    // Call handleUsernameChange directly (username changes now come from Clerk, not ChatContent)
+    wrapper.vm.handleUsernameChange('NewUsername');
 
-    // Wait for Vue to process the event
+    // Wait for Vue to process
     await wrapper.vm.$nextTick();
 
     // Check if the username was updated

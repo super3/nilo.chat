@@ -45,7 +45,9 @@
         <input
           type="text"
           class="w-full px-4"
+          :class="{ 'opacity-50 cursor-not-allowed': !canPost }"
           :placeholder="getInputPlaceholder()"
+          :disabled="!canPost"
           v-model="newMessage"
           @keyup.enter="sendMessage"
         />
@@ -59,7 +61,6 @@ import ChatMessage from './ChatMessage.vue'
 import io from 'socket.io-client'
 
 const MAX_MESSAGE_LENGTH = 2000
-const MAX_USERNAME_LENGTH = 30
 
 export default {
   name: 'ChatContent',
@@ -74,6 +75,10 @@ export default {
     currentChannel: {
       type: String,
       default: 'general'
+    },
+    isSignedIn: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -96,6 +101,9 @@ export default {
         feedback: 'Bugs, ideas, and feature requests.'
       };
       return descriptions[this.currentChannel] || 'Channel description';
+    },
+    canPost() {
+      return this.isSignedIn || this.currentChannel === 'welcome';
     }
   },
   watch: {
@@ -207,13 +215,6 @@ export default {
       });
     });
 
-    // Handle username changes
-    this.socket.on('username_change', (data) => {
-      if (data.newUsername) {
-        this.$emit('username-change', data.newUsername);
-      }
-    });
-
     // Handle channel change
     this.socket.on('join_channel', () => {
       // Server acknowledgment after joining a channel
@@ -233,6 +234,10 @@ export default {
         return;
       }
 
+      if (!this.canPost) {
+        return;
+      }
+
       if (this.newMessage.length > MAX_MESSAGE_LENGTH) {
         this.messages.push({
           timestamp: new Date().toISOString(),
@@ -242,48 +247,12 @@ export default {
         return;
       }
 
-      // Check if this is a /nick command
-      if (this.newMessage.startsWith('/nick ')) {
-        const newUsername = this.newMessage.slice(6).trim();
-
-        if (newUsername && newUsername.length > MAX_USERNAME_LENGTH) {
-          this.messages.push({
-            timestamp: new Date().toISOString(),
-            username: 'System',
-            message: `Username exceeds maximum length of ${MAX_USERNAME_LENGTH} characters.`
-          });
-          this.newMessage = '';
-          return;
-        }
-
-        if (newUsername) {
-          // Emit an event to the parent component to change the username
-          this.$emit('username-change', newUsername);
-
-          // Notify the server about the username change
-          if (this.socket) {
-            this.socket.emit('username_change', {
-              oldUsername: this.localUsername,
-              newUsername: newUsername,
-              channel: this.localChannel
-            });
-          }
-
-          // Add a system message about the username change
-          this.messages.push({
-            timestamp: new Date().toISOString(),
-            username: 'System',
-            message: `${this.localUsername} changed their username to ${newUsername}`
-          });
-        }
-      } else {
-        // Send regular message to server
-        this.socket.emit('chat_message', {
-          username: this.localUsername,
-          message: this.newMessage,
-          channel: this.localChannel
-        });
-      }
+      // Send regular message to server
+      this.socket.emit('chat_message', {
+        username: this.localUsername,
+        message: this.newMessage,
+        channel: this.localChannel
+      });
 
       this.newMessage = '';
     },
@@ -338,6 +307,9 @@ export default {
       return this.currentChannel;
     },
     getInputPlaceholder() {
+      if (!this.canPost) {
+        return 'Sign in to post in this channel';
+      }
       return `Message #${this.currentChannel}`;
     }
   }

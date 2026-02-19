@@ -59,21 +59,21 @@ describe('ChatContent.vue', () => {
   test('renders correctly with required props', () => {
     // Check if component exists
     expect(wrapper.exists()).toBe(true);
-    
+
     // Check if the root div has the expected classes
     const rootDiv = wrapper.find('div');
     expect(rootDiv.exists()).toBe(true);
     expect(rootDiv.classes()).toContain('flex-1');
     expect(rootDiv.classes()).toContain('flex');
     expect(rootDiv.classes()).toContain('flex-col');
-    
+
     // Check if the channel header is present
     const channelHeader = wrapper.find('h3');
     expect(channelHeader.exists()).toBe(true);
     expect(channelHeader.text()).toBe('#general');
-    
-    // Check if the input for new messages is present
-    const messageInput = wrapper.find('input[placeholder="Message #general"]');
+
+    // Check if the input for new messages is present (not signed in, so shows sign-in prompt)
+    const messageInput = wrapper.find('input[placeholder="Sign in to post in this channel"]');
     expect(messageInput.exists()).toBe(true);
   });
   
@@ -316,24 +316,29 @@ describe('ChatContent.vue', () => {
   });
   
   test('sendMessage method sends message to socket', () => {
+    // Mount with isSignedIn so canPost is true on general channel
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { ...defaultProps, isSignedIn: true }
+    });
+
     // Prepare component for test
-    wrapper.setData({
+    signedInWrapper.setData({
       isConnected: true,
       newMessage: 'Hello socket world'
     });
-    
+
     // Call the sendMessage method
-    wrapper.vm.sendMessage();
-    
+    signedInWrapper.vm.sendMessage();
+
     // Check that socket.emit was called with correct data
     expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
       username: 'testuser',
       message: 'Hello socket world',
       channel: 'general'
     });
-    
+
     // Check that the input was cleared
-    expect(wrapper.vm.newMessage).toBe('');
+    expect(signedInWrapper.vm.newMessage).toBe('');
   });
   
   test('sendMessage does nothing when input is empty', () => {
@@ -367,59 +372,6 @@ describe('ChatContent.vue', () => {
     expect(wrapper.vm.newMessage).toBe('Test message');
   });
   
-  test('sendMessage handles /nick command to change username', () => {
-    // Set a connected state
-    wrapper.setData({ 
-      isConnected: true,
-      newMessage: '/nick NewUsername' 
-    });
-    
-    // Call sendMessage method
-    wrapper.vm.sendMessage();
-    
-    // Verify username-change event was emitted to parent
-    expect(wrapper.emitted('username-change')).toBeTruthy();
-    expect(wrapper.emitted('username-change')[0]).toEqual(['NewUsername']);
-    
-    // Verify username_change was emitted to socket
-    expect(mockSocketEmit).toHaveBeenCalledWith('username_change', {
-      oldUsername: 'testuser',
-      newUsername: 'NewUsername',
-      channel: 'general'
-    });
-    
-    // Verify system message was added
-    expect(wrapper.vm.messages).toHaveLength(1);
-    expect(wrapper.vm.messages[0].username).toBe('System');
-    expect(wrapper.vm.messages[0].message).toBe('testuser changed their username to NewUsername');
-    
-    // Verify input was cleared
-    expect(wrapper.vm.newMessage).toBe('');
-  });
-  
-  test('sendMessage does not handle /nick command with empty username', () => {
-    // Set a connected state
-    wrapper.setData({ 
-      isConnected: true,
-      newMessage: '/nick ' 
-    });
-    
-    // Call sendMessage method
-    wrapper.vm.sendMessage();
-    
-    // Verify username-change event was NOT emitted to parent
-    expect(wrapper.emitted('username-change')).toBeFalsy();
-    
-    // Verify username_change was NOT emitted to socket
-    expect(mockSocketEmit).not.toHaveBeenCalled();
-    
-    // Verify no message was added
-    expect(wrapper.vm.messages).toHaveLength(0);
-    
-    // Verify input was cleared
-    expect(wrapper.vm.newMessage).toBe('');
-  });
-
   test('formatTimestamp converts timestamps correctly', () => {
     // Test a valid timestamp
     const timestamp = '2023-01-01T14:30:00Z';
@@ -467,15 +419,20 @@ describe('ChatContent.vue', () => {
   });
   
   test('input triggers sendMessage on enter key', async () => {
+    // Mount with welcome channel so canPost is true without sign-in
+    const welcomeWrapper = shallowMount(ChatContent, {
+      propsData: { ...defaultProps, currentChannel: 'welcome' }
+    });
+
     // Spy on sendMessage method
-    const sendMessageSpy = jest.spyOn(wrapper.vm, 'sendMessage');
-    
+    const sendMessageSpy = jest.spyOn(welcomeWrapper.vm, 'sendMessage');
+
     // Set message
-    await wrapper.setData({ newMessage: 'test message' });
-    
+    await welcomeWrapper.setData({ newMessage: 'test message' });
+
     // Trigger enter key on input
-    await wrapper.find('input[placeholder="Message #general"]').trigger('keyup.enter');
-    
+    await welcomeWrapper.find('input[placeholder="Message #welcome"]').trigger('keyup.enter');
+
     // Check that sendMessage was called
     expect(sendMessageSpy).toHaveBeenCalled();
   });
@@ -763,15 +720,40 @@ describe('ChatContent.vue', () => {
   });
   
   
-  test('getInputPlaceholder works for regular channels', () => {
+  test('getInputPlaceholder works for regular channels when signed in', () => {
     const wrapper = shallowMount(ChatContent, {
       propsData: {
         username: 'testuser',
-        currentChannel: 'general'
+        currentChannel: 'general',
+        isSignedIn: true
       }
     });
-    
+
     expect(wrapper.vm.getInputPlaceholder()).toBe('Message #general');
+  });
+
+  test('getInputPlaceholder shows sign-in prompt when not signed in on non-welcome channel', () => {
+    const wrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'general',
+        isSignedIn: false
+      }
+    });
+
+    expect(wrapper.vm.getInputPlaceholder()).toBe('Sign in to post in this channel');
+  });
+
+  test('getInputPlaceholder works for welcome channel without sign-in', () => {
+    const wrapper = shallowMount(ChatContent, {
+      propsData: {
+        username: 'testuser',
+        currentChannel: 'welcome',
+        isSignedIn: false
+      }
+    });
+
+    expect(wrapper.vm.getInputPlaceholder()).toBe('Message #welcome');
   });
   
   
@@ -821,6 +803,61 @@ describe('ChatContent.vue', () => {
 
     wrapper.vm.socket = null;
     expect(() => wrapper.vm.switchChannel('feedback')).not.toThrow();
+  });
+
+  test('sendMessage is blocked when not signed in on non-welcome channel', () => {
+    // Default wrapper: isSignedIn=false, currentChannel=general => canPost=false
+    wrapper.setData({
+      isConnected: true,
+      newMessage: 'Hello'
+    });
+
+    wrapper.vm.sendMessage();
+
+    // Should not emit to socket
+    expect(mockSocketEmit).not.toHaveBeenCalled();
+
+    // Message should remain (not cleared because sendMessage returned early)
+    expect(wrapper.vm.newMessage).toBe('Hello');
+  });
+
+  test('sendMessage works on welcome channel without sign-in', () => {
+    const welcomeWrapper = shallowMount(ChatContent, {
+      propsData: { ...defaultProps, currentChannel: 'welcome', isSignedIn: false }
+    });
+
+    welcomeWrapper.setData({
+      isConnected: true,
+      newMessage: 'Hello from welcome'
+    });
+
+    welcomeWrapper.vm.sendMessage();
+
+    expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
+      username: 'testuser',
+      message: 'Hello from welcome',
+      channel: 'welcome'
+    });
+  });
+
+  test('canPost is true when signed in on any channel', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { ...defaultProps, currentChannel: 'feedback', isSignedIn: true }
+    });
+
+    expect(signedInWrapper.vm.canPost).toBe(true);
+  });
+
+  test('canPost is true on welcome channel without sign-in', () => {
+    const welcomeWrapper = shallowMount(ChatContent, {
+      propsData: { ...defaultProps, currentChannel: 'welcome', isSignedIn: false }
+    });
+
+    expect(welcomeWrapper.vm.canPost).toBe(true);
+  });
+
+  test('canPost is false on non-welcome channel without sign-in', () => {
+    expect(wrapper.vm.canPost).toBe(false);
   });
 
   test('force full coverage for ChatContent.vue', () => {
