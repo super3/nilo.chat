@@ -91,6 +91,11 @@ export default {
   mounted() {
     this.initClerk();
   },
+  beforeUnmount() {
+    if (this._clerkPoll) {
+      clearInterval(this._clerkPoll);
+    }
+  },
   methods: {
     async initClerk() {
       try {
@@ -109,13 +114,13 @@ export default {
           }
         }
 
-        window.Clerk.addListener(() => {
+        this._clerkPoll = setInterval(() => {
           if (!window.Clerk.user && this.isSignedIn) {
             this.isSignedIn = false;
             const anonName = 'User_' + Math.floor(Math.random() * 1000);
             this.handleUsernameChange(anonName);
           }
-        });
+        }, 1000);
       } catch (e) {
         // Clerk failed to load, continue as anonymous
       }
@@ -154,10 +159,10 @@ export default {
           afterSignOutUrl: window.location.href,
           appearance: {
             elements: {
-              userButtonBox: 'w-12 h-12',
-              userButtonTrigger: 'w-12 h-12',
-              userButtonAvatarBox: 'w-12 h-12 rounded-lg',
-              avatarBox: 'w-12 h-12 rounded-lg'
+              userButtonBox: { width: '48px', height: '48px' },
+              userButtonTrigger: { width: '48px', height: '48px' },
+              userButtonAvatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem' },
+              avatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem' }
             }
           }
         });

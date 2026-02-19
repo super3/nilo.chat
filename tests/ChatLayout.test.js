@@ -296,9 +296,9 @@ describe('ChatLayout.vue', () => {
   });
 
   test('initClerk sets isSignedIn and username when Clerk user exists', async () => {
+    jest.useFakeTimers();
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: {
         username: 'clerkuser',
         firstName: 'Test',
@@ -312,13 +312,13 @@ describe('ChatLayout.vue', () => {
     expect(window.Clerk.load).toHaveBeenCalled();
     expect(wrapper.vm.isSignedIn).toBe(true);
     expect(wrapper.vm.username).toBe('clerkuser');
-    expect(window.Clerk.addListener).toHaveBeenCalled();
+    jest.useRealTimers();
   });
 
   test('initClerk uses firstName when username is not available', async () => {
+    jest.useFakeTimers();
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: {
         username: null,
         firstName: 'TestFirst',
@@ -331,12 +331,13 @@ describe('ChatLayout.vue', () => {
 
     expect(wrapper.vm.isSignedIn).toBe(true);
     expect(wrapper.vm.username).toBe('TestFirst');
+    jest.useRealTimers();
   });
 
   test('initClerk uses email when username and firstName are not available', async () => {
+    jest.useFakeTimers();
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: {
         username: null,
         firstName: null,
@@ -349,12 +350,13 @@ describe('ChatLayout.vue', () => {
 
     expect(wrapper.vm.isSignedIn).toBe(true);
     expect(wrapper.vm.username).toBe('test@example.com');
+    jest.useRealTimers();
   });
 
   test('initClerk does not change username when Clerk user has no name info', async () => {
+    jest.useFakeTimers();
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: {
         username: null,
         firstName: null,
@@ -368,12 +370,13 @@ describe('ChatLayout.vue', () => {
 
     expect(wrapper.vm.isSignedIn).toBe(true);
     expect(wrapper.vm.username).toBe(originalUsername);
+    jest.useRealTimers();
   });
 
   test('initClerk handles Clerk not having a user (not signed in)', async () => {
+    jest.useFakeTimers();
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: null
     };
 
@@ -381,13 +384,13 @@ describe('ChatLayout.vue', () => {
     await wrapper.vm.initClerk();
 
     expect(wrapper.vm.isSignedIn).toBe(false);
+    jest.useRealTimers();
   });
 
-  test('Clerk listener resets state when user signs out', async () => {
-    let listenerCallback;
+  test('polling detects sign-out and resets state', async () => {
+    jest.useFakeTimers();
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn((cb) => { listenerCallback = cb; }),
       user: {
         username: 'clerkuser',
         firstName: 'Test',
@@ -400,18 +403,18 @@ describe('ChatLayout.vue', () => {
 
     expect(wrapper.vm.isSignedIn).toBe(true);
 
-    // Simulate Clerk sign-out: user becomes null
+    // Simulate Clerk sign-out
     window.Clerk.user = null;
-    listenerCallback();
+    jest.advanceTimersByTime(1000);
 
     expect(wrapper.vm.isSignedIn).toBe(false);
+    jest.useRealTimers();
   });
 
-  test('Clerk listener does not reset state when user is still signed in', async () => {
-    let listenerCallback;
+  test('polling does not reset state when user is still signed in', async () => {
+    jest.useFakeTimers();
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn((cb) => { listenerCallback = cb; }),
       user: {
         username: 'clerkuser',
         firstName: 'Test',
@@ -422,11 +425,33 @@ describe('ChatLayout.vue', () => {
     const wrapper = shallowMount(ChatLayout);
     await wrapper.vm.initClerk();
 
-    // Listener fires but user still exists
-    listenerCallback();
+    jest.advanceTimersByTime(1000);
 
     expect(wrapper.vm.isSignedIn).toBe(true);
     expect(wrapper.vm.username).toBe('clerkuser');
+    jest.useRealTimers();
+  });
+
+  test('beforeUnmount clears polling interval', async () => {
+    jest.useFakeTimers();
+    const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
+    window.Clerk = {
+      load: jest.fn().mockResolvedValue(undefined),
+      user: {
+        username: 'clerkuser',
+        firstName: 'Test',
+        emailAddresses: [{ emailAddress: 'test@example.com' }]
+      }
+    };
+
+    const wrapper = shallowMount(ChatLayout);
+    await wrapper.vm.initClerk();
+
+    wrapper.unmount();
+
+    expect(clearIntervalSpy).toHaveBeenCalled();
+    clearIntervalSpy.mockRestore();
+    jest.useRealTimers();
   });
 
   test('initClerk handles Clerk.load() rejection gracefully', async () => {
@@ -576,10 +601,10 @@ describe('ChatLayout.vue', () => {
       afterSignOutUrl: window.location.href,
       appearance: {
         elements: {
-          userButtonBox: 'w-12 h-12',
-          userButtonTrigger: 'w-12 h-12',
-          userButtonAvatarBox: 'w-12 h-12 rounded-lg',
-          avatarBox: 'w-12 h-12 rounded-lg'
+          userButtonBox: { width: '48px', height: '48px' },
+          userButtonTrigger: { width: '48px', height: '48px' },
+          userButtonAvatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem' },
+          avatarBox: { width: '48px', height: '48px', borderRadius: '0.5rem' }
         }
       }
     });
