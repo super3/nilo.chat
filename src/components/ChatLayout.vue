@@ -8,7 +8,7 @@
       :username="username"
       @channel-change="changeChannel"
       @sign-in="handleSignIn"
-      @manage-account="handleManageAccount"
+      @mount-user-button="mountClerkUserButton"
     />
     <MainSidebar
       :username="username"
@@ -109,13 +109,6 @@ export default {
           }
         }
 
-        window.Clerk.addListener(({ user }) => {
-          if (!user) {
-            this.isSignedIn = false;
-            const anonName = 'User_' + Math.floor(Math.random() * 1000);
-            this.handleUsernameChange(anonName);
-          }
-        });
       } catch (e) {
         // Clerk failed to load, continue as anonymous
       }
@@ -145,17 +138,16 @@ export default {
         // Sign-in failed or was cancelled
       }
     },
-    async handleManageAccount() {
+    mountClerkUserButton(el) {
       try {
-        if (!window.Clerk) {
+        if (!window.Clerk || !el) {
           return;
         }
-        if (!window.Clerk.loaded) {
-          await window.Clerk.load();
-        }
-        await window.Clerk.openUserProfile();
+        window.Clerk.mountUserButton(el, {
+          afterSignOutUrl: window.location.href
+        });
       } catch (e) {
-        // Manage account failed or was cancelled
+        // Clerk UserButton mount failed
       }
     },
     changeChannel(channel) {

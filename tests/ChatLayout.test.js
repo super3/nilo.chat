@@ -298,7 +298,6 @@ describe('ChatLayout.vue', () => {
   test('initClerk sets isSignedIn and username when Clerk user exists', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: {
         username: 'clerkuser',
         firstName: 'Test',
@@ -312,13 +311,11 @@ describe('ChatLayout.vue', () => {
     expect(window.Clerk.load).toHaveBeenCalled();
     expect(wrapper.vm.isSignedIn).toBe(true);
     expect(wrapper.vm.username).toBe('clerkuser');
-    expect(window.Clerk.addListener).toHaveBeenCalled();
   });
 
   test('initClerk uses firstName when username is not available', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: {
         username: null,
         firstName: 'TestFirst',
@@ -336,7 +333,6 @@ describe('ChatLayout.vue', () => {
   test('initClerk uses email when username and firstName are not available', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: {
         username: null,
         firstName: null,
@@ -354,7 +350,6 @@ describe('ChatLayout.vue', () => {
   test('initClerk does not change username when Clerk user has no name info', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: {
         username: null,
         firstName: null,
@@ -373,7 +368,6 @@ describe('ChatLayout.vue', () => {
   test('initClerk handles Clerk not having a user (not signed in)', async () => {
     window.Clerk = {
       load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn(),
       user: null
     };
 
@@ -381,31 +375,6 @@ describe('ChatLayout.vue', () => {
     await wrapper.vm.initClerk();
 
     expect(wrapper.vm.isSignedIn).toBe(false);
-  });
-
-  test('Clerk listener resets state when user signs out', async () => {
-    let listenerCallback;
-    window.Clerk = {
-      load: jest.fn().mockResolvedValue(undefined),
-      addListener: jest.fn((cb) => { listenerCallback = cb; }),
-      user: {
-        username: 'clerkuser',
-        firstName: 'Test',
-        emailAddresses: [{ emailAddress: 'test@example.com' }]
-      }
-    };
-
-    const wrapper = shallowMount(ChatLayout);
-    await wrapper.vm.initClerk();
-
-    expect(wrapper.vm.isSignedIn).toBe(true);
-    expect(wrapper.vm.username).toBe('clerkuser');
-
-    // Simulate Clerk sign-out event
-    listenerCallback({ user: null });
-
-    expect(wrapper.vm.isSignedIn).toBe(false);
-    expect(wrapper.vm.username).toBe('User_500');
   });
 
   test('initClerk handles Clerk.load() rejection gracefully', async () => {
@@ -519,55 +488,53 @@ describe('ChatLayout.vue', () => {
     expect(wrapper.vm.username).toBe('Jane');
   });
 
-  // handleManageAccount tests
-  test('handleManageAccount does nothing when window.Clerk is not available', async () => {
+  // mountClerkUserButton tests
+  test('mountClerkUserButton does nothing when window.Clerk is not available', () => {
     delete window.Clerk;
     const wrapper = shallowMount(ChatLayout);
+    const el = document.createElement('div');
 
-    await wrapper.vm.handleManageAccount();
-
-    // Should not throw
-    expect(wrapper.vm.isSignedIn).toBe(false);
-  });
-
-  test('handleManageAccount opens Clerk user profile', async () => {
-    window.Clerk = {
-      loaded: true,
-      load: jest.fn().mockResolvedValue(undefined),
-      openUserProfile: jest.fn().mockResolvedValue(undefined)
-    };
-
-    const wrapper = shallowMount(ChatLayout);
-    await wrapper.vm.handleManageAccount();
-
-    expect(window.Clerk.openUserProfile).toHaveBeenCalled();
-  });
-
-  test('handleManageAccount loads Clerk if not already loaded', async () => {
-    window.Clerk = {
-      loaded: false,
-      load: jest.fn().mockResolvedValue(undefined),
-      openUserProfile: jest.fn().mockResolvedValue(undefined)
-    };
-
-    const wrapper = shallowMount(ChatLayout);
-    await wrapper.vm.handleManageAccount();
-
-    expect(window.Clerk.load).toHaveBeenCalled();
-    expect(window.Clerk.openUserProfile).toHaveBeenCalled();
-  });
-
-  test('handleManageAccount handles errors gracefully', async () => {
-    window.Clerk = {
-      loaded: true,
-      load: jest.fn().mockResolvedValue(undefined),
-      openUserProfile: jest.fn().mockRejectedValue(new Error('Profile error'))
-    };
-
-    const wrapper = shallowMount(ChatLayout);
-    await wrapper.vm.handleManageAccount();
+    wrapper.vm.mountClerkUserButton(el);
 
     // Should not throw
     expect(wrapper.vm.isSignedIn).toBe(false);
+  });
+
+  test('mountClerkUserButton does nothing when element is null', () => {
+    window.Clerk = {
+      mountUserButton: jest.fn()
+    };
+    const wrapper = shallowMount(ChatLayout);
+
+    wrapper.vm.mountClerkUserButton(null);
+
+    expect(window.Clerk.mountUserButton).not.toHaveBeenCalled();
+  });
+
+  test('mountClerkUserButton mounts Clerk UserButton on element', () => {
+    window.Clerk = {
+      mountUserButton: jest.fn()
+    };
+    const wrapper = shallowMount(ChatLayout);
+    const el = document.createElement('div');
+
+    wrapper.vm.mountClerkUserButton(el);
+
+    expect(window.Clerk.mountUserButton).toHaveBeenCalledWith(el, {
+      afterSignOutUrl: window.location.href
+    });
+  });
+
+  test('mountClerkUserButton handles errors gracefully', () => {
+    window.Clerk = {
+      mountUserButton: jest.fn(() => { throw new Error('Mount error'); })
+    };
+    const wrapper = shallowMount(ChatLayout);
+    const el = document.createElement('div');
+
+    wrapper.vm.mountClerkUserButton(el);
+
+    // Should not throw
+    expect(window.Clerk.mountUserButton).toHaveBeenCalled();
   });
 });

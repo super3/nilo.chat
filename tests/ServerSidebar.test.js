@@ -94,15 +94,13 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.find('[data-testid="profile-button"]').exists()).toBe(false);
   });
 
-  test('shows profile button with user initial when signed in', () => {
+  test('shows profile area when signed in', () => {
     const wrapper = shallowMount(ServerSidebar, {
       propsData: { isSignedIn: true, username: 'testuser' }
     });
 
     expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(false);
-    const profileBtn = wrapper.find('[data-testid="profile-button"]');
-    expect(profileBtn.exists()).toBe(true);
-    expect(profileBtn.text()).toBe('T');
+    expect(wrapper.find('[data-testid="profile-button"]').exists()).toBe(true);
   });
 
   test('join button emits sign-in event when clicked', async () => {
@@ -115,14 +113,16 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.emitted('sign-in')).toHaveLength(1);
   });
 
-  test('profile button emits manage-account event when clicked', async () => {
+  test('emits mount-user-button when isSignedIn becomes true', async () => {
     const wrapper = shallowMount(ServerSidebar, {
-      propsData: { isSignedIn: true, username: 'testuser' }
+      propsData: { isSignedIn: false, username: 'testuser' }
     });
 
-    await wrapper.find('[data-testid="profile-button"]').trigger('click');
-    expect(wrapper.emitted('manage-account')).toBeTruthy();
-    expect(wrapper.emitted('manage-account')).toHaveLength(1);
+    await wrapper.setProps({ isSignedIn: true });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('mount-user-button')).toBeTruthy();
+    expect(wrapper.emitted('mount-user-button')).toHaveLength(1);
   });
 
   test('isSignedIn defaults to false', () => {
@@ -131,17 +131,14 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(true);
   });
 
-  test('userInitial computes correctly', () => {
+  test('does not emit mount-user-button when isSignedIn becomes false', async () => {
     const wrapper = shallowMount(ServerSidebar, {
-      propsData: { username: 'alice', isSignedIn: true }
+      propsData: { isSignedIn: true, username: 'testuser' }
     });
-    expect(wrapper.vm.userInitial).toBe('A');
-  });
 
-  test('userInitial returns ? for empty username', () => {
-    const wrapper = shallowMount(ServerSidebar, {
-      propsData: { username: '', isSignedIn: true }
-    });
-    expect(wrapper.vm.userInitial).toBe('?');
+    await wrapper.setProps({ isSignedIn: false });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('mount-user-button')).toBeFalsy();
   });
 });

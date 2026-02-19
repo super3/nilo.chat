@@ -35,16 +35,12 @@
           <path d="M5 5a5 5 0 0 1 10 0v2A5 5 0 0 1 5 7V5zM0 16.68A19.9 19.9 0 0 1 10 14c3.64 0 7.06.97 10 2.68V20H0v-3.32z"/>
         </svg>
       </button>
-      <button
+      <div
         v-else
-        @click="$emit('manage-account')"
-        class="h-12 w-12 rounded-lg flex items-center justify-center transition-colors overflow-hidden"
-        :class="'bg-green-600 hover:bg-green-500'"
+        ref="clerkUserButton"
+        class="h-12 w-12 flex items-center justify-center"
         data-testid="profile-button"
-        :title="'Signed in as ' + username + ' — Manage account'"
-      >
-        <span class="text-white text-lg font-semibold">{{ userInitial }}</span>
-      </button>
+      />
     </div>
   </div>
 </template>
@@ -75,9 +71,13 @@ export default {
       default: ''
     }
   },
-  computed: {
-    userInitial() {
-      return this.username ? this.username.charAt(0).toUpperCase() : '?';
+  watch: {
+    isSignedIn(val) {
+      if (val) {
+        this.$nextTick(() => {
+          this.$emit('mount-user-button', this.$refs.clerkUserButton);
+        });
+      }
     }
   },
   methods: {
