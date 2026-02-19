@@ -84,4 +84,64 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.vm.getUnreadCount('general')).toBe(1);
     expect(wrapper.vm.getUnreadCount('feedback')).toBe(0);
   });
+
+  test('shows join button when not signed in', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: false }
+    });
+
+    expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="profile-button"]').exists()).toBe(false);
+  });
+
+  test('shows profile button with user initial when signed in', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: true, username: 'testuser' }
+    });
+
+    expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(false);
+    const profileBtn = wrapper.find('[data-testid="profile-button"]');
+    expect(profileBtn.exists()).toBe(true);
+    expect(profileBtn.text()).toBe('T');
+  });
+
+  test('join button emits sign-in event when clicked', async () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: false }
+    });
+
+    await wrapper.find('[data-testid="join-button"]').trigger('click');
+    expect(wrapper.emitted('sign-in')).toBeTruthy();
+    expect(wrapper.emitted('sign-in')).toHaveLength(1);
+  });
+
+  test('profile button emits sign-out event when clicked', async () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: true, username: 'testuser' }
+    });
+
+    await wrapper.find('[data-testid="profile-button"]').trigger('click');
+    expect(wrapper.emitted('sign-out')).toBeTruthy();
+    expect(wrapper.emitted('sign-out')).toHaveLength(1);
+  });
+
+  test('isSignedIn defaults to false', () => {
+    const wrapper = shallowMount(ServerSidebar);
+    expect(wrapper.vm.isSignedIn).toBe(false);
+    expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(true);
+  });
+
+  test('userInitial computes correctly', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { username: 'alice', isSignedIn: true }
+    });
+    expect(wrapper.vm.userInitial).toBe('A');
+  });
+
+  test('userInitial returns ? for empty username', () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { username: '', isSignedIn: true }
+    });
+    expect(wrapper.vm.userInitial).toBe('?');
+  });
 });

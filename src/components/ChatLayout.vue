@@ -4,17 +4,18 @@
     <ServerSidebar
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
+      :is-signed-in="isSignedIn"
+      :username="username"
       @channel-change="changeChannel"
+      @sign-in="handleSignIn"
+      @sign-out="handleSignOut"
     />
     <MainSidebar
       :username="username"
       :is-connected="isConnected"
       :current-channel="currentChannel"
       :channel-unread-counts="channelUnreadCounts"
-      :is-signed-in="isSignedIn"
       @channel-change="changeChannel"
-      @sign-in="handleSignIn"
-      @sign-out="handleSignOut"
     />
     <!-- Chat content -->
     <ChatContent

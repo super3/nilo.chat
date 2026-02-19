@@ -46,33 +46,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Join button at bottom (when not signed in) -->
-    <div v-if="!isSignedIn" class="pb-6 px-4" data-testid="join-section">
-      <button
-        @click="$emit('sign-in')"
-        class="w-full bg-teal-dark hover:bg-teal-600 text-white font-semibold rounded-lg border-2 border-teal-dark transition-colors"
-        style="padding: 9px 16px;"
-        data-testid="join-button"
-      >
-        Join / Sign In
-      </button>
-    </div>
-
-    <!-- User status bar at bottom (when signed in) -->
-    <div v-else class="px-4 pb-6 flex-none border-t border-white/10 pt-3" data-testid="join-section">
-      <div class="flex items-center text-white text-sm" data-testid="user-signed-in">
-        <span class="rounded-full bg-green-500 block w-2 h-2 mr-2"></span>
-        <span class="truncate font-semibold">{{ username }}</span>
-        <button
-          @click="$emit('sign-out')"
-          class="ml-auto text-white/50 hover:text-white text-xs transition-colors"
-          data-testid="sign-out-button"
-        >
-          Sign out
-        </button>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -103,10 +76,6 @@ export default {
         growth: 0,
         feedback: 0
       })
-    },
-    isSignedIn: {
-      type: Boolean,
-      default: false
     }
   },
   data() {

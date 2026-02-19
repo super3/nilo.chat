@@ -10,7 +10,7 @@ jest.mock('../src/components/ServerSidebar.vue', () => ({
 jest.mock('../src/components/MainSidebar.vue', () => ({
   name: 'MainSidebar',
   template: '<div>Main Sidebar</div>',
-  props: ['username', 'isConnected', 'steveUnreadCount', 'isSignedIn']
+  props: ['username', 'isConnected', 'steveUnreadCount']
 }));
 
 jest.mock('../src/components/ChatContent.vue', () => ({
