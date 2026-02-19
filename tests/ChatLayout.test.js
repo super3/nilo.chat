@@ -228,6 +228,44 @@ describe('ChatLayout.vue', () => {
     jest.useRealTimers();
   });
 
+  test('initClerk re-mounts Clerk user button when element was saved', async () => {
+    jest.useFakeTimers();
+    window.Clerk = {
+      load: jest.fn().mockResolvedValue(undefined),
+      mountUserButton: jest.fn(),
+      user: {
+        imageUrl: 'https://example.com/photo.jpg',
+        username: 'clerkuser',
+        firstName: 'Test',
+        emailAddresses: [{ emailAddress: 'test@example.com' }]
+      }
+    };
+
+    const wrapper = shallowMount(ChatLayout);
+    // Simulate ServerSidebar's mounted() having provided the element early
+    const el = document.createElement('div');
+    wrapper.vm._clerkButtonEl = el;
+
+    // Clear any prior calls from mounted() initClerk
+    window.Clerk.mountUserButton.mockClear();
+
+    await wrapper.vm.initClerk();
+
+    // initClerk should re-mount with the saved element
+    expect(window.Clerk.mountUserButton).toHaveBeenCalled();
+    expect(window.Clerk.mountUserButton.mock.calls[0][0]).toBe(el);
+    jest.useRealTimers();
+  });
+
+  test('mountClerkUserButton saves element reference', () => {
+    const wrapper = shallowMount(ChatLayout);
+    const el = document.createElement('div');
+
+    wrapper.vm.mountClerkUserButton(el);
+
+    expect(wrapper.vm._clerkButtonEl).toBe(el);
+  });
+
   test('initClerk resets cached state when Clerk says not signed in', async () => {
     jest.useFakeTimers();
     // Simulate cached signed-in state

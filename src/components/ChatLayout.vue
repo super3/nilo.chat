@@ -151,6 +151,12 @@ export default {
           if (clerkName) {
             this.handleUsernameChange(clerkName);
           }
+          // Re-mount Clerk user button now that Clerk is loaded
+          // (needed when isSignedIn was cached — the early mount attempt
+          // from ServerSidebar's mounted() hook fails before Clerk loads)
+          if (this._clerkButtonEl) {
+            this.mountClerkUserButton(this._clerkButtonEl);
+          }
         } else if (this.isSignedIn) {
           // Cached state said signed in, but Clerk says not — reset
           this.isSignedIn = false;
@@ -211,6 +217,7 @@ export default {
       }
     },
     mountClerkUserButton(el) {
+      this._clerkButtonEl = el;
       try {
         if (!window.Clerk || !el) {
           return;

@@ -131,12 +131,36 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(true);
   });
 
-  test('does not emit mount-user-button when isSignedIn becomes false', async () => {
+  test('does not emit additional mount-user-button when isSignedIn becomes false', async () => {
     const wrapper = shallowMount(ServerSidebar, {
       propsData: { isSignedIn: true, username: 'testuser' }
     });
+    await wrapper.vm.$nextTick();
+
+    // mounted() emits once because isSignedIn starts true
+    const countAfterMount = (wrapper.emitted('mount-user-button') || []).length;
 
     await wrapper.setProps({ isSignedIn: false });
+    await wrapper.vm.$nextTick();
+
+    // No additional emission when going false
+    expect((wrapper.emitted('mount-user-button') || []).length).toBe(countAfterMount);
+  });
+
+  test('emits mount-user-button on mounted when isSignedIn is already true', async () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: true, username: 'testuser' }
+    });
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.emitted('mount-user-button')).toBeTruthy();
+    expect(wrapper.emitted('mount-user-button')).toHaveLength(1);
+  });
+
+  test('does not emit mount-user-button on mounted when isSignedIn is false', async () => {
+    const wrapper = shallowMount(ServerSidebar, {
+      propsData: { isSignedIn: false }
+    });
     await wrapper.vm.$nextTick();
 
     expect(wrapper.emitted('mount-user-button')).toBeFalsy();
