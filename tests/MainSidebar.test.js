@@ -130,7 +130,9 @@ describe('MainSidebar.vue', () => {
       }
     });
     expect(wrapper.vm.channelUnreadCounts).toEqual({
+      welcome: 0,
       general: 0,
+      growth: 0,
       feedback: 0
     });
   });

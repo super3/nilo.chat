@@ -87,8 +87,10 @@ export default {
   computed: {
     channelDescription() {
       const descriptions = {
-        general: 'Main discussion channel for the community.',
-        feedback: 'Share your thoughts and suggestions here.'
+        welcome: 'Say hi — no account needed.',
+        general: 'Announcements and workspace updates.',
+        growth: 'Outreach, experiments, and new user activity.',
+        feedback: 'Bugs, ideas, and feature requests.'
       };
       return descriptions[this.currentChannel] || 'Channel description';
     }
