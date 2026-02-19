@@ -14,6 +14,7 @@
       :is-signed-in="isSignedIn"
       @channel-change="changeChannel"
       @sign-in="handleSignIn"
+      @sign-out="handleSignOut"
     />
     <!-- Chat content -->
     <ChatContent
@@ -133,6 +134,21 @@ export default {
         }
       } catch (e) {
         // Sign-in failed or was cancelled
+      }
+    },
+    async handleSignOut() {
+      try {
+        if (window.Clerk) {
+          if (!window.Clerk.loaded) {
+            await window.Clerk.load();
+          }
+          await window.Clerk.signOut();
+        }
+        this.isSignedIn = false;
+        const anonName = 'User_' + Math.floor(Math.random() * 1000);
+        this.handleUsernameChange(anonName);
+      } catch (e) {
+        // Sign-out failed
       }
     },
     changeChannel(channel) {

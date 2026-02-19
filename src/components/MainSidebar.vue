@@ -64,7 +64,13 @@
       <div class="flex items-center text-white text-sm" data-testid="user-signed-in">
         <span class="rounded-full bg-green-500 block w-2 h-2 mr-2"></span>
         <span class="truncate font-semibold">{{ username }}</span>
-        <span class="ml-auto text-white/50 text-xs">Signed in</span>
+        <button
+          @click="$emit('sign-out')"
+          class="ml-auto text-white/50 hover:text-white text-xs transition-colors"
+          data-testid="sign-out-button"
+        >
+          Sign out
+        </button>
       </div>
     </div>
   </div>

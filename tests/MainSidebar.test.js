@@ -210,7 +210,23 @@ describe('MainSidebar.vue', () => {
     expect(wrapper.find('[data-testid="join-button"]').exists()).toBe(false);
     const signedIn = wrapper.find('[data-testid="user-signed-in"]');
     expect(signedIn.exists()).toBe(true);
-    expect(signedIn.text()).toContain('Signed in');
+    expect(signedIn.text()).toContain('testuser');
+    expect(signedIn.text()).toContain('Sign out');
+  });
+
+  test('Sign out button emits sign-out event when clicked', async () => {
+    const wrapper = shallowMount(MainSidebar, {
+      propsData: {
+        username: 'testuser',
+        isConnected: true,
+        currentChannel: 'general',
+        isSignedIn: true
+      }
+    });
+
+    await wrapper.find('[data-testid="sign-out-button"]').trigger('click');
+    expect(wrapper.emitted('sign-out')).toBeTruthy();
+    expect(wrapper.emitted('sign-out')).toHaveLength(1);
   });
 
   test('Join button emits sign-in event when clicked', async () => {
