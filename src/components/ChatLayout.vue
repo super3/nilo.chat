@@ -100,18 +100,39 @@ export default {
     }
   },
   methods: {
-    async initClerk() {
-      try {
-        if (!window.Clerk) {
+    waitForClerk(timeout = 5000) {
+      return new Promise((resolve) => {
+        if (window.Clerk) {
+          resolve(window.Clerk);
           return;
         }
-        await window.Clerk.load();
+        const interval = 50;
+        let elapsed = 0;
+        const poll = setInterval(() => {
+          elapsed += interval;
+          if (window.Clerk) {
+            clearInterval(poll);
+            resolve(window.Clerk);
+          } else if (elapsed >= timeout) {
+            clearInterval(poll);
+            resolve(null);
+          }
+        }, interval);
+      });
+    },
+    async initClerk() {
+      try {
+        const clerk = await this.waitForClerk();
+        if (!clerk) {
+          return;
+        }
+        await clerk.load();
 
-        if (window.Clerk.user) {
+        if (clerk.user) {
           this.isSignedIn = true;
-          const clerkName = window.Clerk.user.username ||
-            window.Clerk.user.firstName ||
-            window.Clerk.user.emailAddresses[0]?.emailAddress;
+          const clerkName = clerk.user.username ||
+            clerk.user.firstName ||
+            clerk.user.emailAddresses[0]?.emailAddress;
           if (clerkName) {
             this.handleUsernameChange(clerkName);
           }
@@ -130,21 +151,22 @@ export default {
     },
     async handleSignIn() {
       try {
-        if (!window.Clerk) {
+        const clerk = await this.waitForClerk();
+        if (!clerk) {
           return;
         }
-        if (!window.Clerk.loaded) {
-          await window.Clerk.load();
+        if (!clerk.loaded) {
+          await clerk.load();
         }
-        await window.Clerk.openSignIn({
+        await clerk.openSignIn({
           fallbackRedirectUrl: window.location.href
         });
 
-        if (window.Clerk.user) {
+        if (clerk.user) {
           this.isSignedIn = true;
-          const clerkName = window.Clerk.user.username ||
-            window.Clerk.user.firstName ||
-            window.Clerk.user.emailAddresses[0]?.emailAddress;
+          const clerkName = clerk.user.username ||
+            clerk.user.firstName ||
+            clerk.user.emailAddresses[0]?.emailAddress;
           if (clerkName) {
             this.handleUsernameChange(clerkName);
           }

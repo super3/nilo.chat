@@ -287,12 +287,16 @@ describe('ChatLayout.vue', () => {
 
   // Clerk integration tests
   test('initClerk does nothing when window.Clerk is not available', async () => {
+    jest.useFakeTimers();
     delete window.Clerk;
     const wrapper = shallowMount(ChatLayout);
 
-    await wrapper.vm.initClerk();
+    const initPromise = wrapper.vm.initClerk();
+    jest.advanceTimersByTime(5000);
+    await initPromise;
 
     expect(wrapper.vm.isSignedIn).toBe(false);
+    jest.useRealTimers();
   });
 
   test('initClerk sets isSignedIn and username when Clerk user exists', async () => {
@@ -466,12 +470,16 @@ describe('ChatLayout.vue', () => {
   });
 
   test('handleSignIn does nothing when window.Clerk is not available', async () => {
+    jest.useFakeTimers();
     delete window.Clerk;
     const wrapper = shallowMount(ChatLayout);
 
-    await wrapper.vm.handleSignIn();
+    const signInPromise = wrapper.vm.handleSignIn();
+    jest.advanceTimersByTime(5000);
+    await signInPromise;
 
     expect(wrapper.vm.isSignedIn).toBe(false);
+    jest.useRealTimers();
   });
 
   test('handleSignIn opens Clerk sign-in and updates state when user signs in', async () => {
