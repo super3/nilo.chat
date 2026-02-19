@@ -19,7 +19,7 @@ jest.mock('socket.io-client', () => {
 jest.mock('../src/components/ChatMessage.vue', () => ({
   name: 'ChatMessage',
   template: '<div class="chat-message-mock">{{ message }}</div>',
-  props: ['username', 'timestamp', 'message', 'code', 'avatarColor']
+  props: ['username', 'timestamp', 'message', 'code', 'avatarColor', 'profileImageUrl']
 }));
 
 // Mock console.log to reduce noise in tests
@@ -202,10 +202,10 @@ describe('ChatContent.vue', () => {
     // Get the message_history handler
     const historyHandler = mockSocketOn.mock.calls.find(call => call[0] === 'message_history')[1];
 
-    // Create some mock history data
+    // Create some mock history data (format: timestamp|username|profileImageUrl|message)
     const mockHistory = [
-      '2023-01-01T12:00:00Z|john|Hello',
-      '2023-01-01T12:05:00Z|jane|Hi there'
+      '2023-01-01T12:00:00Z|john|https://img.clerk.com/john.jpg|Hello',
+      '2023-01-01T12:05:00Z|jane||Hi there'
     ];
 
     // Setup mock ref for scrollToBottom call
@@ -223,12 +223,14 @@ describe('ChatContent.vue', () => {
     expect(wrapper.vm.messages[0]).toEqual({
       timestamp: '2023-01-01T12:00:00Z',
       username: 'john',
-      message: 'Hello'
+      message: 'Hello',
+      profileImageUrl: 'https://img.clerk.com/john.jpg'
     });
     expect(wrapper.vm.messages[1]).toEqual({
       timestamp: '2023-01-01T12:05:00Z',
       username: 'jane',
-      message: 'Hi there'
+      message: 'Hi there',
+      profileImageUrl: ''
     });
 
     // Wait for next tick when scrolling happens
@@ -246,7 +248,8 @@ describe('ChatContent.vue', () => {
     const mockMessage = {
       timestamp: '2023-01-01T12:10:00Z',
       username: 'john',
-      message: 'New message'
+      message: 'New message',
+      profileImageUrl: 'https://img.clerk.com/john.jpg'
     };
 
     // Set isAtBottom to true to simulate user being at bottom
@@ -281,7 +284,8 @@ describe('ChatContent.vue', () => {
     const mockMessage = {
       timestamp: '2023-01-01T12:15:00Z',
       username: 'jane',
-      message: 'Another message'
+      message: 'Another message',
+      profileImageUrl: ''
     };
 
     // Set isAtBottom to false to simulate user not being at bottom
@@ -336,7 +340,8 @@ describe('ChatContent.vue', () => {
     expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
       username: 'testuser',
       message: 'Hello socket world',
-      channel: 'general'
+      channel: 'general',
+      profileImageUrl: ''
     });
 
     // Check that the input was cleared
@@ -415,7 +420,8 @@ describe('ChatContent.vue', () => {
     expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
       username: 'testuser',
       message: 'Hello everyone!',
-      channel: 'welcome'
+      channel: 'welcome',
+      profileImageUrl: ''
     });
   });
 
@@ -437,7 +443,8 @@ describe('ChatContent.vue', () => {
     expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', {
       username: 'testuser',
       message: 'Hello from signed in!',
-      channel: 'general'
+      channel: 'general',
+      profileImageUrl: ''
     });
   });
 

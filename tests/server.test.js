@@ -245,7 +245,8 @@ describe('Server Module - Comprehensive', () => {
         expect.any(String), // timestamp
         messageData.username,
         messageData.message,
-        'general' // default channel
+        'general', // default channel
+        null // profileImageUrl
       ])
     );
 
@@ -494,8 +495,8 @@ describe('Server Module - Comprehensive', () => {
       if (sql.includes('SELECT') && sql.includes('messages')) {
         return Promise.resolve({
           rows: [
-            { timestamp: mockTimestamp, username: 'User1', message: 'Hello' },
-            { timestamp: mockTimestamp, username: 'User2', message: 'Hi there' }
+            { timestamp: mockTimestamp, username: 'User1', message: 'Hello', profile_image_url: 'https://img.clerk.com/user1.jpg' },
+            { timestamp: mockTimestamp, username: 'User2', message: 'Hi there', profile_image_url: null }
           ]
         });
       }
@@ -516,10 +517,10 @@ describe('Server Module - Comprehensive', () => {
     // Test user_connected with message history
     await userConnectedHandler({ username: 'TestUser', channel: 'general' });
 
-    // Verify formatted history was emitted
+    // Verify formatted history was emitted (format: timestamp|username|profileImageUrl|message)
     expect(socket.emit).toHaveBeenCalledWith('message_history', expect.arrayContaining([
-      expect.stringContaining('|User1|Hello'),
-      expect.stringContaining('|User2|Hi there')
+      expect.stringContaining('|User1|https://img.clerk.com/user1.jpg|Hello'),
+      expect.stringContaining('|User2||Hi there')
     ]));
 
     socket.emit.mockClear();
@@ -529,8 +530,8 @@ describe('Server Module - Comprehensive', () => {
 
     // Verify formatted history was emitted
     expect(socket.emit).toHaveBeenCalledWith('message_history', expect.arrayContaining([
-      expect.stringContaining('|User1|Hello'),
-      expect.stringContaining('|User2|Hi there')
+      expect.stringContaining('|User1|https://img.clerk.com/user1.jpg|Hello'),
+      expect.stringContaining('|User2||Hi there')
     ]));
 
     // Reset mock

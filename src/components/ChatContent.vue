@@ -33,7 +33,7 @@
         :message="message.message"
         :code="message.code || ''"
         :avatar-color="getAvatarColor(message.username)"
-        :profile-image-url="message.username === username ? profileImageUrl : ''"
+        :profile-image-url="message.profileImageUrl || ''"
       />
     </div>
     <div class="pb-6 px-4 flex-none">
@@ -188,8 +188,9 @@ export default {
         const parts = msg.split('|');
         const timestamp = parts[0];
         const username = parts[1];
-        const message = parts.slice(2).join('|');
-        return { timestamp, username, message };
+        const profileImageUrl = parts[2];
+        const message = parts.slice(3).join('|');
+        return { timestamp, username, message, profileImageUrl };
       });
 
       // Scroll to bottom after message history is loaded
@@ -199,14 +200,14 @@ export default {
     });
 
     // Listen for new messages
-    this.socket.on('chat_message', ({ timestamp, username, message, channel }) => {
+    this.socket.on('chat_message', ({ timestamp, username, message, channel, profileImageUrl }) => {
       // Handle messages based on channel
       if (channel && channel !== this.currentChannel) {
         this.$emit('message-received', { timestamp, username, message, channel });
         return;
       }
 
-      const messageObj = { timestamp, username, message };
+      const messageObj = { timestamp, username, message, profileImageUrl: profileImageUrl || '' };
       this.messages.push(messageObj);
 
       // Emit message received event (for notification handling)
@@ -262,7 +263,8 @@ export default {
       this.socket.emit('chat_message', {
         username: this.localUsername,
         message: this.newMessage,
-        channel: this.localChannel
+        channel: this.localChannel,
+        profileImageUrl: this.profileImageUrl || ''
       });
 
       this.newMessage = '';
