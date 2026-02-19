@@ -30,11 +30,12 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Test database connection
+// Test database connection and ensure schema is up to date
 async function initializeDatabase() {
   try {
     await pool.query('SELECT NOW()');
     console.log('Database connected successfully');
+    await pool.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS profile_image_url TEXT DEFAULT NULL');
   } catch (error) {
     console.error('Database connection error:', error);
   }
@@ -63,12 +64,12 @@ app.get('*', (req, res) => {
 async function sendMessageHistory(socket, channel) {
   try {
     const result = await pool.query(
-      'SELECT timestamp, username, message FROM messages WHERE channel = $1 ORDER BY timestamp ASC',
+      'SELECT timestamp, username, message, profile_image_url FROM messages WHERE channel = $1 ORDER BY timestamp ASC',
       [channel]
     );
 
     const history = result.rows.map(row =>
-      `${row.timestamp.toISOString()}|${row.username}||${row.message}`
+      `${row.timestamp.toISOString()}|${row.username}|${row.profile_image_url || ''}|${row.message}`
     );
 
     socket.emit('message_history', history);
@@ -127,8 +128,8 @@ function setupSocketHandlers(io) {
       // Save message to database
       try {
         await pool.query(
-          'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
-          [timestamp, data.username, data.message, channel]
+          'INSERT INTO messages (timestamp, username, message, channel, profile_image_url) VALUES ($1, $2, $3, $4, $5)',
+          [timestamp, data.username, data.message, channel, data.profileImageUrl || null]
         );
 
         // Create message object with channel explicitly included
