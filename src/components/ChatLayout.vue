@@ -1,5 +1,5 @@
 <template>
-  <div class="font-sans antialiased h-screen flex w-full">
+  <div class="font-sans antialiased h-screen-safe flex w-full">
     <!-- Sidebar / channel list -->
     <ServerSidebar
       :current-channel="currentChannel"

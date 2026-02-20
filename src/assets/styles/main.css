@@ -3,5 +3,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global styles */
-/* Add your custom styles below */ 
+/* Use dynamic viewport height so the layout accounts for mobile browser chrome */
+@layer utilities {
+  .h-screen-safe {
+    height: 100vh;
+    height: 100dvh;
+  }
+} 

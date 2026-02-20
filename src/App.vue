@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen overflow-hidden" style="background: #edf2f7;">
+  <div class="h-screen-safe overflow-hidden" style="background: #edf2f7;">
     <ChatLayout />
   </div>
 </template>

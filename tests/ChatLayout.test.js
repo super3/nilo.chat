@@ -69,7 +69,7 @@ describe('ChatLayout.vue', () => {
     expect(rootDiv.exists()).toBe(true);
     expect(rootDiv.classes()).toContain('font-sans');
     expect(rootDiv.classes()).toContain('antialiased');
-    expect(rootDiv.classes()).toContain('h-screen');
+    expect(rootDiv.classes()).toContain('h-screen-safe');
     expect(rootDiv.classes()).toContain('flex');
     expect(rootDiv.classes()).toContain('w-full');
 
