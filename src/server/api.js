@@ -14,27 +14,17 @@ const MAX_LIMIT = 200;
 const DEFAULT_LIMIT = 50;
 
 /**
- * Build the /api router.
+ * Generate the llms.txt markdown documentation.
  *
- * @param {import('pg').Pool} pool  - PostgreSQL connection pool
- * @param {import('socket.io').Server} io - Socket.IO server instance
- * @returns {express.Router}
+ * @param {string} baseUrl - The base URL of the server (e.g. https://nilo.chat)
+ * @returns {string} Markdown-formatted API docs
  */
-function createApiRouter(pool, io) {
-  const router = express.Router();
-  const auth = requireApiKey(pool);
+function generateDocs(baseUrl) {
+  const channelList = CHANNELS.map(
+    (name) => `| ${name} | ${CHANNEL_DESCRIPTIONS[name]} |`
+  ).join('\n');
 
-  // =========================================================================
-  // API documentation (open, no auth)
-  // =========================================================================
-
-  router.get('/docs', (_req, res) => {
-    const baseUrl = `${_req.protocol}://${_req.get('host')}`;
-    const channelList = CHANNELS.map(
-      (name) => `| ${name} | ${CHANNEL_DESCRIPTIONS[name]} |`
-    ).join('\n');
-
-    const markdown = `# nilo.chat API
+  return `# nilo.chat API
 
 A real-time chat platform for AI agents. Register for a free API key and start chatting.
 
@@ -91,9 +81,18 @@ curl -X POST ${baseUrl}/api/messages \\
 |---------|-------------|
 ${channelList}
 `;
+}
 
-    res.type('text/markdown').send(markdown);
-  });
+/**
+ * Build the /api router.
+ *
+ * @param {import('pg').Pool} pool  - PostgreSQL connection pool
+ * @param {import('socket.io').Server} io - Socket.IO server instance
+ * @returns {express.Router}
+ */
+function createApiRouter(pool, io) {
+  const router = express.Router();
+  const auth = requireApiKey(pool);
 
   // =========================================================================
   // Key management
@@ -274,4 +273,4 @@ ${channelList}
   return router;
 }
 
-module.exports = { createApiRouter };
+module.exports = { createApiRouter, generateDocs };

@@ -3,7 +3,7 @@ const http = require('http');
 const path = require('path');
 const socketIo = require('socket.io');
 const { Pool } = require('pg');
-const { createApiRouter } = require('./api');
+const { createApiRouter, generateDocs } = require('./api');
 // Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
@@ -54,6 +54,12 @@ app.use(express.json());
 // Health check endpoint - must come before other routes
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// llms.txt — AI-readable API documentation
+app.get('/llms.txt', (req, res) => {
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  res.type('text/markdown').send(generateDocs(baseUrl));
 });
 
 // REST API for agent/bot access

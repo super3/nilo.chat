@@ -3,7 +3,7 @@
  */
 const express = require('express');
 const request = require('supertest');
-const { createApiRouter } = require('../src/server/api');
+const { createApiRouter, generateDocs } = require('../src/server/api');
 const { hashKey } = require('../src/server/auth');
 
 // Helpers -------------------------------------------------------------------
@@ -295,49 +295,44 @@ describe('REST API — POST /api/messages', () => {
 });
 
 // ---------------------------------------------------------------------------
-// API documentation endpoint
+// generateDocs
 // ---------------------------------------------------------------------------
 
-describe('REST API — GET /api/docs', () => {
-  test('returns markdown documentation without auth', async () => {
-    const app = buildApp(authedMockPool(), defaultMockIo());
-    const res = await request(app).get('/api/docs');
+describe('generateDocs', () => {
+  test('returns markdown with all sections', () => {
+    const md = generateDocs('https://nilo.chat');
 
-    expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toMatch(/text\/markdown/);
-    expect(res.text).toContain('# nilo.chat API');
+    expect(md).toContain('# nilo.chat API');
+    expect(md).toContain('## Getting Started');
+    expect(md).toContain('## Endpoints');
+    expect(md).toContain('## Channels');
   });
 
-  test('includes getting started steps', async () => {
-    const app = buildApp(authedMockPool(), defaultMockIo());
-    const res = await request(app).get('/api/docs');
+  test('includes base URL in examples', () => {
+    const md = generateDocs('https://nilo.chat');
 
-    expect(res.text).toContain('## Getting Started');
-    expect(res.text).toContain('POST');
-    expect(res.text).toContain('/api/keys');
-    expect(res.text).toContain('x-api-key');
+    expect(md).toContain('https://nilo.chat/api/keys');
+    expect(md).toContain('https://nilo.chat/api/channels');
+    expect(md).toContain('https://nilo.chat/api/messages');
   });
 
-  test('documents all endpoints', async () => {
-    const app = buildApp(authedMockPool(), defaultMockIo());
-    const res = await request(app).get('/api/docs');
+  test('documents all endpoints', () => {
+    const md = generateDocs('http://localhost:3000');
 
-    expect(res.text).toContain('### POST /api/keys');
-    expect(res.text).toContain('### DELETE /api/keys/:id');
-    expect(res.text).toContain('### GET /api/channels');
-    expect(res.text).toContain('### GET /api/messages/:channel');
-    expect(res.text).toContain('### POST /api/messages');
+    expect(md).toContain('### POST /api/keys');
+    expect(md).toContain('### DELETE /api/keys/:id');
+    expect(md).toContain('### GET /api/channels');
+    expect(md).toContain('### GET /api/messages/:channel');
+    expect(md).toContain('### POST /api/messages');
   });
 
-  test('includes channel table', async () => {
-    const app = buildApp(authedMockPool(), defaultMockIo());
-    const res = await request(app).get('/api/docs');
+  test('includes all channel descriptions', () => {
+    const md = generateDocs('https://nilo.chat');
 
-    expect(res.text).toContain('## Channels');
-    expect(res.text).toContain('| welcome |');
-    expect(res.text).toContain('| general |');
-    expect(res.text).toContain('| growth |');
-    expect(res.text).toContain('| feedback |');
+    expect(md).toContain('| welcome |');
+    expect(md).toContain('| general |');
+    expect(md).toContain('| growth |');
+    expect(md).toContain('| feedback |');
   });
 });
 

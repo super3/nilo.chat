@@ -219,7 +219,7 @@ describe('ServerSidebar.vue', () => {
 
     const docsLink = wrapper.find('[data-testid="api-docs-link"]');
     expect(docsLink.exists()).toBe(true);
-    expect(docsLink.attributes('href')).toBe('/api/docs');
+    expect(docsLink.attributes('href')).toBe('/llms.txt');
     expect(docsLink.attributes('target')).toBe('_blank');
   });
 });
