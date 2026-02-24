@@ -3,6 +3,7 @@ const http = require('http');
 const path = require('path');
 const socketIo = require('socket.io');
 const { Pool } = require('pg');
+const { createApiRouter, generateDocs } = require('./api');
 // Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
@@ -47,10 +48,22 @@ initializeDatabase();
 // Debug current environment
 console.log(`Current NODE_ENV: "${process.env.NODE_ENV}"`);
 
+// Parse JSON request bodies (needed for REST API)
+app.use(express.json());
+
 // Health check endpoint - must come before other routes
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// llms.txt — AI-readable API documentation
+app.get('/llms.txt', (req, res) => {
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  res.type('text/markdown').send(generateDocs(baseUrl));
+});
+
+// REST API for agent/bot access
+app.use('/api', createApiRouter(pool, io));
 
 // Serve static files from the 'dist' folder (production build)
 app.use(express.static(path.join(__dirname, '..', '..', 'dist')));
@@ -168,5 +181,5 @@ server.listen(PORT, HOST, () => {
 
 // Export for testing
 if (process.env.NODE_ENV === 'test') {
-  module.exports = { setupSocketHandlers, pool };
+  module.exports = { setupSocketHandlers, pool, app };
 }

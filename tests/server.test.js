@@ -66,10 +66,17 @@ const mockSocketIo = jest.fn(() => {
   return mockIO;
 });
 
+// Mock the API router module
+jest.mock('../src/server/api', () => ({
+  createApiRouter: jest.fn(() => 'mock-api-router'),
+  generateDocs: jest.fn((baseUrl) => `# nilo.chat API\n\nDocs for ${baseUrl}`),
+}));
+
 // Mock express and socket.io
 jest.mock('express', () => {
   const mockExpress = jest.fn(() => mockExpressApp);
   mockExpress.static = jest.fn(() => mockStaticMiddleware);
+  mockExpress.json = jest.fn(() => 'json-middleware');
   return mockExpress;
 });
 
@@ -278,6 +285,19 @@ describe('Server Module - Comprehensive', () => {
     expect(mockExpressApp.use).toHaveBeenCalled();
   });
   
+  test('configures /llms.txt route that returns markdown docs', () => {
+    expect(mockExpressApp.get).toHaveBeenCalledWith('/llms.txt', expect.any(Function));
+
+    const handler = mockExpressApp.get.mock.calls.find(call => call[0] === '/llms.txt')[1];
+    const req = { protocol: 'https', get: jest.fn(() => 'nilo.chat') };
+    const res = { type: jest.fn().mockReturnThis(), send: jest.fn() };
+
+    handler(req, res);
+
+    expect(res.type).toHaveBeenCalledWith('text/markdown');
+    expect(res.send).toHaveBeenCalledWith(expect.stringContaining('# nilo.chat API'));
+  });
+
   test('configures express with health check and catch-all route', () => {
     // Verify health check route was configured
     expect(mockExpressApp.get).toHaveBeenCalledWith('/health', expect.any(Function));
