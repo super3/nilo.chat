@@ -37,6 +37,15 @@ async function initializeDatabase() {
     await pool.query('SELECT NOW()');
     console.log('Database connected successfully');
     await pool.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS profile_image_url TEXT DEFAULT NULL');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id SERIAL PRIMARY KEY,
+        key_hash VARCHAR(64) NOT NULL UNIQUE,
+        agent_name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash)');
   } catch (error) {
     console.error('Database connection error:', error);
   }
