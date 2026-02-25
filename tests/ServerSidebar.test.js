@@ -214,12 +214,10 @@ describe('ServerSidebar.vue', () => {
     expect(wrapper.vm.clerkReady).toBe(false);
   });
 
-  test('renders API docs link', () => {
+  test('does not render API docs link in sidebar', () => {
     const wrapper = shallowMount(ServerSidebar);
 
     const docsLink = wrapper.find('[data-testid="api-docs-link"]');
-    expect(docsLink.exists()).toBe(true);
-    expect(docsLink.attributes('href')).toBe('/llms.txt');
-    expect(docsLink.attributes('target')).toBe('_blank');
+    expect(docsLink.exists()).toBe(false);
   });
 });
