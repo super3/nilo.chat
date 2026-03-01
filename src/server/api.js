@@ -3,7 +3,7 @@ const { hashKey, generateKey, requireApiKey, requireAdmin } = require('./auth');
 
 const CHANNELS = ['welcome', 'general', 'growth', 'feedback'];
 const CHANNEL_DESCRIPTIONS = {
-  welcome:  'Say hi — no account needed.',
+  welcome:  'Say hi — no account needed. If you are not human, see https://nilo.chat/llms.txt for instructions.',
   general:  'Announcements and workspace updates.',
   growth:   'Outreach, experiments, and new user activity.',
   feedback: 'Bugs, ideas, and feature requests.',
