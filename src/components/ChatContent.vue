@@ -37,13 +37,21 @@
       />
     </div>
     <div class="pb-6 px-4 flex-none">
-      <div class="flex rounded-lg border-2 border-gray-300 overflow-hidden">
+      <div class="flex rounded-lg border-2 border-gray-300 overflow-hidden relative">
+        <UsernameAutocomplete
+          ref="autocomplete"
+          :users="activeUsers"
+          :query="mentionQuery"
+          :visible="showAutocomplete"
+          @select="onUserSelect"
+        />
         <span class="text-3xl text-gray-500 border-r-2 border-gray-300 p-2" :class="{ 'bg-gray-100 text-gray-300 cursor-not-allowed': isInputDisabled }">
           <svg class="fill-current h-6 w-6 block" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
             <path d="M16 10c0 .553-.048 1-.601 1H11v4.399c0 .552-.447.601-1 .601-.553 0-1-.049-1-.601V11H4.601C4.049 11 4 10.553 4 10c0-.553.049-1 .601-1H9V4.601C9 4.048 9.447 4 10 4c.553 0 1 .048 1 .601V9h4.399c.553 0 .601.447.601 1z"/>
           </svg>
         </span>
         <input
+          ref="messageInput"
           type="text"
           class="w-full px-4"
           :class="{ 'bg-gray-100 text-gray-400 cursor-not-allowed': isInputDisabled }"
@@ -51,6 +59,8 @@
           :disabled="isInputDisabled"
           v-model="newMessage"
           @keyup.enter="sendMessage"
+          @keydown="handleKeydown"
+          @input="handleInput"
         />
       </div>
     </div>
@@ -59,6 +69,7 @@
 
 <script>
 import ChatMessage from './ChatMessage.vue'
+import UsernameAutocomplete from './UsernameAutocomplete.vue'
 import io from 'socket.io-client'
 
 const MAX_MESSAGE_LENGTH = 2000
@@ -66,7 +77,8 @@ const MAX_MESSAGE_LENGTH = 2000
 export default {
   name: 'ChatContent',
   components: {
-    ChatMessage
+    ChatMessage,
+    UsernameAutocomplete
   },
   props: {
     username: {
@@ -94,7 +106,11 @@ export default {
       isConnected: false,
       isAtBottom: true,
       localUsername: this.username,
-      localChannel: this.currentChannel
+      localChannel: this.currentChannel,
+      activeUsers: [],
+      showAutocomplete: false,
+      mentionQuery: '',
+      mentionStartIndex: -1
     }
   },
   computed: {
@@ -225,6 +241,11 @@ export default {
     this.socket.on('join_channel', () => {
       // Server acknowledgment after joining a channel
     });
+
+    // Listen for active users list updates
+    this.socket.on('active_users', (users) => {
+      this.activeUsers = users;
+    });
   },
   beforeUnmount() {
     // Disconnect socket when component is destroyed
@@ -280,6 +301,12 @@ export default {
     getMessageContainer() {
       return this.$refs.messageContainer;
     },
+    getAutocompleteRef() {
+      return this.$refs.autocomplete;
+    },
+    getMessageInputRef() {
+      return this.$refs.messageInput;
+    },
     scrollToBottom() {
       const container = this.getMessageContainer();
       if (container) {
@@ -324,6 +351,62 @@ export default {
         return 'Sign in to post in this channel.';
       }
       return `Message #${this.currentChannel}`;
+    },
+    handleInput() {
+      const input = this.getMessageInputRef();
+      if (!input) return;
+      const cursorPos = input.selectionStart;
+      const textBeforeCursor = this.newMessage.slice(0, cursorPos);
+
+      // Find the last @ before cursor that isn't preceded by a non-space character
+      const mentionMatch = textBeforeCursor.match(/(^|\s)@(\w*)$/);
+      if (mentionMatch) {
+        this.mentionStartIndex = textBeforeCursor.lastIndexOf('@');
+        this.mentionQuery = mentionMatch[2];
+        this.showAutocomplete = true;
+      } else {
+        this.showAutocomplete = false;
+        this.mentionQuery = '';
+        this.mentionStartIndex = -1;
+      }
+    },
+    handleKeydown(event) {
+      if (!this.showAutocomplete) return;
+      const autocomplete = this.getAutocompleteRef();
+      if (!autocomplete) return;
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        autocomplete.moveUp();
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        autocomplete.moveDown();
+      } else if (event.key === 'Tab' || (event.key === 'Enter' && this.showAutocomplete)) {
+        event.preventDefault();
+        autocomplete.confirmSelection();
+      } else if (event.key === 'Escape') {
+        this.showAutocomplete = false;
+      }
+    },
+    onUserSelect(user) {
+      // Replace the @query with @username
+      const before = this.newMessage.slice(0, this.mentionStartIndex);
+      const input = this.getMessageInputRef();
+      const cursorPos = input ? input.selectionStart : this.newMessage.length;
+      const after = this.newMessage.slice(cursorPos);
+      this.newMessage = before + '@' + user + ' ' + after;
+      this.showAutocomplete = false;
+      this.mentionQuery = '';
+      this.mentionStartIndex = -1;
+
+      // Focus back on input
+      this.$nextTick(() => {
+        if (input) {
+          const newCursorPos = before.length + user.length + 2; // +2 for @ and space
+          input.focus();
+          input.setSelectionRange(newCursorPos, newCursorPos);
+        }
+      });
     }
   }
 }
