@@ -105,9 +105,65 @@ describe('ChatMessage.vue', () => {
         username: 'user with spaces'
       }
     });
-    
+
     // Verify URL encoding
     const avatar = wrapper.find('img');
     expect(avatar.attributes('src')).toBe('https://ui-avatars.com/api/?name=user%20with%20spaces&background=4F46E5&color=fff');
+  });
+
+  test('renders URLs as clickable links', () => {
+    const wrapper = shallowMount(ChatMessage, {
+      propsData: {
+        ...defaultProps,
+        message: 'check https://example.com for details'
+      }
+    });
+
+    const link = wrapper.find('.text-black a');
+    expect(link.exists()).toBe(true);
+    expect(link.attributes('href')).toBe('https://example.com');
+    expect(link.attributes('target')).toBe('_blank');
+    expect(link.attributes('rel')).toBe('noopener noreferrer');
+    expect(link.text()).toBe('https://example.com');
+  });
+
+  test('renders URLs as clickable links in messages with code blocks', () => {
+    const wrapper = shallowMount(ChatMessage, {
+      propsData: {
+        ...defaultProps,
+        message: 'see https://docs.example.com',
+        code: 'const x = 1;'
+      }
+    });
+
+    const link = wrapper.find('.text-black a');
+    expect(link.exists()).toBe(true);
+    expect(link.attributes('href')).toBe('https://docs.example.com');
+  });
+
+  test('escapes HTML in messages to prevent XSS', () => {
+    const wrapper = shallowMount(ChatMessage, {
+      propsData: {
+        ...defaultProps,
+        message: '<script>alert("xss")</script>'
+      }
+    });
+
+    const messageEl = wrapper.find('.text-black');
+    expect(messageEl.html()).not.toContain('<script>');
+    expect(messageEl.text()).toContain('<script>alert("xss")</script>');
+  });
+
+  test('linkedMessage computed property returns linkified text', () => {
+    const wrapper = shallowMount(ChatMessage, {
+      propsData: {
+        ...defaultProps,
+        message: 'visit https://example.com'
+      }
+    });
+
+    expect(wrapper.vm.linkedMessage).toBe(
+      'visit <a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>'
+    );
   });
 }); 
