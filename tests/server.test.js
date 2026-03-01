@@ -252,7 +252,7 @@ describe('Server Module - Comprehensive', () => {
         expect.any(String), // timestamp
         messageData.username,
         messageData.message,
-        'general' // default channel
+        'welcome' // default channel
       ])
     );
 
@@ -426,12 +426,12 @@ describe('Server Module - Comprehensive', () => {
     // Test join_channel with no channel specified
     await handlers.join_channel({});
     expect(socket.leave).toHaveBeenCalled();
-    expect(socket.join).toHaveBeenCalledWith('general');
+    expect(socket.join).toHaveBeenCalledWith('welcome');
 
     // Test user_connected with no channel specified
     socket.join.mockClear();
     await handlers.user_connected({ username: 'testuser' });
-    expect(socket.join).toHaveBeenCalledWith('general');
+    expect(socket.join).toHaveBeenCalledWith('welcome');
 
     // Test chat_message with no channel specified
     await handlers.chat_message({ username: 'testuser', message: 'hello' });

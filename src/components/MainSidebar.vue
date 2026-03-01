@@ -82,7 +82,7 @@ export default {
     },
     currentChannel: {
       type: String,
-      default: 'general'
+      default: 'welcome'
     },
     channelUnreadCounts: {
       type: Object,
