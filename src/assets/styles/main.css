@@ -3,6 +3,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Style links in chat messages to match the app's teal accent */
+.message-link {
+  color: #38a89d;
+  text-decoration: underline;
+}
+
+.message-link:hover {
+  color: #2d8a81;
+}
+
 /* Use dynamic viewport height so the layout accounts for mobile browser chrome */
 @layer utilities {
   .h-screen-safe {
