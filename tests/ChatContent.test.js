@@ -22,6 +22,18 @@ jest.mock('../src/components/ChatMessage.vue', () => ({
   props: ['username', 'timestamp', 'message', 'code', 'avatarColor', 'profileImageUrl']
 }));
 
+// Mock UsernameAutocomplete component
+jest.mock('../src/components/UsernameAutocomplete.vue', () => ({
+  name: 'UsernameAutocomplete',
+  template: '<div class="autocomplete-mock"></div>',
+  props: ['users', 'query', 'visible'],
+  methods: {
+    moveUp: jest.fn(),
+    moveDown: jest.fn(),
+    confirmSelection: jest.fn()
+  }
+}));
+
 // Mock console.log to reduce noise in tests
 console.log = jest.fn();
 
@@ -915,6 +927,265 @@ describe('ChatContent.vue', () => {
 
     wrapper.vm.socket = null;
     expect(() => wrapper.vm.switchChannel('feedback')).not.toThrow();
+  });
+
+  test('listens for active_users socket event', () => {
+    expect(mockSocketOn).toHaveBeenCalledWith('active_users', expect.any(Function));
+  });
+
+  test('handles active_users event and updates activeUsers data', () => {
+    const activeUsersHandler = mockSocketOn.mock.calls.find(call => call[0] === 'active_users')[1];
+    activeUsersHandler(['alice', 'bob', 'charlie']);
+    expect(wrapper.vm.activeUsers).toEqual(['alice', 'bob', 'charlie']);
+  });
+
+  test('handleInput detects @ mention at start of message', async () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    await signedInWrapper.setData({ newMessage: '@al' });
+
+    signedInWrapper.vm.getMessageInputRef = () => ({ selectionStart: 3 });
+    signedInWrapper.vm.handleInput();
+
+    expect(signedInWrapper.vm.showAutocomplete).toBe(true);
+    expect(signedInWrapper.vm.mentionQuery).toBe('al');
+    expect(signedInWrapper.vm.mentionStartIndex).toBe(0);
+  });
+
+  test('handleInput detects @ mention after space', async () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    await signedInWrapper.setData({ newMessage: 'hello @bo' });
+
+    signedInWrapper.vm.getMessageInputRef = () => ({ selectionStart: 9 });
+    signedInWrapper.vm.handleInput();
+
+    expect(signedInWrapper.vm.showAutocomplete).toBe(true);
+    expect(signedInWrapper.vm.mentionQuery).toBe('bo');
+    expect(signedInWrapper.vm.mentionStartIndex).toBe(6);
+  });
+
+  test('handleInput hides autocomplete when no @ pattern', async () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    await signedInWrapper.setData({ newMessage: 'hello world', showAutocomplete: true });
+
+    signedInWrapper.vm.getMessageInputRef = () => ({ selectionStart: 11 });
+    signedInWrapper.vm.handleInput();
+
+    expect(signedInWrapper.vm.showAutocomplete).toBe(false);
+    expect(signedInWrapper.vm.mentionQuery).toBe('');
+    expect(signedInWrapper.vm.mentionStartIndex).toBe(-1);
+  });
+
+  test('handleInput does nothing when messageInput ref is missing', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.vm.getMessageInputRef = () => null;
+    signedInWrapper.vm.handleInput();
+    expect(signedInWrapper.vm.showAutocomplete).toBe(false);
+  });
+
+  test('handleKeydown does nothing when autocomplete is hidden', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: false });
+    const event = { key: 'ArrowUp', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  test('handleKeydown does nothing when autocomplete ref is missing', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: true });
+    signedInWrapper.vm.getAutocompleteRef = () => null;
+    const event = { key: 'ArrowUp', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  test('handleKeydown ArrowUp calls autocomplete.moveUp', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: true });
+    const mockMoveUp = jest.fn();
+    signedInWrapper.vm.getAutocompleteRef = () => ({ moveUp: mockMoveUp, moveDown: jest.fn(), confirmSelection: jest.fn() });
+    const event = { key: 'ArrowUp', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(mockMoveUp).toHaveBeenCalled();
+  });
+
+  test('handleKeydown ArrowDown calls autocomplete.moveDown', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: true });
+    const mockMoveDown = jest.fn();
+    signedInWrapper.vm.getAutocompleteRef = () => ({ moveUp: jest.fn(), moveDown: mockMoveDown, confirmSelection: jest.fn() });
+    const event = { key: 'ArrowDown', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(mockMoveDown).toHaveBeenCalled();
+  });
+
+  test('handleKeydown Tab calls autocomplete.confirmSelection', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: true });
+    const mockConfirm = jest.fn();
+    signedInWrapper.vm.getAutocompleteRef = () => ({ moveUp: jest.fn(), moveDown: jest.fn(), confirmSelection: mockConfirm });
+    const event = { key: 'Tab', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(mockConfirm).toHaveBeenCalled();
+  });
+
+  test('handleKeydown Enter calls autocomplete.confirmSelection when autocomplete visible', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: true });
+    const mockConfirm = jest.fn();
+    signedInWrapper.vm.getAutocompleteRef = () => ({ moveUp: jest.fn(), moveDown: jest.fn(), confirmSelection: mockConfirm });
+    const event = { key: 'Enter', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(mockConfirm).toHaveBeenCalled();
+  });
+
+  test('handleKeydown Escape hides autocomplete', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: true });
+    signedInWrapper.vm.getAutocompleteRef = () => ({ moveUp: jest.fn(), moveDown: jest.fn(), confirmSelection: jest.fn() });
+    const event = { key: 'Escape', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(signedInWrapper.vm.showAutocomplete).toBe(false);
+  });
+
+  test('handleKeydown ignores unrelated keys', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: true });
+    signedInWrapper.vm.getAutocompleteRef = () => ({ moveUp: jest.fn(), moveDown: jest.fn(), confirmSelection: jest.fn() });
+    const event = { key: 'a', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  test('onUserSelect replaces @mention with selected username', async () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    await signedInWrapper.setData({
+      newMessage: 'hello @al',
+      mentionStartIndex: 6,
+      showAutocomplete: true
+    });
+
+    const mockInput = { selectionStart: 9, focus: jest.fn(), setSelectionRange: jest.fn() };
+    signedInWrapper.vm.getMessageInputRef = () => mockInput;
+
+    signedInWrapper.vm.onUserSelect('alice');
+
+    expect(signedInWrapper.vm.newMessage).toBe('hello @alice ');
+    expect(signedInWrapper.vm.showAutocomplete).toBe(false);
+    expect(signedInWrapper.vm.mentionQuery).toBe('');
+    expect(signedInWrapper.vm.mentionStartIndex).toBe(-1);
+
+    await signedInWrapper.vm.$nextTick();
+    expect(mockInput.focus).toHaveBeenCalled();
+    expect(mockInput.setSelectionRange).toHaveBeenCalledWith(13, 13);
+  });
+
+  test('onUserSelect handles text after cursor', async () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    await signedInWrapper.setData({
+      newMessage: '@bo world',
+      mentionStartIndex: 0,
+      showAutocomplete: true
+    });
+
+    const mockInput = { selectionStart: 3, focus: jest.fn(), setSelectionRange: jest.fn() };
+    signedInWrapper.vm.getMessageInputRef = () => mockInput;
+
+    signedInWrapper.vm.onUserSelect('bob');
+
+    expect(signedInWrapper.vm.newMessage).toBe('@bob  world');
+    expect(signedInWrapper.vm.showAutocomplete).toBe(false);
+
+    await signedInWrapper.vm.$nextTick();
+    expect(mockInput.focus).toHaveBeenCalled();
+  });
+
+  test('onUserSelect replaces @mention at start of empty query', async () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    await signedInWrapper.setData({
+      newMessage: '@',
+      mentionStartIndex: 0,
+      showAutocomplete: true
+    });
+
+    const mockInput = { selectionStart: 1, focus: jest.fn(), setSelectionRange: jest.fn() };
+    signedInWrapper.vm.getMessageInputRef = () => mockInput;
+
+    signedInWrapper.vm.onUserSelect('alice');
+
+    expect(signedInWrapper.vm.newMessage).toBe('@alice ');
+    expect(signedInWrapper.vm.showAutocomplete).toBe(false);
+
+    await signedInWrapper.vm.$nextTick();
+    expect(mockInput.focus).toHaveBeenCalled();
+  });
+
+  test('onUserSelect handles missing input ref gracefully', async () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    await signedInWrapper.setData({
+      newMessage: '@al',
+      mentionStartIndex: 0,
+      showAutocomplete: true
+    });
+
+    signedInWrapper.vm.getMessageInputRef = () => null;
+
+    signedInWrapper.vm.onUserSelect('alice');
+
+    expect(signedInWrapper.vm.newMessage).toBe('@alice ');
+    expect(signedInWrapper.vm.showAutocomplete).toBe(false);
+
+    await signedInWrapper.vm.$nextTick();
+  });
+
+  test('handleInput detects bare @ symbol', async () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    await signedInWrapper.setData({ newMessage: '@' });
+
+    signedInWrapper.vm.getMessageInputRef = () => ({ selectionStart: 1 });
+    signedInWrapper.vm.handleInput();
+
+    expect(signedInWrapper.vm.showAutocomplete).toBe(true);
+    expect(signedInWrapper.vm.mentionQuery).toBe('');
+    expect(signedInWrapper.vm.mentionStartIndex).toBe(0);
   });
 
   test('force full coverage for ChatContent.vue', () => {

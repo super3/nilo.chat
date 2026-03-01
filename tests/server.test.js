@@ -442,6 +442,7 @@ describe('Server Module - Comprehensive', () => {
   test('handles both first-time and returning users correctly', async () => {
     // Mock socket for testing
     const socket = {
+      id: 'socket-first-returning',
       join: jest.fn(),
       leave: jest.fn(),
       emit: jest.fn(),
@@ -449,7 +450,8 @@ describe('Server Module - Comprehensive', () => {
     };
 
     const io = {
-      on: jest.fn()
+      on: jest.fn(),
+      emit: jest.fn()
     };
 
     // Get the socket handler function
@@ -733,6 +735,81 @@ describe('Server Module - Comprehensive', () => {
     expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username is required' });
   });
 
+  test('tracks active users on user_connected and broadcasts list', async () => {
+    // Clear any existing active users from previous tests
+    const { activeUsers } = require('../src/server/index');
+    activeUsers.clear();
+
+    // Mock socket for testing
+    const socket = {
+      id: 'socket-1',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn()
+    };
+
+    const io = {
+      on: jest.fn(),
+      emit: jest.fn()
+    };
+
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+    socketHandler(socket);
+
+    const userConnectedHandler = socket.on.mock.calls.find(call => call[0] === 'user_connected')[1];
+
+    await userConnectedHandler({ username: 'Alice', channel: 'general' });
+
+    expect(io.emit).toHaveBeenCalledWith('active_users', ['Alice']);
+  });
+
+  test('removes user on disconnect and broadcasts updated list', async () => {
+    const { activeUsers } = require('../src/server/index');
+    activeUsers.clear();
+
+    const socket = {
+      id: 'socket-2',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn()
+    };
+
+    const io = {
+      on: jest.fn(),
+      emit: jest.fn()
+    };
+
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+    socketHandler(socket);
+
+    const userConnectedHandler = socket.on.mock.calls.find(call => call[0] === 'user_connected')[1];
+    const disconnectHandler = socket.on.mock.calls.find(call => call[0] === 'disconnect')[1];
+
+    await userConnectedHandler({ username: 'Bob', channel: 'general' });
+    io.emit.mockClear();
+
+    disconnectHandler();
+
+    expect(io.emit).toHaveBeenCalledWith('active_users', []);
+  });
+
+  test('getActiveUsernames deduplicates usernames', async () => {
+    const { activeUsers, getActiveUsernames } = require('../src/server/index');
+    activeUsers.clear();
+
+    activeUsers.set('socket-a', 'Alice');
+    activeUsers.set('socket-b', 'Alice');
+    activeUsers.set('socket-c', 'Bob');
+
+    const usernames = getActiveUsernames();
+    expect(usernames).toEqual(['Alice', 'Bob']);
+
+    activeUsers.clear();
+  });
 
 });
 
