@@ -101,6 +101,14 @@ async function sendMessageHistory(socket, channel) {
   }
 }
 
+// Track active users across all connections: Map<socketId, username>
+const activeUsers = new Map();
+
+// Get deduplicated list of active usernames
+function getActiveUsernames() {
+  return [...new Set(activeUsers.values())];
+}
+
 // Socket.IO event handling
 function setupSocketHandlers(io) {
   return (socket) => {
@@ -110,6 +118,10 @@ function setupSocketHandlers(io) {
     socket.on('user_connected', async (data) => {
       username = data.username;
       const channel = data.channel || 'general';
+
+      // Track user and broadcast updated user list
+      activeUsers.set(socket.id, username);
+      io.emit('active_users', getActiveUsernames());
 
       socket.join(channel);
       await sendMessageHistory(socket, channel);
@@ -173,7 +185,9 @@ function setupSocketHandlers(io) {
     });
 
     socket.on('disconnect', () => {
-      // Connection closed
+      // Remove user from active list and broadcast updated list
+      activeUsers.delete(socket.id);
+      io.emit('active_users', getActiveUsernames());
     });
   };
 }
@@ -190,5 +204,5 @@ server.listen(PORT, HOST, () => {
 
 // Export for testing
 if (process.env.NODE_ENV === 'test') {
-  module.exports = { setupSocketHandlers, pool, app };
+  module.exports = { setupSocketHandlers, pool, app, activeUsers, getActiveUsernames };
 }
