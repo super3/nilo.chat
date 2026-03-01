@@ -60,12 +60,12 @@ export default {
       username = 'User_' + Math.floor(Math.random() * 1000);
       try { localStorage.setItem('nilo_username', username); } catch (e) { /* storage unavailable */ }
     }
-    // Get current channel from localStorage or default to general
+    // Get current channel from localStorage or default to welcome
     let savedChannel;
     try {
-      savedChannel = localStorage.getItem('nilo_channel') || 'general';
+      savedChannel = localStorage.getItem('nilo_channel') || 'welcome';
     } catch (e) {
-      savedChannel = 'general';
+      savedChannel = 'welcome';
     }
     // Check if this is the first time joining
     let isFirstJoin;

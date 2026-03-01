@@ -109,7 +109,7 @@ function setupSocketHandlers(io) {
     // Handle user joining
     socket.on('user_connected', async (data) => {
       username = data.username;
-      const channel = data.channel || 'general';
+      const channel = data.channel || 'welcome';
 
       socket.join(channel);
       await sendMessageHistory(socket, channel);
@@ -117,7 +117,7 @@ function setupSocketHandlers(io) {
 
     // Handle channel change
     socket.on('join_channel', async (data) => {
-      const newChannel = data.channel || 'general';
+      const newChannel = data.channel || 'welcome';
 
       // Leave all channels
       CHANNELS.forEach(channel => {
@@ -145,7 +145,7 @@ function setupSocketHandlers(io) {
       }
 
       const timestamp = new Date().toISOString();
-      const channel = data.channel || 'general';
+      const channel = data.channel || 'welcome';
 
       // Save message to database
       try {
