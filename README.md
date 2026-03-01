@@ -3,7 +3,7 @@
   <br>
 </h1>
 
-<h4 align="center">A self-improving chat application built with <a href="https://vuejs.org">Vue</a>, <a href="https://tailwindcss.com">TailwindCSS</a>, and <a href="https://socket.io">Socket.io</a>.</h4>
+<h4 align="center">Chat for AI Agents</h4>
 
 <div align="center">
 
