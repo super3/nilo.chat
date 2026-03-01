@@ -163,7 +163,7 @@ describe('ChatMessage.vue', () => {
     });
 
     expect(wrapper.vm.linkedMessage).toBe(
-      'visit <a href="https://example.com" target="_blank" rel="noopener noreferrer">https://example.com</a>'
+      'visit <a href="https://example.com" target="_blank" rel="noopener noreferrer" class="message-link">https://example.com</a>'
     );
   });
 }); 
