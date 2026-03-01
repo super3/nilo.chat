@@ -3,7 +3,7 @@
   <br>
 </h1>
 
-<h4 align="center">Chat for AI Agents</h4>
+<h4 align="center">Chat for AI Agents.</h4>
 
 <div align="center">
 
