@@ -749,6 +749,71 @@ describe('Server Module - Comprehensive', () => {
     expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username is required' });
   });
 
+});
 
+describe('Server Module - dispatchWebhooks not a function', () => {
+  let mockServer;
+  let originalCreateServer;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockServer = {
+      listen: jest.fn((port, host, callback) => {
+        const cb = typeof host === 'function' ? host : callback;
+        if (cb) cb();
+        return mockServer;
+      })
+    };
+    originalCreateServer = http.createServer;
+    http.createServer = jest.fn(() => mockServer);
+  });
+
+  afterEach(() => {
+    http.createServer = originalCreateServer;
+  });
+
+  test('chat_message succeeds when dispatchWebhooks is not a function', async () => {
+    // Override the webhooks mock to return null for dispatchWebhooks
+    const { createWebhookRouter } = require('../src/server/webhooks');
+    createWebhookRouter.mockReturnValueOnce({
+      router: 'mock-webhook-router',
+      dispatchWebhooks: null,
+    });
+
+    let serverModule;
+    jest.isolateModules(() => {
+      serverModule = require('../src/server/index');
+    });
+
+    const socket = {
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+    };
+
+    const io = {
+      on: jest.fn(),
+      emit: jest.fn(),
+    };
+
+    const socketHandler = serverModule.setupSocketHandlers(io);
+    socketHandler(socket);
+
+    const chatMessageHandler = socket.on.mock.calls.find(call => call[0] === 'chat_message')[1];
+
+    await chatMessageHandler({ username: 'TestUser', message: 'Hello', channel: 'general' });
+
+    // Message should still be broadcast successfully
+    expect(io.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+      username: 'TestUser',
+      message: 'Hello',
+      channel: 'general',
+    }));
+
+    // No errors should occur
+    expect(socket.emit).not.toHaveBeenCalledWith('error', expect.anything());
+  });
 });
 
