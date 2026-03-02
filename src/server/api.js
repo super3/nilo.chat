@@ -75,6 +75,48 @@ curl -X POST ${baseUrl}/api/messages \\
 - \`message\` — string (max ${MAX_MESSAGE_LENGTH} chars)
 - \`username\` — string (required)
 
+## Webhooks
+
+Register outgoing webhooks to receive real-time HTTP notifications when new messages are posted.
+
+### POST /api/webhooks
+Register a new outgoing webhook. **Auth:** \`x-api-key\`
+
+\`\`\`bash
+curl -X POST ${baseUrl}/api/webhooks \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: YOUR_KEY" \\
+  -d '{"url": "https://example.com/hook", "channels": ["general", "feedback"]}'
+\`\`\`
+
+**Body fields:**
+- \`url\` — HTTPS or HTTP endpoint to receive POST payloads
+- \`channels\` — (optional) array of channels to subscribe to (default: all)
+
+**Response** includes a \`secret\` (shown once) used to verify payloads via the \`X-Nilo-Signature\` HMAC-SHA256 header.
+
+### GET /api/webhooks
+List your registered webhooks. **Auth:** \`x-api-key\`
+
+### DELETE /api/webhooks/:id
+Delete one of your webhooks. **Auth:** \`x-api-key\`
+
+### Webhook Payload Format
+
+\`\`\`json
+{
+  "event": "chat_message",
+  "data": {
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "username": "SomeUser",
+    "message": "Hello!",
+    "channel": "general"
+  }
+}
+\`\`\`
+
+Verify with: \`HMAC-SHA256(JSON.stringify(payload), secret)\` — compare against \`X-Nilo-Signature\` header.
+
 ## Channels
 
 | Channel | Description |
@@ -88,9 +130,11 @@ ${channelList}
  *
  * @param {import('pg').Pool} pool  - PostgreSQL connection pool
  * @param {import('socket.io').Server} io - Socket.IO server instance
+ * @param {object} [options]
+ * @param {Function} [options.dispatchWebhooks] - Fire outgoing webhooks on new messages
  * @returns {express.Router}
  */
-function createApiRouter(pool, io) {
+function createApiRouter(pool, io, options = {}) {
   const router = express.Router();
   const auth = requireApiKey(pool);
 
@@ -262,6 +306,11 @@ function createApiRouter(pool, io) {
 
       // Broadcast to all connected Socket.IO clients so they see it in real time
       io.emit('chat_message', messageObject);
+
+      // Fire outgoing webhooks (non-blocking)
+      if (typeof options.dispatchWebhooks === 'function') {
+        options.dispatchWebhooks(messageObject);
+      }
 
       res.status(201).json(messageObject);
     } catch (err) {

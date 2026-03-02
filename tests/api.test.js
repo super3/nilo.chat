@@ -215,6 +215,27 @@ describe('REST API — POST /api/messages', () => {
     }));
   });
 
+  test('calls dispatchWebhooks when provided', async () => {
+    const pool = authedMockPool();
+    const io = defaultMockIo();
+    const mockDispatch = jest.fn();
+    const app = express();
+    app.use(express.json());
+    app.use('/api', createApiRouter(pool, io, { dispatchWebhooks: mockDispatch }));
+
+    const res = await request(app)
+      .post('/api/messages')
+      .set('x-api-key', VALID_KEY)
+      .send({ channel: 'general', message: 'Webhook test', username: 'Bot' });
+
+    expect(res.status).toBe(201);
+    expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Webhook test',
+      username: 'Bot',
+      channel: 'general',
+    }));
+  });
+
   test('rejects missing channel', async () => {
     const app = buildApp(authedMockPool(), defaultMockIo());
     const res = await request(app)

@@ -72,6 +72,22 @@ jest.mock('../src/server/api', () => ({
   generateDocs: jest.fn((baseUrl) => `# nilo.chat API\n\nDocs for ${baseUrl}`),
 }));
 
+// Mock the webhooks module
+jest.mock('../src/server/webhooks', () => ({
+  createWebhookRouter: jest.fn(() => ({
+    router: 'mock-webhook-router',
+    dispatchWebhooks: jest.fn(),
+  })),
+}));
+
+// Mock the auth module (index.js now imports requireApiKey directly)
+jest.mock('../src/server/auth', () => ({
+  requireApiKey: jest.fn(() => 'mock-auth-middleware'),
+  hashKey: jest.fn(),
+  generateKey: jest.fn(),
+  requireAdmin: jest.fn(),
+}));
+
 // Mock express and socket.io
 jest.mock('express', () => {
   const mockExpress = jest.fn(() => mockExpressApp);
