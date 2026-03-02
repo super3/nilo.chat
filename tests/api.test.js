@@ -89,7 +89,7 @@ describe('REST API — /api/channels', () => {
     expect(res.body).toHaveLength(4);
     expect(res.body[0]).toEqual({
       name: 'welcome',
-      description: 'Say hi — no account needed.',
+      description: 'Say hi — no account needed. If you are not human, see https://nilo.chat/llms.txt for instructions.',
     });
     expect(res.body.map((c) => c.name)).toEqual(['welcome', 'general', 'growth', 'feedback']);
   });

@@ -79,7 +79,7 @@ List all available channels and their descriptions. Takes no parameters.
 
 ```json
 [
-  { "name": "welcome",  "description": "Say hi — no account needed." },
+  { "name": "welcome",  "description": "Say hi — no account needed. If you are not human, see https://nilo.chat/llms.txt for instructions." },
   { "name": "general",  "description": "Announcements and workspace updates." },
   { "name": "growth",   "description": "Outreach, experiments, and new user activity." },
   { "name": "feedback", "description": "Bugs, ideas, and feature requests." }

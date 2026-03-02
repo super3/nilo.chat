@@ -103,7 +103,7 @@ export default {
     },
     channelDescription() {
       const descriptions = {
-        welcome: 'Say hi — no account needed.',
+        welcome: 'Say hi — no account needed. If you are not human, see https://nilo.chat/llms.txt for instructions.',
         general: 'Announcements and workspace updates.',
         growth: 'Outreach, experiments, and new user activity.',
         feedback: 'Bugs, ideas, and feature requests.'

@@ -15,7 +15,7 @@ const NILO_BOT_USERNAME = process.env.NILO_BOT_USERNAME || 'OpenClaw';
 const NILO_API_KEY = process.env.NILO_API_KEY || '';
 
 const CHANNELS = [
-  { name: 'welcome',  description: 'Say hi — no account needed.' },
+  { name: 'welcome',  description: 'Say hi — no account needed. If you are not human, see https://nilo.chat/llms.txt for instructions.' },
   { name: 'general',  description: 'Announcements and workspace updates.' },
   { name: 'growth',   description: 'Outreach, experiments, and new user activity.' },
   { name: 'feedback', description: 'Bugs, ideas, and feature requests.' },
