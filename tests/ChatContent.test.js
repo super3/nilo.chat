@@ -929,6 +929,41 @@ describe('ChatContent.vue', () => {
     expect(() => wrapper.vm.switchChannel('feedback')).not.toThrow();
   });
 
+  test('allKnownUsers combines activeUsers and message history usernames', () => {
+    wrapper.setData({
+      activeUsers: ['alice', 'bob'],
+      messages: [
+        { username: 'charlie', message: 'hi', timestamp: '2023-01-01T00:00:00Z' },
+        { username: 'alice', message: 'hey', timestamp: '2023-01-01T00:01:00Z' },
+        { username: 'System', message: 'system msg', timestamp: '2023-01-01T00:02:00Z' }
+      ]
+    });
+    const result = wrapper.vm.allKnownUsers;
+    expect(result).toContain('alice');
+    expect(result).toContain('bob');
+    expect(result).toContain('charlie');
+    expect(result).not.toContain('System');
+    // No duplicates
+    expect(result.filter(u => u === 'alice')).toHaveLength(1);
+  });
+
+  test('allKnownUsers works with empty messages and no active users', () => {
+    wrapper.setData({ activeUsers: [], messages: [] });
+    expect(wrapper.vm.allKnownUsers).toEqual([]);
+  });
+
+  test('allKnownUsers filters out null/undefined usernames from messages', () => {
+    wrapper.setData({
+      activeUsers: [],
+      messages: [
+        { username: null, message: 'test', timestamp: '2023-01-01T00:00:00Z' },
+        { username: undefined, message: 'test', timestamp: '2023-01-01T00:00:00Z' },
+        { username: 'dave', message: 'test', timestamp: '2023-01-01T00:00:00Z' }
+      ]
+    });
+    expect(wrapper.vm.allKnownUsers).toEqual(['dave']);
+  });
+
   test('listens for active_users socket event', () => {
     expect(mockSocketOn).toHaveBeenCalledWith('active_users', expect.any(Function));
   });

@@ -811,5 +811,66 @@ describe('Server Module - Comprehensive', () => {
     activeUsers.clear();
   });
 
+  test('seedDatabase inserts seed messages when database is empty', async () => {
+    const { seedDatabase, SEED_MESSAGES, pool } = require('../src/server/index');
+
+    // Mock pool.query: first call returns count=0, subsequent calls are INSERTs
+    const originalQuery = pool.query;
+    const querySpy = jest.fn()
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] }) // SELECT COUNT(*)
+      // Mock all INSERT calls
+      .mockResolvedValue({ rows: [] });
+
+    pool.query = querySpy;
+
+    await seedDatabase();
+
+    // First call is the COUNT query
+    expect(querySpy.mock.calls[0][0]).toContain('SELECT COUNT(*)');
+
+    // Subsequent calls are INSERTs, one per seed message
+    expect(querySpy).toHaveBeenCalledTimes(1 + SEED_MESSAGES.length);
+    for (let i = 1; i <= SEED_MESSAGES.length; i++) {
+      expect(querySpy.mock.calls[i][0]).toContain('INSERT INTO messages');
+      expect(querySpy.mock.calls[i][1][1]).toBe(SEED_MESSAGES[i - 1].username);
+      expect(querySpy.mock.calls[i][1][2]).toBe(SEED_MESSAGES[i - 1].message);
+      expect(querySpy.mock.calls[i][1][3]).toBe(SEED_MESSAGES[i - 1].channel);
+    }
+
+    pool.query = originalQuery;
+  });
+
+  test('seedDatabase skips seeding when database has messages', async () => {
+    const { seedDatabase, pool } = require('../src/server/index');
+
+    const originalQuery = pool.query;
+    const querySpy = jest.fn()
+      .mockResolvedValueOnce({ rows: [{ count: '5' }] }); // non-zero count
+
+    pool.query = querySpy;
+
+    await seedDatabase();
+
+    // Only the COUNT query should have been called
+    expect(querySpy).toHaveBeenCalledTimes(1);
+
+    pool.query = originalQuery;
+  });
+
+  test('seedDatabase handles errors gracefully', async () => {
+    const { seedDatabase, pool } = require('../src/server/index');
+
+    const originalQuery = pool.query;
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    pool.query = jest.fn().mockRejectedValue(new Error('DB error'));
+
+    await seedDatabase(); // should not throw
+
+    expect(errorSpy).toHaveBeenCalledWith('Error seeding database:', expect.any(Error));
+
+    pool.query = originalQuery;
+    errorSpy.mockRestore();
+  });
+
 });
 

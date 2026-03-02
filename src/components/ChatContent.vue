@@ -40,7 +40,7 @@
       <div class="flex rounded-lg border-2 border-gray-300 overflow-hidden relative">
         <UsernameAutocomplete
           ref="autocomplete"
-          :users="activeUsers"
+          :users="allKnownUsers"
           :query="mentionQuery"
           :visible="showAutocomplete"
           @select="onUserSelect"
@@ -114,6 +114,12 @@ export default {
     }
   },
   computed: {
+    allKnownUsers() {
+      const historyUsers = this.messages
+        .map(m => m.username)
+        .filter(u => u && u !== 'System');
+      return [...new Set([...this.activeUsers, ...historyUsers])];
+    },
     isInputDisabled() {
       return !this.isSignedIn && this.currentChannel !== 'welcome';
     },
