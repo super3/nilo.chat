@@ -75,6 +75,23 @@ jest.mock('../src/server/api', () => ({
   generateDocs: jest.fn((baseUrl) => `# nilo.chat API\n\nDocs for ${baseUrl}`),
 }));
 
+// Mock webhooks module
+const mockDispatchWebhooks = jest.fn();
+jest.mock('../src/server/webhooks', () => ({
+  createWebhookRouter: jest.fn(() => ({
+    router: 'mock-webhook-router',
+    dispatchWebhooks: mockDispatchWebhooks,
+  })),
+}));
+
+// Mock auth module
+jest.mock('../src/server/auth', () => ({
+  requireApiKey: jest.fn(() => 'mock-auth-middleware'),
+  hashKey: jest.fn((key) => 'hashed-' + key),
+  generateKey: jest.fn(() => 'mock-generated-key'),
+  requireAdmin: jest.fn((_req, _res, next) => next()),
+}));
+
 // Mock express and socket.io
 jest.mock('express', () => {
   const mockExpress = jest.fn(() => mockExpressApp);
@@ -879,5 +896,111 @@ describe('Server Module - Comprehensive', () => {
     expect(channels).toContain('feedback');
   });
 
+  test('calls dispatchWebhooks after broadcasting a chat message', async () => {
+    mockDispatchWebhooks.mockClear();
+
+    // Mock socket for testing
+    const socket = {
+      id: 'socket-dispatch',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+    };
+
+    const io = {
+      on: jest.fn(),
+      emit: jest.fn(),
+    };
+
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+    socketHandler(socket);
+
+    const chatMessageHandler = socket.on.mock.calls.find(call => call[0] === 'chat_message')[1];
+
+    await chatMessageHandler({ username: 'TestUser', message: 'Hello', channel: 'general' });
+
+    expect(mockDispatchWebhooks).toHaveBeenCalledWith(
+      expect.objectContaining({
+        username: 'TestUser',
+        message: 'Hello',
+        channel: 'general',
+      })
+    );
+  });
+
+});
+
+describe('Server Module - dispatchWebhooks not a function', () => {
+  let mockServer;
+  let originalCreateServer;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockServer = {
+      listen: jest.fn((port, host, callback) => {
+        const cb = typeof host === 'function' ? host : callback;
+        if (cb) cb();
+        return mockServer;
+      })
+    };
+
+    originalCreateServer = http.createServer;
+    http.createServer = jest.fn(() => mockServer);
+
+    // Override webhook mock to return null dispatchWebhooks
+    const webhooksMock = require('../src/server/webhooks');
+    webhooksMock.createWebhookRouter.mockReturnValue({
+      router: 'mock-webhook-router',
+      dispatchWebhooks: null,
+    });
+  });
+
+  afterEach(() => {
+    http.createServer = originalCreateServer;
+
+    // Restore normal mock
+    const webhooksMock = require('../src/server/webhooks');
+    webhooksMock.createWebhookRouter.mockReturnValue({
+      router: 'mock-webhook-router',
+      dispatchWebhooks: mockDispatchWebhooks,
+    });
+  });
+
+  test('chat_message works when dispatchWebhooks is not a function', async () => {
+    let serverModule;
+    jest.isolateModules(() => {
+      serverModule = require('../src/server/index');
+    });
+
+    const mockSocket = {
+      id: 'socket-no-dispatch',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn(),
+    };
+
+    const io = {
+      on: jest.fn(),
+      emit: jest.fn(),
+    };
+
+    const socketHandler = serverModule.setupSocketHandlers(io);
+    socketHandler(mockSocket);
+
+    const chatMessageHandler = mockSocket.on.mock.calls.find(call => call[0] === 'chat_message')[1];
+
+    // Should not throw even though dispatchWebhooks is null
+    await chatMessageHandler({ username: 'TestUser', message: 'Hello', channel: 'general' });
+
+    expect(io.emit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+      username: 'TestUser',
+      message: 'Hello',
+      channel: 'general',
+    }));
+  });
 });
 
