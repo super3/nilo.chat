@@ -1097,6 +1097,61 @@ describe('ChatContent.vue', () => {
     expect(mockConfirm).toHaveBeenCalled();
   });
 
+  test('handleKeydown Enter sets justCompletedMention flag to prevent sending', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: true });
+    const mockConfirm = jest.fn();
+    signedInWrapper.vm.getAutocompleteRef = () => ({ moveUp: jest.fn(), moveDown: jest.fn(), confirmSelection: mockConfirm });
+    const event = { key: 'Enter', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(signedInWrapper.vm.justCompletedMention).toBe(true);
+  });
+
+  test('handleKeydown Tab sets justCompletedMention flag to prevent sending', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({ showAutocomplete: true });
+    const mockConfirm = jest.fn();
+    signedInWrapper.vm.getAutocompleteRef = () => ({ moveUp: jest.fn(), moveDown: jest.fn(), confirmSelection: mockConfirm });
+    const event = { key: 'Tab', preventDefault: jest.fn() };
+    signedInWrapper.vm.handleKeydown(event);
+    expect(signedInWrapper.vm.justCompletedMention).toBe(true);
+  });
+
+  test('sendMessage skips sending when justCompletedMention is true', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({
+      newMessage: '@alice hello',
+      justCompletedMention: true,
+      isConnected: true
+    });
+    signedInWrapper.vm.sendMessage();
+    expect(mockSocketEmit).not.toHaveBeenCalledWith('chat_message', expect.anything());
+    expect(signedInWrapper.vm.justCompletedMention).toBe(false);
+    // Message should still be in the input (not cleared)
+    expect(signedInWrapper.vm.newMessage).toBe('@alice hello');
+  });
+
+  test('sendMessage sends normally when justCompletedMention is false', () => {
+    const signedInWrapper = shallowMount(ChatContent, {
+      propsData: { username: 'testuser', isSignedIn: true }
+    });
+    signedInWrapper.setData({
+      newMessage: '@alice hello',
+      justCompletedMention: false,
+      isConnected: true
+    });
+    signedInWrapper.vm.sendMessage();
+    expect(mockSocketEmit).toHaveBeenCalledWith('chat_message', expect.objectContaining({
+      message: '@alice hello'
+    }));
+  });
+
   test('handleKeydown Escape hides autocomplete', () => {
     const signedInWrapper = shallowMount(ChatContent, {
       propsData: { username: 'testuser', isSignedIn: true }
