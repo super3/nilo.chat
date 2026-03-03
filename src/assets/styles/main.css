@@ -13,6 +13,15 @@
   color: #2d8a81;
 }
 
+/* Highlight @mentions like Slack/Discord */
+.mention-highlight {
+  background-color: #e0e7ff;
+  color: #4338ca;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
 /* Use dynamic viewport height so the layout accounts for mobile browser chrome */
 @layer utilities {
   .h-screen-safe {

@@ -108,4 +108,38 @@ describe('linkify', () => {
   test('handles empty string', () => {
     expect(linkify('')).toBe('');
   });
+
+  test('highlights @mention at start of message', () => {
+    expect(linkify('@alice hello')).toBe(
+      '<span class="mention-highlight">@alice</span> hello'
+    );
+  });
+
+  test('highlights @mention in middle of message', () => {
+    expect(linkify('hey @bob check this')).toBe(
+      'hey <span class="mention-highlight">@bob</span> check this'
+    );
+  });
+
+  test('highlights multiple @mentions', () => {
+    expect(linkify('@alice and @bob')).toBe(
+      '<span class="mention-highlight">@alice</span> and <span class="mention-highlight">@bob</span>'
+    );
+  });
+
+  test('highlights @mention alongside a URL', () => {
+    expect(linkify('@alice check https://example.com')).toBe(
+      '<span class="mention-highlight">@alice</span> check <a href="https://example.com" target="_blank" rel="noopener noreferrer" class="message-link">https://example.com</a>'
+    );
+  });
+
+  test('does not highlight @ without username', () => {
+    expect(linkify('email me @ noon')).toBe('email me @ noon');
+  });
+
+  test('highlights @mention at end of message', () => {
+    expect(linkify('hello @charlie')).toBe(
+      'hello <span class="mention-highlight">@charlie</span>'
+    );
+  });
 });

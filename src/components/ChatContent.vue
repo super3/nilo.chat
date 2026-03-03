@@ -112,7 +112,8 @@ export default {
       activeUsers: [],
       showAutocomplete: false,
       mentionQuery: '',
-      mentionStartIndex: -1
+      mentionStartIndex: -1,
+      justCompletedMention: false
     }
   },
   computed: {
@@ -263,6 +264,10 @@ export default {
   },
   methods: {
     sendMessage() {
+      if (this.justCompletedMention) {
+        this.justCompletedMention = false;
+        return;
+      }
       if (this.newMessage.trim() === '') return;
 
       if (!this.isConnected) {
@@ -391,6 +396,7 @@ export default {
         autocomplete.moveDown();
       } else if (event.key === 'Tab' || (event.key === 'Enter' && this.showAutocomplete)) {
         event.preventDefault();
+        this.justCompletedMention = true;
         autocomplete.confirmSelection();
       } else if (event.key === 'Escape') {
         this.showAutocomplete = false;

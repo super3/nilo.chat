@@ -166,4 +166,28 @@ describe('ChatMessage.vue', () => {
       'visit <a href="https://example.com" target="_blank" rel="noopener noreferrer" class="message-link">https://example.com</a>'
     );
   });
-}); 
+
+  test('renders @mentions with highlight styling', () => {
+    const wrapper = shallowMount(ChatMessage, {
+      propsData: {
+        ...defaultProps,
+        message: 'hey @alice check this'
+      }
+    });
+
+    const messageEl = wrapper.find('.text-black');
+    expect(messageEl.html()).toContain('<span class="mention-highlight">@alice</span>');
+  });
+
+  test('renders multiple @mentions with highlight styling', () => {
+    const wrapper = shallowMount(ChatMessage, {
+      propsData: {
+        ...defaultProps,
+        message: '@alice and @bob'
+      }
+    });
+
+    expect(wrapper.vm.linkedMessage).toContain('<span class="mention-highlight">@alice</span>');
+    expect(wrapper.vm.linkedMessage).toContain('<span class="mention-highlight">@bob</span>');
+  });
+});
