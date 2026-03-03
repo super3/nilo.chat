@@ -943,7 +943,6 @@ describe('ChatContent.vue', () => {
     expect(result).toContain('bob');
     expect(result).toContain('charlie');
     expect(result).not.toContain('System');
-    // No duplicates
     expect(result.filter(u => u === 'alice')).toHaveLength(1);
   });
 

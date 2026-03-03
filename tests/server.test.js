@@ -21,7 +21,10 @@ const mockPool = {
     }
 
     // Promise style - used for actual queries
-    if (sql.includes('SELECT')) {
+    if (sql.includes('SELECT COUNT(*)')) {
+      // Seed check — pretend DB already has messages so seeding is skipped
+      return Promise.resolve({ rows: [{ count: '10' }] });
+    } else if (sql.includes('SELECT')) {
       // Return empty history by default
       return Promise.resolve({ rows: [] });
     } else if (sql.includes('INSERT')) {
@@ -36,6 +39,11 @@ const mockPool = {
 // Mock pg module
 jest.mock('pg', () => ({
   Pool: jest.fn(() => mockPool)
+}));
+
+// Mock memory-pool module so the server always uses mockPool
+jest.mock('../src/server/memory-pool', () => ({
+  createMemoryPool: jest.fn(() => mockPool)
 }));
 
 // Mock modules
@@ -124,6 +132,48 @@ describe('Server Module - Database Connection Error', () => {
     // Reset flag
     shouldFailDbConnection = false;
     consoleErrorSpy.mockRestore();
+    consoleLogSpy.mockRestore();
+  });
+
+  test('uses pg Pool when DATABASE_URL is set', async () => {
+    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+    const { Pool } = require('pg');
+    Pool.mockClear();
+
+    process.env.DATABASE_URL = 'postgres://localhost/test';
+    jest.isolateModules(() => {
+      require('../src/server/index');
+    });
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(Pool).toHaveBeenCalledWith(expect.objectContaining({
+      connectionString: 'postgres://localhost/test',
+      ssl: false,
+    }));
+
+    delete process.env.DATABASE_URL;
+    consoleLogSpy.mockRestore();
+  });
+
+  test('uses ssl when DATABASE_URL is set in production', async () => {
+    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+    const { Pool } = require('pg');
+    Pool.mockClear();
+
+    process.env.DATABASE_URL = 'postgres://localhost/test';
+    process.env.NODE_ENV = 'production';
+    jest.isolateModules(() => {
+      require('../src/server/index');
+    });
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    expect(Pool).toHaveBeenCalledWith(expect.objectContaining({
+      connectionString: 'postgres://localhost/test',
+      ssl: { rejectUnauthorized: false },
+    }));
+
+    delete process.env.DATABASE_URL;
+    process.env.NODE_ENV = 'test';
     consoleLogSpy.mockRestore();
   });
 });
@@ -814,21 +864,16 @@ describe('Server Module - Comprehensive', () => {
   test('seedDatabase inserts seed messages when database is empty', async () => {
     const { seedDatabase, SEED_MESSAGES, pool } = require('../src/server/index');
 
-    // Mock pool.query: first call returns count=0, subsequent calls are INSERTs
     const originalQuery = pool.query;
     const querySpy = jest.fn()
-      .mockResolvedValueOnce({ rows: [{ count: '0' }] }) // SELECT COUNT(*)
-      // Mock all INSERT calls
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] })
       .mockResolvedValue({ rows: [] });
 
     pool.query = querySpy;
 
     await seedDatabase();
 
-    // First call is the COUNT query
     expect(querySpy.mock.calls[0][0]).toContain('SELECT COUNT(*)');
-
-    // Subsequent calls are INSERTs, one per seed message
     expect(querySpy).toHaveBeenCalledTimes(1 + SEED_MESSAGES.length);
     for (let i = 1; i <= SEED_MESSAGES.length; i++) {
       expect(querySpy.mock.calls[i][0]).toContain('INSERT INTO messages');
@@ -845,13 +890,12 @@ describe('Server Module - Comprehensive', () => {
 
     const originalQuery = pool.query;
     const querySpy = jest.fn()
-      .mockResolvedValueOnce({ rows: [{ count: '5' }] }); // non-zero count
+      .mockResolvedValueOnce({ rows: [{ count: '5' }] });
 
     pool.query = querySpy;
 
     await seedDatabase();
 
-    // Only the COUNT query should have been called
     expect(querySpy).toHaveBeenCalledTimes(1);
 
     pool.query = originalQuery;
@@ -864,12 +908,21 @@ describe('Server Module - Comprehensive', () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     pool.query = jest.fn().mockRejectedValue(new Error('DB error'));
 
-    await seedDatabase(); // should not throw
+    await seedDatabase();
 
     expect(errorSpy).toHaveBeenCalledWith('Error seeding database:', expect.any(Error));
 
     pool.query = originalQuery;
     errorSpy.mockRestore();
+  });
+
+  test('SEED_MESSAGES covers all channels', () => {
+    const { SEED_MESSAGES } = require('../src/server/index');
+    const channels = [...new Set(SEED_MESSAGES.map(m => m.channel))];
+    expect(channels).toContain('welcome');
+    expect(channels).toContain('general');
+    expect(channels).toContain('growth');
+    expect(channels).toContain('feedback');
   });
 
 });
