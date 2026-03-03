@@ -72,6 +72,20 @@ async function initializeDatabase() {
   try {
     await pool.query('SELECT NOW()');
     console.log('Database connected successfully');
+    // Create messages table if it doesn't exist (fresh databases)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        username VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        channel VARCHAR(50) NOT NULL DEFAULT 'general',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_channel_timestamp ON messages(channel, timestamp DESC)');
     await pool.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS profile_image_url TEXT DEFAULT NULL');
     await pool.query(`
       CREATE TABLE IF NOT EXISTS api_keys (
