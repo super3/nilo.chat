@@ -4,6 +4,8 @@ const path = require('path');
 const socketIo = require('socket.io');
 const { Pool } = require('pg');
 const { createApiRouter, generateDocs } = require('./api');
+const { createWebhookRouter } = require('./webhooks');
+const { requireApiKey } = require('./auth');
 // Create Express app and HTTP server
 const app = express();
 const server = http.createServer(app);
@@ -93,6 +95,17 @@ async function initializeDatabase() {
       )
     `);
     await pool.query('CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash)');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS webhooks (
+        id SERIAL PRIMARY KEY,
+        agent_id INTEGER NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,
+        url TEXT NOT NULL,
+        channels TEXT NOT NULL DEFAULT '["welcome","general","growth","feedback"]',
+        secret VARCHAR(64) NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_webhooks_agent_id ON webhooks(agent_id)');
     await seedDatabase();
   } catch (error) {
     console.error('Database connection error:', error);
@@ -119,8 +132,12 @@ app.get('/llms.txt', (req, res) => {
   res.type('text/markdown').send(generateDocs(baseUrl));
 });
 
+// Webhook router and dispatcher
+const { router: webhookRouter, dispatchWebhooks } = createWebhookRouter(pool, requireApiKey(pool));
+app.use('/api/webhooks', webhookRouter);
+
 // REST API for agent/bot access
-app.use('/api', createApiRouter(pool, io));
+app.use('/api', createApiRouter(pool, io, { dispatchWebhooks }));
 
 // Serve static files from the 'dist' folder (production build)
 app.use(express.static(path.join(__dirname, '..', '..', 'dist')));
@@ -226,6 +243,10 @@ function setupSocketHandlers(io) {
         // Broadcast to ALL clients, not just those in the channel
         // This way everyone can see notifications even if they're not in the channel
         io.emit('chat_message', messageObject);
+
+        if (typeof dispatchWebhooks === 'function') {
+          dispatchWebhooks(messageObject);
+        }
       } catch (error) {
         console.error('Error saving message to database:', error);
         socket.emit('error', { message: 'Failed to save message' });

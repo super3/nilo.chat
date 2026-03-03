@@ -13,10 +13,14 @@ const VALID_KEY_HASH = hashKey(VALID_KEY);
 const ADMIN_KEY = 'test-admin-secret';
 
 /** Build an Express app with the API router mounted. */
-function buildApp(mockPool, mockIo) {
+function buildApp(mockPool, mockIo, options) {
   const app = express();
   app.use(express.json());
-  app.use('/api', createApiRouter(mockPool, mockIo));
+  if (options) {
+    app.use('/api', createApiRouter(mockPool, mockIo, options));
+  } else {
+    app.use('/api', createApiRouter(mockPool, mockIo));
+  }
   return app;
 }
 
@@ -292,6 +296,27 @@ describe('REST API — POST /api/messages', () => {
 
     consoleSpy.mockRestore();
   });
+
+  test('calls dispatchWebhooks when provided', async () => {
+    const pool = authedMockPool();
+    const io = defaultMockIo();
+    const mockDispatch = jest.fn();
+    const app = buildApp(pool, io, { dispatchWebhooks: mockDispatch });
+
+    const res = await request(app)
+      .post('/api/messages')
+      .set('x-api-key', VALID_KEY)
+      .send({ channel: 'general', message: 'Hello webhooks!', username: 'TestBot' });
+
+    expect(res.status).toBe(201);
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: 'general',
+        message: 'Hello webhooks!',
+        username: 'TestBot',
+      })
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -324,6 +349,9 @@ describe('generateDocs', () => {
     expect(md).toContain('### GET /api/channels');
     expect(md).toContain('### GET /api/messages/:channel');
     expect(md).toContain('### POST /api/messages');
+    expect(md).toContain('### POST /api/webhooks');
+    expect(md).toContain('### GET /api/webhooks');
+    expect(md).toContain('### DELETE /api/webhooks/:id');
   });
 
   test('includes all channel descriptions', () => {
