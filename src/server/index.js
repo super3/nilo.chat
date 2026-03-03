@@ -31,11 +31,58 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
+// Seed messages inserted into empty databases for fresh deployments
+const SEED_MESSAGES = [
+  { channel: 'welcome', username: 'nilo-bot', message: 'Welcome to nilo.chat! Say hi — no account needed.' },
+  { channel: 'welcome', username: 'alice', message: 'Hey everyone! Excited to be here.' },
+  { channel: 'welcome', username: 'bob', message: 'Hi! This chat app is looking great.' },
+  { channel: 'general', username: 'nilo-bot', message: 'This is the general channel for announcements and updates.' },
+  { channel: 'general', username: 'alice', message: 'Anyone working on the new feature?' },
+  { channel: 'general', username: 'charlie', message: 'Yes! The @username autocomplete is live — try typing @ in the message box.' },
+  { channel: 'growth', username: 'nilo-bot', message: 'Track outreach, experiments, and new user activity here.' },
+  { channel: 'growth', username: 'bob', message: 'We had 15 new signups this week!' },
+  { channel: 'feedback', username: 'nilo-bot', message: 'Share bugs, ideas, and feature requests in this channel.' },
+  { channel: 'feedback', username: 'charlie', message: 'Love the new mention feature. Try typing @alice or @bob!' }
+];
+
+// Seed the database with sample messages if empty
+async function seedDatabase() {
+  try {
+    const result = await pool.query('SELECT COUNT(*) FROM messages');
+    const count = parseInt(result.rows[0].count, 10);
+    if (count === 0) {
+      for (const msg of SEED_MESSAGES) {
+        await pool.query(
+          'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
+          [new Date().toISOString(), msg.username, msg.message, msg.channel]
+        );
+      }
+      console.log(`Seeded database with ${SEED_MESSAGES.length} sample messages`);
+    }
+  } catch (error) {
+    console.error('Error seeding database:', error);
+  }
+}
+
 // Test database connection and ensure schema is up to date
 async function initializeDatabase() {
   try {
     await pool.query('SELECT NOW()');
     console.log('Database connected successfully');
+    // Create messages table if it doesn't exist (fresh databases)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        username VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        channel VARCHAR(50) NOT NULL DEFAULT 'general',
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_channel ON messages(channel)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC)');
+    await pool.query('CREATE INDEX IF NOT EXISTS idx_messages_channel_timestamp ON messages(channel, timestamp DESC)');
     await pool.query('ALTER TABLE messages ADD COLUMN IF NOT EXISTS profile_image_url TEXT DEFAULT NULL');
     await pool.query(`
       CREATE TABLE IF NOT EXISTS api_keys (
@@ -46,6 +93,7 @@ async function initializeDatabase() {
       )
     `);
     await pool.query('CREATE INDEX IF NOT EXISTS idx_api_keys_key_hash ON api_keys(key_hash)');
+    await seedDatabase();
   } catch (error) {
     console.error('Database connection error:', error);
   }
@@ -101,6 +149,14 @@ async function sendMessageHistory(socket, channel) {
   }
 }
 
+// Track active users across all connections: Map<socketId, username>
+const activeUsers = new Map();
+
+// Get deduplicated list of active usernames
+function getActiveUsernames() {
+  return [...new Set(activeUsers.values())];
+}
+
 // Socket.IO event handling
 function setupSocketHandlers(io) {
   return (socket) => {
@@ -110,6 +166,10 @@ function setupSocketHandlers(io) {
     socket.on('user_connected', async (data) => {
       username = data.username;
       const channel = data.channel || 'welcome';
+
+      // Track user and broadcast updated user list
+      activeUsers.set(socket.id, username);
+      io.emit('active_users', getActiveUsernames());
 
       socket.join(channel);
       await sendMessageHistory(socket, channel);
@@ -173,7 +233,9 @@ function setupSocketHandlers(io) {
     });
 
     socket.on('disconnect', () => {
-      // Connection closed
+      // Remove user from active list and broadcast updated list
+      activeUsers.delete(socket.id);
+      io.emit('active_users', getActiveUsernames());
     });
   };
 }
@@ -190,5 +252,5 @@ server.listen(PORT, HOST, () => {
 
 // Export for testing
 if (process.env.NODE_ENV === 'test') {
-  module.exports = { setupSocketHandlers, pool, app };
+  module.exports = { setupSocketHandlers, pool, app, activeUsers, getActiveUsernames, seedDatabase, SEED_MESSAGES };
 }

@@ -21,7 +21,10 @@ const mockPool = {
     }
 
     // Promise style - used for actual queries
-    if (sql.includes('SELECT')) {
+    if (sql.includes('SELECT COUNT(*)')) {
+      // Seed check — pretend DB already has messages so seeding is skipped
+      return Promise.resolve({ rows: [{ count: '10' }] });
+    } else if (sql.includes('SELECT')) {
       // Return empty history by default
       return Promise.resolve({ rows: [] });
     } else if (sql.includes('INSERT')) {
@@ -126,6 +129,7 @@ describe('Server Module - Database Connection Error', () => {
     consoleErrorSpy.mockRestore();
     consoleLogSpy.mockRestore();
   });
+
 });
 
 describe('Server Module - Comprehensive', () => {
@@ -442,6 +446,7 @@ describe('Server Module - Comprehensive', () => {
   test('handles both first-time and returning users correctly', async () => {
     // Mock socket for testing
     const socket = {
+      id: 'socket-first-returning',
       join: jest.fn(),
       leave: jest.fn(),
       emit: jest.fn(),
@@ -449,7 +454,8 @@ describe('Server Module - Comprehensive', () => {
     };
 
     const io = {
-      on: jest.fn()
+      on: jest.fn(),
+      emit: jest.fn()
     };
 
     // Get the socket handler function
@@ -733,6 +739,145 @@ describe('Server Module - Comprehensive', () => {
     expect(mockSocket.emit).toHaveBeenCalledWith('error', { message: 'Username is required' });
   });
 
+  test('tracks active users on user_connected and broadcasts list', async () => {
+    // Clear any existing active users from previous tests
+    const { activeUsers } = require('../src/server/index');
+    activeUsers.clear();
+
+    // Mock socket for testing
+    const socket = {
+      id: 'socket-1',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn()
+    };
+
+    const io = {
+      on: jest.fn(),
+      emit: jest.fn()
+    };
+
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+    socketHandler(socket);
+
+    const userConnectedHandler = socket.on.mock.calls.find(call => call[0] === 'user_connected')[1];
+
+    await userConnectedHandler({ username: 'Alice', channel: 'general' });
+
+    expect(io.emit).toHaveBeenCalledWith('active_users', ['Alice']);
+  });
+
+  test('removes user on disconnect and broadcasts updated list', async () => {
+    const { activeUsers } = require('../src/server/index');
+    activeUsers.clear();
+
+    const socket = {
+      id: 'socket-2',
+      join: jest.fn(),
+      leave: jest.fn(),
+      emit: jest.fn(),
+      on: jest.fn()
+    };
+
+    const io = {
+      on: jest.fn(),
+      emit: jest.fn()
+    };
+
+    const setupSocketHandlers = require('../src/server/index').setupSocketHandlers;
+    const socketHandler = setupSocketHandlers(io);
+    socketHandler(socket);
+
+    const userConnectedHandler = socket.on.mock.calls.find(call => call[0] === 'user_connected')[1];
+    const disconnectHandler = socket.on.mock.calls.find(call => call[0] === 'disconnect')[1];
+
+    await userConnectedHandler({ username: 'Bob', channel: 'general' });
+    io.emit.mockClear();
+
+    disconnectHandler();
+
+    expect(io.emit).toHaveBeenCalledWith('active_users', []);
+  });
+
+  test('getActiveUsernames deduplicates usernames', async () => {
+    const { activeUsers, getActiveUsernames } = require('../src/server/index');
+    activeUsers.clear();
+
+    activeUsers.set('socket-a', 'Alice');
+    activeUsers.set('socket-b', 'Alice');
+    activeUsers.set('socket-c', 'Bob');
+
+    const usernames = getActiveUsernames();
+    expect(usernames).toEqual(['Alice', 'Bob']);
+
+    activeUsers.clear();
+  });
+
+  test('seedDatabase inserts seed messages when database is empty', async () => {
+    const { seedDatabase, SEED_MESSAGES, pool } = require('../src/server/index');
+
+    const originalQuery = pool.query;
+    const querySpy = jest.fn()
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+      .mockResolvedValue({ rows: [] });
+
+    pool.query = querySpy;
+
+    await seedDatabase();
+
+    expect(querySpy.mock.calls[0][0]).toContain('SELECT COUNT(*)');
+    expect(querySpy).toHaveBeenCalledTimes(1 + SEED_MESSAGES.length);
+    for (let i = 1; i <= SEED_MESSAGES.length; i++) {
+      expect(querySpy.mock.calls[i][0]).toContain('INSERT INTO messages');
+      expect(querySpy.mock.calls[i][1][1]).toBe(SEED_MESSAGES[i - 1].username);
+      expect(querySpy.mock.calls[i][1][2]).toBe(SEED_MESSAGES[i - 1].message);
+      expect(querySpy.mock.calls[i][1][3]).toBe(SEED_MESSAGES[i - 1].channel);
+    }
+
+    pool.query = originalQuery;
+  });
+
+  test('seedDatabase skips seeding when database has messages', async () => {
+    const { seedDatabase, pool } = require('../src/server/index');
+
+    const originalQuery = pool.query;
+    const querySpy = jest.fn()
+      .mockResolvedValueOnce({ rows: [{ count: '5' }] });
+
+    pool.query = querySpy;
+
+    await seedDatabase();
+
+    expect(querySpy).toHaveBeenCalledTimes(1);
+
+    pool.query = originalQuery;
+  });
+
+  test('seedDatabase handles errors gracefully', async () => {
+    const { seedDatabase, pool } = require('../src/server/index');
+
+    const originalQuery = pool.query;
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    pool.query = jest.fn().mockRejectedValue(new Error('DB error'));
+
+    await seedDatabase();
+
+    expect(errorSpy).toHaveBeenCalledWith('Error seeding database:', expect.any(Error));
+
+    pool.query = originalQuery;
+    errorSpy.mockRestore();
+  });
+
+  test('SEED_MESSAGES covers all channels', () => {
+    const { SEED_MESSAGES } = require('../src/server/index');
+    const channels = [...new Set(SEED_MESSAGES.map(m => m.channel))];
+    expect(channels).toContain('welcome');
+    expect(channels).toContain('general');
+    expect(channels).toContain('growth');
+    expect(channels).toContain('feedback');
+  });
 
 });
 
