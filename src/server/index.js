@@ -3,7 +3,6 @@ const http = require('http');
 const path = require('path');
 const socketIo = require('socket.io');
 const { Pool } = require('pg');
-const { createMemoryPool } = require('./memory-pool');
 const { createApiRouter, generateDocs } = require('./api');
 // Create Express app and HTTP server
 const app = express();
@@ -26,13 +25,11 @@ const CHANNELS = ['welcome', 'general', 'growth', 'feedback'];
 // Validation constants
 const MAX_MESSAGE_LENGTH = 2000;
 
-// Database connection pool — falls back to in-memory when DATABASE_URL is absent
-const pool = process.env.DATABASE_URL
-  ? new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-    })
-  : createMemoryPool();
+// Database connection pool
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 // Seed messages inserted into empty databases for fresh deployments
 const SEED_MESSAGES = [

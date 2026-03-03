@@ -41,11 +41,6 @@ jest.mock('pg', () => ({
   Pool: jest.fn(() => mockPool)
 }));
 
-// Mock memory-pool module so the server always uses mockPool
-jest.mock('../src/server/memory-pool', () => ({
-  createMemoryPool: jest.fn(() => mockPool)
-}));
-
 // Mock modules
 const mockStaticMiddleware = 'static-middleware';
 const mockExpressApp = {
@@ -135,47 +130,6 @@ describe('Server Module - Database Connection Error', () => {
     consoleLogSpy.mockRestore();
   });
 
-  test('uses pg Pool when DATABASE_URL is set', async () => {
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-    const { Pool } = require('pg');
-    Pool.mockClear();
-
-    process.env.DATABASE_URL = 'postgres://localhost/test';
-    jest.isolateModules(() => {
-      require('../src/server/index');
-    });
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    expect(Pool).toHaveBeenCalledWith(expect.objectContaining({
-      connectionString: 'postgres://localhost/test',
-      ssl: false,
-    }));
-
-    delete process.env.DATABASE_URL;
-    consoleLogSpy.mockRestore();
-  });
-
-  test('uses ssl when DATABASE_URL is set in production', async () => {
-    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-    const { Pool } = require('pg');
-    Pool.mockClear();
-
-    process.env.DATABASE_URL = 'postgres://localhost/test';
-    process.env.NODE_ENV = 'production';
-    jest.isolateModules(() => {
-      require('../src/server/index');
-    });
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    expect(Pool).toHaveBeenCalledWith(expect.objectContaining({
-      connectionString: 'postgres://localhost/test',
-      ssl: { rejectUnauthorized: false },
-    }));
-
-    delete process.env.DATABASE_URL;
-    process.env.NODE_ENV = 'test';
-    consoleLogSpy.mockRestore();
-  });
 });
 
 describe('Server Module - Comprehensive', () => {
