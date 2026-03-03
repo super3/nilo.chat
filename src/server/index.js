@@ -107,6 +107,13 @@ async function initializeDatabase() {
     `);
     await pool.query('CREATE INDEX IF NOT EXISTS idx_webhooks_agent_id ON webhooks(agent_id)');
     await seedDatabase();
+    // Suppress noisy checkpoint logs that appear as errors in container logs
+    try {
+      await pool.query('ALTER SYSTEM SET log_checkpoints = off');
+      await pool.query('SELECT pg_reload_conf()');
+    } catch {
+      // Requires superuser — not available on all managed databases
+    }
   } catch (error) {
     console.error('Database connection error:', error);
   }

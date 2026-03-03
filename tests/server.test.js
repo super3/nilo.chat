@@ -149,6 +149,55 @@ describe('Server Module - Database Connection Error', () => {
 
 });
 
+describe('Server Module - Checkpoint Log Suppression', () => {
+  let originalCreateServer;
+  let mockServer;
+
+  beforeEach(() => {
+    mockServer = {
+      listen: jest.fn((port, host, callback) => {
+        const cb = typeof host === 'function' ? host : callback;
+        if (cb) cb();
+        return mockServer;
+      })
+    };
+    originalCreateServer = http.createServer;
+    http.createServer = jest.fn(() => mockServer);
+  });
+
+  afterEach(() => {
+    http.createServer = originalCreateServer;
+    mockPool.query.mockReset();
+  });
+
+  test('handles ALTER SYSTEM failure gracefully when superuser is not available', async () => {
+    const originalQuery = mockPool.query;
+    mockPool.query = jest.fn((sql) => {
+      if (sql.includes('ALTER SYSTEM')) {
+        return Promise.reject(new Error('must be superuser to execute ALTER SYSTEM'));
+      }
+      if (sql.includes('SELECT COUNT(*)')) {
+        return Promise.resolve({ rows: [{ count: '10' }] });
+      }
+      return Promise.resolve({ rows: [] });
+    });
+
+    const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+    jest.isolateModules(() => {
+      require('../src/server/index');
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Server should still start successfully despite ALTER SYSTEM failure
+    expect(consoleLogSpy).toHaveBeenCalledWith('Database connected successfully');
+
+    consoleLogSpy.mockRestore();
+    mockPool.query = originalQuery;
+  });
+});
+
 describe('Server Module - Comprehensive', () => {
   let mockSocket;
   let mockServer;
