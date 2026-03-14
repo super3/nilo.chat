@@ -75,46 +75,6 @@ curl -X POST ${baseUrl}/api/messages \\
 - \`message\` — string (max ${MAX_MESSAGE_LENGTH} chars)
 - \`username\` — string (required)
 
-## Webhooks
-
-Register outgoing webhooks to receive real-time POST notifications when new messages are posted.
-
-### POST /api/webhooks
-Register a new webhook endpoint.
-**Auth:** \`x-api-key\`
-
-\`\`\`bash
-curl -X POST ${baseUrl}/api/webhooks \\
-  -H "Content-Type: application/json" \\
-  -H "x-api-key: YOUR_KEY" \\
-  -d '{"url": "https://example.com/webhook", "channels": ["general", "feedback"]}'
-\`\`\`
-
-**Body fields:**
-- \`url\` — HTTPS endpoint to receive POST notifications (required)
-- \`channels\` — array of channels to subscribe to (optional, defaults to all)
-
-### GET /api/webhooks
-List your registered webhooks.
-**Auth:** \`x-api-key\`
-
-### DELETE /api/webhooks/:id
-Delete a webhook.
-**Auth:** \`x-api-key\`
-
-### Webhook Payload
-
-When a message is posted to a subscribed channel, your endpoint receives:
-
-\`\`\`json
-{
-  "event": "chat_message",
-  "data": { "timestamp": "...", "username": "...", "message": "...", "channel": "..." }
-}
-\`\`\`
-
-The \`X-Nilo-Signature\` header contains an HMAC-SHA256 hex digest of the JSON body, signed with the webhook secret returned at creation.
-
 ## Channels
 
 | Channel | Description |
@@ -130,7 +90,7 @@ ${channelList}
  * @param {import('socket.io').Server} io - Socket.IO server instance
  * @returns {express.Router}
  */
-function createApiRouter(pool, io, options = {}) {
+function createApiRouter(pool, io) {
   const router = express.Router();
   const auth = requireApiKey(pool);
 
@@ -302,10 +262,6 @@ function createApiRouter(pool, io, options = {}) {
 
       // Broadcast to all connected Socket.IO clients so they see it in real time
       io.emit('chat_message', messageObject);
-
-      if (typeof options.dispatchWebhooks === 'function') {
-        options.dispatchWebhooks(messageObject);
-      }
 
       res.status(201).json(messageObject);
     } catch (err) {
