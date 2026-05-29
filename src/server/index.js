@@ -32,17 +32,26 @@ const pool = new Pool({
 });
 
 // Seed messages inserted into empty databases for fresh deployments
+// `daysAgo` spreads the seed history across several days so date
+// separators (Today / Yesterday / older dates) are visible in the UI.
 const SEED_MESSAGES = [
-  { channel: 'welcome', username: 'nilo-bot', message: 'Welcome to nilo.chat! Say hi — no account needed.' },
-  { channel: 'welcome', username: 'alice', message: 'Hey everyone! Excited to be here.' },
-  { channel: 'welcome', username: 'bob', message: 'Hi! This chat app is looking great.' },
-  { channel: 'general', username: 'nilo-bot', message: 'This is the general channel for announcements and updates.' },
-  { channel: 'general', username: 'alice', message: 'Anyone working on the new feature?' },
-  { channel: 'general', username: 'charlie', message: 'Yes! The @username autocomplete is live — try typing @ in the message box.' },
-  { channel: 'growth', username: 'nilo-bot', message: 'Track outreach, experiments, and new user activity here.' },
-  { channel: 'growth', username: 'bob', message: 'We had 15 new signups this week!' },
-  { channel: 'feedback', username: 'nilo-bot', message: 'Share bugs, ideas, and feature requests in this channel.' },
-  { channel: 'feedback', username: 'charlie', message: 'Love the new mention feature. Try typing @alice or @bob!' }
+  { channel: 'welcome', username: 'nilo-bot', message: 'Welcome to nilo.chat! Say hi — no account needed.', daysAgo: 3 },
+  { channel: 'welcome', username: 'alice', message: 'Hey everyone! Excited to be here.', daysAgo: 3 },
+  { channel: 'welcome', username: 'bob', message: 'Hi! This chat app is looking great.', daysAgo: 1 },
+  { channel: 'welcome', username: 'dana', message: 'Just joined — loving the vibe already.', daysAgo: 0 },
+  { channel: 'general', username: 'nilo-bot', message: 'This is the general channel for announcements and updates.', daysAgo: 4 },
+  { channel: 'general', username: 'alice', message: 'Anyone working on the new feature?', daysAgo: 2 },
+  { channel: 'general', username: 'charlie', message: 'Yes! The @username autocomplete is live — try typing @ in the message box.', daysAgo: 2 },
+  { channel: 'general', username: 'bob', message: 'Nice work. Date separators just landed too.', daysAgo: 1 },
+  { channel: 'general', username: 'dana', message: 'Morning all — what is on the roadmap this week?', daysAgo: 0 },
+  { channel: 'growth', username: 'nilo-bot', message: 'Track outreach, experiments, and new user activity here.', daysAgo: 5 },
+  { channel: 'growth', username: 'bob', message: 'We had 15 new signups this week!', daysAgo: 2 },
+  { channel: 'growth', username: 'alice', message: 'The Reddit outreach experiment is paying off.', daysAgo: 1 },
+  { channel: 'growth', username: 'charlie', message: 'Another 6 signups overnight 🎉', daysAgo: 0 },
+  { channel: 'feedback', username: 'nilo-bot', message: 'Share bugs, ideas, and feature requests in this channel.', daysAgo: 4 },
+  { channel: 'feedback', username: 'charlie', message: 'Love the new mention feature. Try typing @alice or @bob!', daysAgo: 2 },
+  { channel: 'feedback', username: 'dana', message: 'Could we get a dark mode at some point?', daysAgo: 1 },
+  { channel: 'feedback', username: 'alice', message: 'Date dividers make catching up so much easier.', daysAgo: 0 }
 ];
 
 // Seed the database with sample messages if empty
@@ -52,9 +61,10 @@ async function seedDatabase() {
     const count = parseInt(result.rows[0].count, 10);
     if (count === 0) {
       for (const msg of SEED_MESSAGES) {
+        const timestamp = new Date(Date.now() - (msg.daysAgo || 0) * 24 * 60 * 60 * 1000).toISOString();
         await pool.query(
           'INSERT INTO messages (timestamp, username, message, channel) VALUES ($1, $2, $3, $4)',
-          [new Date().toISOString(), msg.username, msg.message, msg.channel]
+          [timestamp, msg.username, msg.message, msg.channel]
         );
       }
       console.log(`Seeded database with ${SEED_MESSAGES.length} sample messages`);
