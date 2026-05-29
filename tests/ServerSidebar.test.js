@@ -20,9 +20,11 @@ describe('ServerSidebar.vue', () => {
     const logoDiv = wrapper.find('.cursor-pointer.mb-4');
     expect(logoDiv.exists()).toBe(true);
     
-    const logoContent = logoDiv.find('.bg-indigo-lighter');
+    const logoContent = logoDiv.find('.nilo-logo');
     expect(logoContent.exists()).toBe(true);
-    expect(logoContent.text()).toBe('N');
+    const logoSvg = logoContent.find('svg');
+    expect(logoSvg.exists()).toBe(true);
+    expect(logoSvg.find('polyline').exists()).toBe(true);
     
     // Check GitHub link
     const githubLink = wrapper.find('a[href="https://github.com/super3/nilo.chat"]');
