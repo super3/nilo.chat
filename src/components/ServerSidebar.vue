@@ -4,7 +4,7 @@
       <div class="cursor-pointer mb-4 relative" @click="switchChannel('general')">
         <div class="nilo-logo h-12 w-12 flex items-center justify-center rounded-lg mb-1 overflow-hidden">
           <svg class="h-12 w-12 block" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="64" height="64" rx="14" fill="#1A2140" />
+            <rect width="64" height="64" rx="14" fill="#2C3A6E" />
             <polyline points="22,44 22,20 42,44 42,20" fill="none"
               stroke="#38A89D" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
