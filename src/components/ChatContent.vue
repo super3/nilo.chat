@@ -25,16 +25,23 @@
     </div>
     <!-- Chat messages -->
     <div ref="messageContainer" class="px-6 py-4 flex-1 overflow-y-auto" @scroll="checkScrollPosition">
-      <ChatMessage
-        v-for="(message, index) in messages"
-        :key="index"
-        :username="message.username"
-        :timestamp="formatTimestamp(message.timestamp)"
-        :message="message.message"
-        :code="message.code || ''"
-        :avatar-color="getAvatarColor(message.username)"
-        :profile-image-url="message.profileImageUrl || ''"
-      />
+      <template v-for="(message, index) in messages" :key="index">
+        <div v-if="shouldShowDateSeparator(index)" class="flex items-center my-4">
+          <div class="flex-grow border-t border-gray-200"></div>
+          <span class="flex-none mx-3 text-xs font-medium text-gray-400">
+            {{ formatDateSeparator(message.timestamp) }}
+          </span>
+          <div class="flex-grow border-t border-gray-200"></div>
+        </div>
+        <ChatMessage
+          :username="message.username"
+          :timestamp="formatTimestamp(message.timestamp)"
+          :message="message.message"
+          :code="message.code || ''"
+          :avatar-color="getAvatarColor(message.username)"
+          :profile-image-url="message.profileImageUrl || ''"
+        />
+      </template>
     </div>
     <div class="pb-6 px-4 flex-none">
       <div class="relative">
@@ -310,6 +317,38 @@ export default {
       } catch (e) {
         return timestamp;
       }
+    },
+    shouldShowDateSeparator(index) {
+      // Always show a separator before the first message
+      if (index === 0) return true;
+
+      const current = new Date(this.messages[index].timestamp);
+      const previous = new Date(this.messages[index - 1].timestamp);
+
+      // Guard against invalid dates so we don't render a bogus separator
+      if (isNaN(current.getTime()) || isNaN(previous.getTime())) return false;
+
+      return current.getFullYear() !== previous.getFullYear() ||
+        current.getMonth() !== previous.getMonth() ||
+        current.getDate() !== previous.getDate();
+    },
+    formatDateSeparator(timestamp) {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return timestamp;
+
+      const now = new Date();
+      const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const dayDiff = Math.round((startOfDay(now) - startOfDay(date)) / 86400000);
+
+      if (dayDiff === 0) return 'Today';
+      if (dayDiff === 1) return 'Yesterday';
+
+      const options = { weekday: 'long', month: 'long', day: 'numeric' };
+      // Include the year only when it differs from the current year, like Slack
+      if (date.getFullYear() !== now.getFullYear()) {
+        options.year = 'numeric';
+      }
+      return date.toLocaleDateString('en-US', options);
     },
     getMessageContainer() {
       return this.$refs.messageContainer;

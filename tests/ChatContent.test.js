@@ -490,6 +490,88 @@ describe('ChatContent.vue', () => {
     global.Date = originalDate;
   });
   
+  describe('date separators', () => {
+    test('shouldShowDateSeparator always returns true for the first message', async () => {
+      await wrapper.setData({
+        messages: [
+          { timestamp: '2026-05-29T10:00:00Z', username: 'a', message: 'hi' }
+        ]
+      });
+      expect(wrapper.vm.shouldShowDateSeparator(0)).toBe(true);
+    });
+
+    test('shouldShowDateSeparator returns true when the day changes', async () => {
+      await wrapper.setData({
+        messages: [
+          { timestamp: '2026-05-28T10:00:00Z', username: 'a', message: 'day1' },
+          { timestamp: '2026-05-29T10:00:00Z', username: 'a', message: 'day2' }
+        ]
+      });
+      expect(wrapper.vm.shouldShowDateSeparator(1)).toBe(true);
+    });
+
+    test('shouldShowDateSeparator returns false for messages on the same day', async () => {
+      await wrapper.setData({
+        messages: [
+          { timestamp: '2026-05-29T08:00:00Z', username: 'a', message: 'first' },
+          { timestamp: '2026-05-29T09:00:00Z', username: 'a', message: 'second' }
+        ]
+      });
+      expect(wrapper.vm.shouldShowDateSeparator(1)).toBe(false);
+    });
+
+    test('shouldShowDateSeparator returns false when a timestamp is invalid', async () => {
+      await wrapper.setData({
+        messages: [
+          { timestamp: '2026-05-29T08:00:00Z', username: 'a', message: 'first' },
+          { timestamp: 'not-a-date', username: 'a', message: 'second' }
+        ]
+      });
+      expect(wrapper.vm.shouldShowDateSeparator(1)).toBe(false);
+    });
+
+    test('formatDateSeparator returns "Today" for today\'s date', () => {
+      const now = new Date();
+      expect(wrapper.vm.formatDateSeparator(now.toISOString())).toBe('Today');
+    });
+
+    test('formatDateSeparator returns "Yesterday" for the previous day', () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      expect(wrapper.vm.formatDateSeparator(yesterday.toISOString())).toBe('Yesterday');
+    });
+
+    test('formatDateSeparator returns a weekday/month/day string within the current year', () => {
+      const now = new Date();
+      // A date a few days ago in the same year (avoid month/year edge cases)
+      const earlier = new Date(now.getFullYear(), 5, 15, 12, 0, 0);
+      // Skip if that date is today/yesterday relative to "now"
+      const result = wrapper.vm.formatDateSeparator(earlier.toISOString());
+      if (result !== 'Today' && result !== 'Yesterday') {
+        expect(result).not.toMatch(/\d{4}/); // no year for current-year dates
+        expect(result).toContain('June');
+      }
+    });
+
+    test('formatDateSeparator includes the year for dates in a different year', () => {
+      const result = wrapper.vm.formatDateSeparator('2020-01-15T12:00:00Z');
+      expect(result).toContain('2020');
+    });
+
+    test('formatDateSeparator returns the original value for an invalid timestamp', () => {
+      expect(wrapper.vm.formatDateSeparator('not-a-date')).toBe('not-a-date');
+    });
+
+    test('renders a date separator in the message feed', async () => {
+      await wrapper.setData({
+        messages: [
+          { timestamp: '2020-01-15T12:00:00Z', username: 'a', message: 'old' }
+        ]
+      });
+      expect(wrapper.html()).toContain('2020');
+    });
+  });
+
   test('getAvatarColor generates consistent colors', () => {
     // Test the same username multiple times, should get same color
     const color1 = wrapper.vm.getAvatarColor('john');

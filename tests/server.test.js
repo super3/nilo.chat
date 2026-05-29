@@ -879,5 +879,37 @@ describe('Server Module - Comprehensive', () => {
     expect(channels).toContain('feedback');
   });
 
+  test('SEED_MESSAGES spans multiple days so date separators are visible', () => {
+    const { SEED_MESSAGES } = require('../src/server/index');
+    const distinctDays = [...new Set(SEED_MESSAGES.map(m => m.daysAgo))];
+    // Need at least today plus two other days to exercise the separators
+    expect(distinctDays.length).toBeGreaterThanOrEqual(3);
+    expect(SEED_MESSAGES.some(m => m.daysAgo === 0)).toBe(true);
+  });
+
+  test('seedDatabase backdates seed messages by daysAgo', async () => {
+    const { seedDatabase, SEED_MESSAGES, pool } = require('../src/server/index');
+
+    const originalQuery = pool.query;
+    const querySpy = jest.fn()
+      .mockResolvedValueOnce({ rows: [{ count: '0' }] })
+      .mockResolvedValue({ rows: [] });
+    pool.query = querySpy;
+
+    const before = Date.now();
+    await seedDatabase();
+    const after = Date.now();
+
+    for (let i = 1; i <= SEED_MESSAGES.length; i++) {
+      const insertedTs = new Date(querySpy.mock.calls[i][1][0]).getTime();
+      const expectedMin = before - SEED_MESSAGES[i - 1].daysAgo * 24 * 60 * 60 * 1000;
+      const expectedMax = after - SEED_MESSAGES[i - 1].daysAgo * 24 * 60 * 60 * 1000;
+      expect(insertedTs).toBeGreaterThanOrEqual(expectedMin);
+      expect(insertedTs).toBeLessThanOrEqual(expectedMax);
+    }
+
+    pool.query = originalQuery;
+  });
+
 });
 
