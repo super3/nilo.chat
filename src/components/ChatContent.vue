@@ -26,11 +26,12 @@
     <!-- Chat messages -->
     <div ref="messageContainer" class="px-6 py-4 flex-1 overflow-y-auto" @scroll="checkScrollPosition">
       <template v-for="(message, index) in messages" :key="index">
-        <div v-if="shouldShowDateSeparator(index)" class="relative my-4 text-center">
-          <div class="absolute inset-x-0 top-1/2 border-t border-border-light"></div>
-          <span class="relative inline-block px-3 text-xs font-medium text-gray-500 bg-white">
+        <div v-if="shouldShowDateSeparator(index)" class="flex items-center my-4">
+          <div class="flex-grow border-t border-gray-200"></div>
+          <span class="flex-none mx-3 text-xs font-medium text-gray-400">
             {{ formatDateSeparator(message.timestamp) }}
           </span>
+          <div class="flex-grow border-t border-gray-200"></div>
         </div>
         <ChatMessage
           :username="message.username"
