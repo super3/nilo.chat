@@ -2,6 +2,15 @@ const express = require('express');
 const http = require('http');
 const io = require('socket.io-client');
 
+// Restore an env var to its prior value (deleting it if it was unset).
+function restoreEnv(name, original) {
+  if (original === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = original;
+  }
+}
+
 // Track if we should fail the database connection test
 let shouldFailDbConnection = false;
 
@@ -815,8 +824,54 @@ describe('Server Module - Comprehensive', () => {
     activeUsers.clear();
   });
 
+  test('isPreviewEnvironment is true only for named non-production Railway environments', () => {
+    const { isPreviewEnvironment } = require('../src/server/index');
+    const originalName = process.env.RAILWAY_ENVIRONMENT_NAME;
+    const originalLegacy = process.env.RAILWAY_ENVIRONMENT;
+
+    // Local/dev: neither variable set.
+    delete process.env.RAILWAY_ENVIRONMENT_NAME;
+    delete process.env.RAILWAY_ENVIRONMENT;
+    expect(isPreviewEnvironment()).toBe(false);
+
+    // Production environment: explicitly named "production".
+    process.env.RAILWAY_ENVIRONMENT_NAME = 'production';
+    expect(isPreviewEnvironment()).toBe(false);
+
+    // PR preview environment.
+    process.env.RAILWAY_ENVIRONMENT_NAME = 'pr-56';
+    expect(isPreviewEnvironment()).toBe(true);
+
+    // Legacy fallback variable also works.
+    delete process.env.RAILWAY_ENVIRONMENT_NAME;
+    process.env.RAILWAY_ENVIRONMENT = 'pr-56';
+    expect(isPreviewEnvironment()).toBe(true);
+
+    restoreEnv('RAILWAY_ENVIRONMENT_NAME', originalName);
+    restoreEnv('RAILWAY_ENVIRONMENT', originalLegacy);
+  });
+
+  test('seedDatabase does nothing outside a PR preview environment', async () => {
+    const { seedDatabase, pool } = require('../src/server/index');
+    const original = process.env.RAILWAY_ENVIRONMENT_NAME;
+    process.env.RAILWAY_ENVIRONMENT_NAME = 'production';
+
+    const originalQuery = pool.query;
+    const querySpy = jest.fn();
+    pool.query = querySpy;
+
+    await seedDatabase();
+
+    // Production / local: never touches the database at all.
+    expect(querySpy).not.toHaveBeenCalled();
+
+    pool.query = originalQuery;
+    restoreEnv('RAILWAY_ENVIRONMENT_NAME', original);
+  });
+
   test('seedDatabase inserts seed messages when database is empty', async () => {
     const { seedDatabase, SEED_MESSAGES, pool } = require('../src/server/index');
+    process.env.RAILWAY_ENVIRONMENT_NAME = 'pr-56';
 
     const originalQuery = pool.query;
     const querySpy = jest.fn()
@@ -837,10 +892,12 @@ describe('Server Module - Comprehensive', () => {
     }
 
     pool.query = originalQuery;
+    delete process.env.RAILWAY_ENVIRONMENT_NAME;
   });
 
   test('seedDatabase skips seeding when database has messages', async () => {
     const { seedDatabase, pool } = require('../src/server/index');
+    process.env.RAILWAY_ENVIRONMENT_NAME = 'pr-56';
 
     const originalQuery = pool.query;
     const querySpy = jest.fn()
@@ -853,10 +910,12 @@ describe('Server Module - Comprehensive', () => {
     expect(querySpy).toHaveBeenCalledTimes(1);
 
     pool.query = originalQuery;
+    delete process.env.RAILWAY_ENVIRONMENT_NAME;
   });
 
   test('seedDatabase handles errors gracefully', async () => {
     const { seedDatabase, pool } = require('../src/server/index');
+    process.env.RAILWAY_ENVIRONMENT_NAME = 'pr-56';
 
     const originalQuery = pool.query;
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -868,6 +927,7 @@ describe('Server Module - Comprehensive', () => {
 
     pool.query = originalQuery;
     errorSpy.mockRestore();
+    delete process.env.RAILWAY_ENVIRONMENT_NAME;
   });
 
   test('SEED_MESSAGES covers all channels', () => {
@@ -889,6 +949,7 @@ describe('Server Module - Comprehensive', () => {
 
   test('seedDatabase backdates seed messages by daysAgo', async () => {
     const { seedDatabase, SEED_MESSAGES, pool } = require('../src/server/index');
+    process.env.RAILWAY_ENVIRONMENT_NAME = 'pr-56';
 
     const originalQuery = pool.query;
     const querySpy = jest.fn()
@@ -909,6 +970,7 @@ describe('Server Module - Comprehensive', () => {
     }
 
     pool.query = originalQuery;
+    delete process.env.RAILWAY_ENVIRONMENT_NAME;
   });
 
 });

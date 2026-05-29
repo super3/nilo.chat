@@ -54,8 +54,23 @@ const SEED_MESSAGES = [
   { channel: 'feedback', username: 'alice', message: 'Date dividers make catching up so much easier.', daysAgo: 0 }
 ];
 
-// Seed the database with sample messages if empty
+// Demo seed data must only ever populate ephemeral PR preview databases —
+// never the real production database (or a developer's local one). Railway
+// injects RAILWAY_ENVIRONMENT_NAME (legacy: RAILWAY_ENVIRONMENT) with the name
+// of the deploy's environment. The canonical production environment is named
+// "production"; PR preview environments get other names (e.g. "pr-56"), and
+// the variable is unset locally. So treat any named, non-production Railway
+// environment as a throwaway preview that is safe to seed.
+function isPreviewEnvironment() {
+  const envName = process.env.RAILWAY_ENVIRONMENT_NAME || process.env.RAILWAY_ENVIRONMENT;
+  return Boolean(envName) && envName !== 'production';
+}
+
+// Seed the database with sample messages if empty (PR previews only)
 async function seedDatabase() {
+  if (!isPreviewEnvironment()) {
+    return;
+  }
   try {
     const result = await pool.query('SELECT COUNT(*) FROM messages');
     const count = parseInt(result.rows[0].count, 10);
@@ -262,5 +277,5 @@ server.listen(PORT, HOST, () => {
 
 // Export for testing
 if (process.env.NODE_ENV === 'test') {
-  module.exports = { setupSocketHandlers, pool, app, activeUsers, getActiveUsernames, seedDatabase, SEED_MESSAGES };
+  module.exports = { setupSocketHandlers, pool, app, activeUsers, getActiveUsernames, seedDatabase, SEED_MESSAGES, isPreviewEnvironment };
 }
