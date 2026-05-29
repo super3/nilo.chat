@@ -2,8 +2,12 @@
   <div class="bg-indigo-darkest text-purple-lighter flex-none w-24 p-6 hidden md:flex md:flex-col">
     <div class="flex-1">
       <div class="cursor-pointer mb-4 relative" @click="switchChannel('general')">
-        <div class="bg-indigo-lighter opacity-25 h-12 w-12 flex items-center justify-center text-black text-2xl font-semibold rounded-lg mb-1 overflow-hidden">
-          N
+        <div class="nilo-logo h-12 w-12 flex items-center justify-center rounded-lg mb-1 overflow-hidden">
+          <svg class="h-12 w-12 block" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="64" height="64" rx="14" fill="#2f365f" />
+            <polyline points="22,44 22,20 42,44 42,20" fill="none"
+              stroke="#38A89D" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
         </div>
         <div class="text-center text-white opacity-50 text-sm">&#8984;1</div>
         <div v-if="getUnreadCount('general') > 0" class="absolute -top-1 -right-1">
